@@ -1,0 +1,4 @@
+1. 使用RSWT特征，不用滤波，直接模板匹配
+2. 使用GBDT（gradient boosting decision trees）？代替Random Forest
+3. 挑选WT小波基、EMD？
+4. 扩大可以表示的record

@@ -1,0 +1,12 @@
+**~
+**.pyc
+**.py.swp
+**.out
+**.log
+**.py.orig
+TestResult/**
+PaperResults/**
+tmpmdl.txt
+tmp/**
+RFclassifier/extractfeature/ECGrandrel.json
+RFclassifier/extractfeature/WTcoefrandrel.json
