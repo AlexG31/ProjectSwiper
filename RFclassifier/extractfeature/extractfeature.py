@@ -35,8 +35,8 @@ class ECGfeatures:
     def __init__(\
                 self,\
                 rawsig,\
-                isdenoised = True\# default : no filtering , no denoise
-            ):
+                isdenoised = True\
+            ):# default : no filtering , no denoise
         if not isinstance(rawsig,list):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 

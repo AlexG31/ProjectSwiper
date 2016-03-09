@@ -180,8 +180,8 @@ def test_classifier_run():
 
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'TestResult','t16')
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r1')
     #leaveonetest(saveresultpath,StartFileIndex = 0)
-    leaveNtest(saveresultpath,3,StartFileIndex = 200,TestRoundNum = 400)
+    leaveNtest(saveresultpath,3,StartFileIndex = 0,TestRoundNum = 100)
     #test_classifier_run()
 

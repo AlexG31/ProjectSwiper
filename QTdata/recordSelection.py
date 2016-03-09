@@ -35,6 +35,29 @@ class RecSelector():
             # inspect
             print '{} records left.'.format(len(out_reclist) - ind - 1)
             self.qt.plotrec(recname)
+            # debug
+            if ind > 2:
+                print 'debug break'
+                break
+
+    def save_recs_to_img(self):
+        reclist = self.qt.getQTrecnamelist()
+        sel1213 = conf['sel1213']
+        sel1213set = set(sel1213)
+        
+        out_reclist = set(reclist) - sel1213set
+
+        for ind,recname in enumerate(reclist):
+            # inspect
+            print '{} records left.'.format(len(out_reclist) - ind - 1)
+            #self.qt.plotrec(recname)
+            self.qt.PlotAndSaveRec(recname)
+            # debug
+            if ind > 2:
+                pass
+                #print 'debug break'
+                #break
+
     def inspect_recname(self,tarrecname):
         self.qt.plotrec(tarrecname)
     def inspect_selrec(self):
@@ -73,7 +96,7 @@ class RecSelector():
 if __name__ == "__main__":
     recsel = RecSelector()
     #recsel.inspect_recname('sel16272')
-    recsel.inspect_recs()
+    recsel.save_recs_to_img()
     print '-'*30
 
 

@@ -10,3 +10,4 @@ tmpmdl.txt
 tmp/**
 RFclassifier/extractfeature/ECGrandrel.json
 RFclassifier/extractfeature/WTcoefrandrel.json
+QTdata/TmpImg/**
