@@ -35,7 +35,7 @@ class ECGfeatures:
     def __init__(\
                 self,\
                 rawsig,\
-                isdenoised = False\
+                isdenoised = True\# default : no filtering , no denoise
             ):
         if not isinstance(rawsig,list):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
@@ -44,6 +44,9 @@ class ECGfeatures:
         # first denoise 
         #
         if isdenoised == False:
+            # no denoise:
+            # WT features only
+            raise StandardError('Feature Extractor trying to denoise!')
             self.sig = ECGfeatures.signal_preprocessing(rawsig)
         else:
             self.sig = rawsig
@@ -60,10 +63,12 @@ class ECGfeatures:
         feature_type = conf['feature_type']
         if feature_type == 'wavelet':
             return self.getWTfeatureforpos(pos)
-        elif feature_type == 'wavelet_normal':
-            return self.getWTfeatureforpos(pos,WithNormalPairFeature = True)
         else:
-            return self.getfeatureforposition(pos,debug = 'none')
+            raise StandardError('This is WT feature only!--frompos()')
+        # elif feature_type == 'wavelet_normal':
+            # return self.getWTfeatureforpos(pos,WithNormalPairFeature = True)
+        # else:
+            # return self.getfeatureforposition(pos,debug = 'none')
 
     def getfeatureforposition(self,x,debug = 'none'):
         x = int(x)

@@ -1,5 +1,5 @@
 {
-    "feature_type": "normal",
+    "feature_type": "wavelet",
     "windowpairnumber_ratio_to_winlen": 20, 
     "WTrandselfeaturenumber_apprx":10000,
     "fs": 250,
