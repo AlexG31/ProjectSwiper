@@ -434,9 +434,10 @@ class ECGstatistics:
 
     @staticmethod
     def dispstat0(pFN = None ,pErr = None,LogFileName = None,LogText = None):
-        #
-        # statistics
-        #
+        # =====================================================================
+        # statistics: display statistics about the test result
+        #           write output to log file
+        # =====================================================================
         if pFN is None: 
             print 'Error:stat0**Please use eval() first**'
             return
@@ -492,7 +493,7 @@ class ECGstatistics:
                 if LogText is not None:
                     fout.write(LogText+'\n')
                 # stat log 
-                fout.write('Total #FN = \n{}\n\n'.format(len(pFN['pos'])))
+                fout.write('Total #False Negtive = {}\n\n'.format(len(pFN['pos'])))
                 fout.write('-'*60+'\n')
                 fout.write('  \t'+'\t'.join(labellist)+'\n')
                 fout.write('mean:   ')
@@ -510,15 +511,24 @@ class ECGstatistics:
             ## number analysis
             pFNstat = ECGstatistics.pFN_analysis_to_log(LogFileName,labellist,pFN)
             pErrstat = ECGstatistics.pErr_analysis_to_log(LogFileName,labellist,pErr,debug_showErrhist = False)
+            # ==================
             # pFN percentage
+            # ==================
             with open(LogFileName,'a') as fout:
+                fout.write('\n==================False Negtive Percentage===================\n\n')
+                falsenegtive_perc_list = []
                 for label in labellist:
                     labelN_FN = pFNstat[label]
                     labelN_Err = pErrstat[label]
                     perc = 100.0*labelN_FN/float(labelN_FN+labelN_Err)
+                    falsenegtive_perc_list.append((label,perc))
 
                     print 'percentage FN[{}] = {:.3f}%'.format(label,perc)
-                    fout.write('percentage FN[{}] = {:.3f}%\n'.format(label,perc))
+                    fout.write('FN%[{}] = {:.3f}%,'.format(label,perc))
+                fout.write('\n---Positive Prediction Rate---\n')
+                for label,perc in falsenegtive_perc_list:
+                    fout.write('PD%[{}] = {:.3f}%,'.format(label,100 - perc))
+
         
         return (labellist,stats)
                 

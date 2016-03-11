@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 # 
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
+curfolderpath = os.path.dirname(curfolderpath)
 projhomepath = curfolderpath;
-print 'projhomepath:',projhomepath
 # configure file
 # conf is a dict containing keys
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
@@ -47,12 +47,24 @@ def TestingAndSaveResult():
     ## test
     rf.testmdl(reclist = sel1213[0:1])
 
+def SplitResultFile(picklefilename):
+    with open(picklefilename,'r') as fin:
+        ResultTupleList = pickle.load(fin)
+    for recname,Result in ResultTupleList:
+        with open(os.path.join(os.path.dirname(picklefilename),recname),'w') as fout:
+            print 'pickle dumping:{}'.format(recname)
+            pickle.dump((recname,Result),fout)
+
+
 def debug_show_eval_result(\
             picklefilename,\
             target_recname = None\
         ):
+    pdb.set_trace();
     with open(picklefilename,'r') as fin:
         Results = pickle.load(fin)
+
+    print 'load complete'
     for recind in xrange(0,len(Results)):
         # only plot target rec
         if target_recname is not None:
@@ -65,9 +77,9 @@ def debug_show_eval_result(\
         # Evaluate prediction result statistics
         #
 
-        ECGstats = ECGstatistics(fResults[recind:recind+1])
-        ECGstats.eval(debug = False)
-        ECGstats.dispstat0()
+        #ECGstats = ECGstatistics(fResults[recind:recind+1])
+        #ECGstats.eval(debug = False)
+        #ECGstats.dispstat0()
         ECGstats.plotevalresofrec(Results[recind][0],Results)
 
 def LOOT_Eval(RFfolder):
@@ -305,6 +317,8 @@ if __name__ == '__main__':
     reslist = glob.glob(os.path.join(\
            RFfolder,'*.out'))
     for fi,fname in enumerate(reslist):
+        SplitResultFile(fname)
+        break
         if os.path.split(fname)[1] != 'hand284.out':
             pass
             #continue
@@ -314,6 +328,5 @@ if __name__ == '__main__':
     # ==========================
     # show evaluation statistics
     # ==========================
-    #LOOT_Eval(RFfolder)
-    TestN_Eval(RFfolder)
+    #TestN_Eval(RFfolder)
 

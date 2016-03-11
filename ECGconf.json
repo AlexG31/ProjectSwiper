@@ -1,7 +1,7 @@
 {
     "feature_type": "wavelet",
     "windowpairnumber_ratio_to_winlen": 20, 
-    "WTrandselfeaturenumber_apprx":10000,
+    "WTrandselfeaturenumber_apprx":1000,
     "fs": 250,
     "winlen_ratio_to_fs": 2,
     "training_excludedist": 4,

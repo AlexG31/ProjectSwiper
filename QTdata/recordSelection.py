@@ -53,7 +53,7 @@ class RecSelector():
             #self.qt.plotrec(recname)
             self.qt.PlotAndSaveRec(recname)
             # debug
-            if ind > 2:
+            if ind > 9:
                 pass
                 #print 'debug break'
                 #break

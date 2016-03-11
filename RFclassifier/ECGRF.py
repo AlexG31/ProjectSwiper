@@ -50,10 +50,22 @@ def show_drawing(folderpath = os.path.join(\
     ECGfv = extfeature.ECGfeatures(sig['sig'])
     fv = ECGfv.frompos(3e3)
 
+def valid_signal_value(sig):
+    # check Nan!
+    # check Inf!
+    float_inf = float('Inf')
+    float_nan = float('Nan')
+    if float_inf in sig or float_nan in sig:
+        return False
+    return True
 
 # train and test
 class ECGrf:
     def __init__(self,MAX_PARA_CORE = 6):
+        # only test on areas with expert labels
+        self.TestRange = 'Partial'# or 'All'
+        # Parallel
+        self.useParallelTest = True
         self.QTloader = QTdb.QTloader()
         self.mdl = None
         self.MAX_PARA_CORE = MAX_PARA_CORE
@@ -184,6 +196,12 @@ class ECGrf:
         if rfmdl is None:
             rfmdl = self.mdl
 
+        # Parallel 
+        if self.useParallelTest == True:
+            MultiProcess = 'on'
+        else:
+            MultiProcess = 'off'
+
         # test all files in reclist
         PrdRes = []
         for recname in reclist:
@@ -191,6 +209,9 @@ class ECGrf:
             time_rec0 = time.time()
             # QT sig data
             sig = self.QTloader.load(recname)
+            # valid signal value:
+            if valid_signal_value(sig['sig']) == False:
+                continue
             # sigle process
             if MultiProcess == 'off':
                 FeatureExtractor = \
@@ -198,6 +219,7 @@ class ECGrf:
 
             # original rawsig
             rawsig = sig['sig']
+            N_signal = len(rawsig)
 
             # denoise signal
             #
@@ -208,6 +230,7 @@ class ECGrf:
                 else:
                     denoisesig = wtdenoise.denoise(rawsig)
                     denoisesig = denoisesig.tolist()
+                    N_signal = len(denoisesig)
             
             # init
             prRes = []
@@ -219,20 +242,27 @@ class ECGrf:
             #
             expres = self.QTloader.\
                     getexpertlabeltuple(recname)
-            prRangeLb = min([x[0] for x in expres])
-            prRangeRb = max([x[0] for x in expres])
-            #
-            # expand a little bit outside of the original expert's label range
-            #
-            test_expand_width = 20
-            prRange = range(\
-                    prRangeLb-test_expand_width,\
-                    prRangeRb+test_expand_width+1)
+
+            if self.TestRange == 'All':
+                WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
+                Blank_Len = WindowLen/2+1
+                prRange = range(Blank_Len,N_signal - 1-Blank_Len)
+            else:
+                #
+                # expand a little bit outside of the original expert's label range
+                #
+                test_expand_width = 20
+                prRangeLb = min([x[0] for x in expres])-test_expand_width
+                prRangeRb = max([x[0] for x in expres])+test_expand_width+1
+                prRangeLb = max(0,prRangeLb)
+                prRangeRb = min(N_signal - 1,prRangeRb)
+                prRange = range(prRangeLb,prRangeRb)
             
             
             debugLogger.dump(\
                     'Testing samples with lenth {}\n'.\
                     format(len(prRange)))
+            #
             # pickle dumple modle to file for multi process testing
             #
             with open(tmpmdlfilename,'w') as fout:
@@ -306,8 +336,7 @@ class ECGrf:
             
             
         if len(PrdRes) != len(poslist):
-            raise StandardError(\
-                    'test Error: output label length doesn''t match!')
+            raise StandardError('test Error: output label length doesn''t match!')
         return zip(poslist,PrdRes)
 
     def test_with_positionlist_multiprocess(\
@@ -763,6 +792,8 @@ def Parallel_CollectRecFeature(recname):
     # load sig
     QTloader = QTdb.QTloader()
     sig = QTloader.load(recname)
+    if valid_signal_value(sig['sig']) == False:
+        return [[],[]]
     # blank list
     blklist = None
     if recname in blkArea:
@@ -771,7 +802,6 @@ def Parallel_CollectRecFeature(recname):
     tX,ty = ECGrf.collectfeaturesforsig(sig,blankrangelist = blklist)
     return (tX,ty)
     
-        
 
 if __name__ == '__main__':
     pass

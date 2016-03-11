@@ -68,6 +68,7 @@ class QTloader:
     def PlotAndSaveRec(self,recname = 'sel103',showExpertLabel = False,xWinLen = 400,savefolderpath = 'TmpImg'):
         # show rawsig&labels
         sig = self.load(recname)
+
         plt.figure(num = 1,figsize = (20,10))
         Labels = self.getexpertlabeltuple(recname)
         #debug
