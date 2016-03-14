@@ -183,6 +183,21 @@ class ECGrf:
         self.mdl = rfclassifier
         return rfclassifier
 
+    
+    def test_signal(self,signal,rfmdl = None,MultiProcess = 'off'):
+        # test rawsignal
+        if rfmdl is None:
+            rfmdl = self.mdl
+        if MultiProcess == 'off':
+            FeatureExtractor = extfeature.ECGfeatures(signal)
+        else:
+            raise StandardError('MultiProcess on is not defined yet!')
+        if MultiProcess == 'on':
+            raise StandardError('MultiProcess on is not defined yet!')
+        elif MultiProcess == 'off':
+            record_predict_result = self.test_with_positionlist(rfmdl,range(0,len(signal)),FeatureExtractor)
+        return record_predict_result
+
     # testing ECG record with trained mdl
     def testing(\
             self,\
@@ -214,8 +229,7 @@ class ECGrf:
                 continue
             # sigle process
             if MultiProcess == 'off':
-                FeatureExtractor = \
-                        extfeature.ECGfeatures(sig['sig'])
+                FeatureExtractor = extfeature.ECGfeatures(sig['sig'])
 
             # original rawsig
             rawsig = sig['sig']

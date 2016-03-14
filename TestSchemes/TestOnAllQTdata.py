@@ -11,6 +11,7 @@ import math
 import pickle
 import random
 import time
+import shutil
 import numpy as np
 import pdb
 ## machine learning methods
@@ -47,6 +48,9 @@ def TestingAndSaveResult():
     print 'Training time:',time1-time0
     ## test
     rf.testmdl(reclist = sel1213[0:1])
+def backup_configure_file(saveresultpath):
+    shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
+    
 def TestAllQTdata(saveresultpath):
     # Leave Ntest out of 30 records to test
     #
@@ -92,40 +96,14 @@ def TestAllQTdata(saveresultpath):
 
 
     
-def test_classifier_run():
-    # =======================================
-    # refresh random select feature json file
-    # =======================================
-    ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
-
-    # collect test record list
-    sel1213 = conf['sel1213']
-    target_index = 11
-    # init rf classifier
-    rf = ECGRF.ECGrf()
-    # traning
-    traininglist = [x for x in sel1213 \
-            if x != sel1213[target_index]]
-    traininglist = traininglist[0:5]
-    # prompt
-    print '>>> Training {}'.format(traininglist)
-    rf.training(traininglist)
-    print '>>> Training finished.'
-    # testing
-    print 'testing:',sel1213[target_index]
-    rf.testmdl(\
-            reclist = [sel1213[target_index],],\
-            TestResultFileName = \
-                os.path.join(\
-                        projhomepath,\
-                        'tmp',\
-                        'tmp.out'.format(target_index)))
-
 if __name__ == '__main__':
 
     saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r2')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
+
+    #backup configuration file
+    backup_configure_file(saveresultpath)
 
     TestAllQTdata(saveresultpath)
 

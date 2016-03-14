@@ -56,15 +56,33 @@ def SplitResultFile(picklefilename):
             pickle.dump((recname,Result),fout)
 
 
+class ResultPloter:
+    # plot and display test result
+    def __init__(self,FileName = None):
+        self.filename = FileName
+        with open(FileName,'r') as fin:
+            (self.recname,self.testresult) = pickle.load(fin)
+        
+    def plot(self):
+        Results = [(self.recname,self.testresult),]
+        fResults = ECGRF.ECGrf.resfilter(Results)
+        #
+        # show filtered results & raw results
+        # Evaluate prediction result statistics
+        #
+        recind = 0
+        ECGstats = ECGstatistics(fResults[recind:recind+1])
+        ECGstats.eval(debug = False)
+        ECGstats.dispstat0()
+        ECGstats.plotevalresofrec(Results[recind][0],Results)
+
 def debug_show_eval_result(\
             picklefilename,\
             target_recname = None\
         ):
-    pdb.set_trace();
     with open(picklefilename,'r') as fin:
         Results = pickle.load(fin)
 
-    print 'load complete'
     for recind in xrange(0,len(Results)):
         # only plot target rec
         if target_recname is not None:
@@ -311,19 +329,24 @@ if __name__ == '__main__':
            'TestResult',\
            'pc',\
            'r2')
+    TargetRecordList = ['sel38','sel42',]
     # ==========================
     # plot prediction result
     # ==========================
     reslist = glob.glob(os.path.join(\
-           RFfolder,'*.out'))
+           RFfolder,'*'))
     for fi,fname in enumerate(reslist):
-        SplitResultFile(fname)
-        break
-        if os.path.split(fname)[1] != 'hand284.out':
-            pass
-            #continue
-        print 'Fname:',fname
-        debug_show_eval_result(fname)#,target_recname = 'sele0612')
+        # block *.out
+        if fname[-4:] == '.out':
+            continue
+        print 'file name:',fname
+        currecname = os.path.split(fname)[-1]
+        if currecname not in TargetRecordList:
+            continue
+        ploter = ResultPloter(fname)
+        ploter.plot()
+        pdb.set_trace()
+        
 
     # ==========================
     # show evaluation statistics
