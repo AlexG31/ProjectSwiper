@@ -11,6 +11,7 @@ import sys
 import json
 import math
 import pdb
+import array
 
 import matplotlib.pyplot as plt
 # project homepath
@@ -37,7 +38,7 @@ class ECGfeatures:
                 rawsig,\
                 isdenoised = True\
             ):# default : no filtering , no denoise
-        if not isinstance(rawsig,list):
+        if not isinstance(rawsig,list) and not isinstance(rawsig,array.array):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 
         #
@@ -118,26 +119,36 @@ class ECGfeatures:
         fs = conf['fs']
         FixedWindowLen = conf['winlen_ratio_to_fs']*fs
         winlen_hlf = int(FixedWindowLen/2)
-        # 
+        # return windowed sig 
         winsig = []
         if x <winlen_hlf:
-            winsig.extend([0]*(winlen_hlf-x))
+            # use sig[0] to extend left
+            winsig.extend([sig[0]]*(winlen_hlf-x))
+            # original sigal
             winsig.extend(sig[0:x])
         else:
             winsig.extend(sig[x-winlen_hlf:x])
-        if x+winlen_hlf >= len(sig):
+        # for odd & even FixedWindowLen
+        right_bound = x+winlen_hlf +1
+        if FixedWindowLen%2 == 0:
+            right_bound -= 1
+        if right_bound > len(sig):
             winsig.extend(sig[x:])
-            winsig.extend([0]*(len(sig)-winlen_hlf-x+1))
+            winsig.extend([0]*(right_bound - len(sig)))
         else:
-            winsig.extend(sig[x:x+winlen_hlf+1])
+            winsig.extend(sig[x:right_bound])
+        # debug
+        if len(winsig) != FixedWindowLen:
+            # error : the returned windowed signal must be a fix-length signal
+            print 'error : the returned windowed signal must be a fix-length signal!'
+            pdb.set_trace()
+
         return winsig
 
-        
     def getWTfeatureforpos(self,pos,WithNormalPairFeature = False):
         pos = int(pos)
         if pos<0 or pos >= len(self.rawsig):
-            raise StandardError(\
-                    'input position posx must in range of sig indexs!')
+            raise StandardError('input position posx must in range of sig indexs!')
         rawsig = self.rawsig
         
         # ====================================
@@ -171,6 +182,13 @@ class ECGfeatures:
         with open(WTrrJsonFileName,'r') as fin:
             WTrelList = json.load(fin)
         for detailsignal,randrels in zip(dslist,WTrelList):
+            # debug:
+            for x in randrels:
+                for xval in x:
+                    if xval<0 or xval >= len(detailsignal):
+                        print 'x = ',x
+                        pdb.set_trace()
+
             fv = [detailsignal[x[0]] - detailsignal[x[1]] for x in randrels]
             features.extend(fv)
             fv = [abs(detailsignal[x[0]] - detailsignal[x[1]]) for x in randrels]

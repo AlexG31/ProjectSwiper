@@ -312,12 +312,7 @@ class ECGrf:
 
         return PrdRes
 
-    def test_with_positionlist(\
-            self,\
-            rfmdl,\
-            poslist,\
-            featureextractor\
-            ):
+    def test_with_positionlist(self,rfmdl,poslist,featureextractor):
         # test with buckets
         # 
         # Prediction Result
@@ -344,8 +339,7 @@ class ECGrf:
             samples_tobe_tested = map(featureextractor.frompos,range(bkt_L,bkt_R))
             # predict
             #
-            res = rfmdl.predict(\
-                    samples_tobe_tested)
+            res = rfmdl.predict(samples_tobe_tested)
             PrdRes.extend(res.tolist())
             
             

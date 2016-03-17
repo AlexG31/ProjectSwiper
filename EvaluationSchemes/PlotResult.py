@@ -35,6 +35,8 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import QTdata.loadQTdata as QTdb
 from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
+from ECGPloter.ResultPloter import ECGResultPloter
+from MITdb.MITdbLoader import MITdbLoader
 
 
 def TestingAndSaveResult():
@@ -75,6 +77,11 @@ class ResultPloter:
         ECGstats.eval(debug = False)
         ECGstats.dispstat0()
         ECGstats.plotevalresofrec(Results[recind][0],Results)
+    def plotMITdb(self):
+        Results = [(self.recname,self.testresult),]
+        fResults = ECGRF.ECGrf.resfilter(Results)
+        # plot waveform and predict result
+
 
 def debug_show_eval_result(\
             picklefilename,\
@@ -322,13 +329,12 @@ class BestRoundSelector:
         for elem in res:
             print elem
         
-
-if __name__ == '__main__':
+def plotMITdbTestResult():
     RFfolder = os.path.join(\
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r2')
+           'r3')
     TargetRecordList = ['sel38','sel42',]
     # ==========================
     # plot prediction result
@@ -337,15 +343,50 @@ if __name__ == '__main__':
            RFfolder,'*'))
     for fi,fname in enumerate(reslist):
         # block *.out
-        if fname[-4:] == '.out':
+        if fname[-4:] == '.out' or '.json' in fname:
             continue
         print 'file name:',fname
         currecname = os.path.split(fname)[-1]
         if currecname not in TargetRecordList:
-            continue
-        ploter = ResultPloter(fname)
-        ploter.plot()
+            pass
         pdb.set_trace()
+        with open(fname,'r') as fin:
+            (recID,reslist) = pickle.load(fin)
+        # load signal
+        mitdb = MITdbLoader()
+        rawsig = mitdb.load(recID)
+        # plot res
+        resploter = ECGResultPloter(rawsig,reslist)
+        resploter.plot()
+        
+if __name__ == '__main__':
+
+    plotMITdbTestResult()
+    sys.exit()
+    # exit
+    #RFfolder = os.path.join(\
+           #projhomepath,\
+           #'TestResult',\
+           #'pc',\
+           #'r2')
+    #TargetRecordList = ['sel38','sel42',]
+    ## ==========================
+    ## plot prediction result
+    ## ==========================
+    #reslist = glob.glob(os.path.join(\
+           #RFfolder,'*'))
+    #for fi,fname in enumerate(reslist):
+        ## block *.out
+        #if fname[-4:] == '.out':
+            #continue
+        #print 'file name:',fname
+        #currecname = os.path.split(fname)[-1]
+        #if currecname not in TargetRecordList:
+            #continue
+        ## load signal and reslist
+        
+        #(recID,reslist) = pickle.load(fname)
+        #pdb.set_trace()
         
 
     # ==========================

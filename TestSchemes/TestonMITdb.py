@@ -52,12 +52,37 @@ def TestingAndSaveResult():
 def backup_configure_file(saveresultpath):
     shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
     
-def testonMITdb(rfClass):
-    pass
+def testonMITdb(rfClass,saveFolderpath):
     mitdb = MITdbLoader(os.path.join(projhomepath,'MITdb','pydata'))
     # get MITdb record list
     reclist = mitdb.getRecIDList()
-    pdb.set_trace()
+    TestResultList = []
+    # total time cost
+    total_time_cost = 0
+    # test each record
+    for recID in reclist:
+        # timing:
+        time_test_start = time.time()
+        # load raw signal
+        rawsig = mitdb.load(recID)
+
+        # result structure
+        # --
+        # zip(positionlist,labellist)
+        # --
+        result = rfClass.test_signal(rawsig)
+        TestResultList.append((recID,result))
+        # timing:end
+        time_test_end = time.time()
+        total_time_cost += time_test_end - time_test_start
+        ECGRF.debugLogger.dump('Testing time for {}: {:.2f} s\n'.format(recID,time_test_end - time_test_start))
+        # save result
+        with open(os.path.join(saveFolderpath,'result_{}'.format(recID)),'w') as fout:
+            pickle.dump((recID,result),fout)
+    # Dump total time cost
+    ECGRF.debugLogger.dump('\nTotal time cost:{:.2f} s\n'.format(total_time_cost))
+    return TestResultList
+
 def TestAllQTdata(saveresultpath):
     # Leave Ntest out of 30 records to test
     #
@@ -67,6 +92,7 @@ def TestAllQTdata(saveresultpath):
     selrecords= QTreclist
     rf = ECGRF.ECGrf()
     rf.useParallelTest = False
+    # test Range in each signal
     rf.TestRange = 'All'
 
     # ================
@@ -99,7 +125,7 @@ def TestAllQTdata(saveresultpath):
     testinglist = selrecords
     print '\n>>Testing:',testinglist
     ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(selrecords))
-    testonMITdb(rf)
+    testonMITdb(rf,saveresultpath)
     #rf.testmdl(reclist = selrecords,TestResultFileName = os.path.join(saveresultpath,'TestResult.out'))
     # save trained mdl
     with open(os.path.join(saveresultpath,'trained_model'),'w') as fout:
@@ -107,7 +133,6 @@ def TestAllQTdata(saveresultpath):
         ECGRF.debugLogger.dump('\n\n====\ntrained model saved in {}\n'.format(saveresultpath))
         
 if __name__ == '__main__':
-
     saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r3')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()

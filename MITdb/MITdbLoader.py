@@ -12,8 +12,15 @@ import logging
 import bisect
 
 
+# project homepath
+curfilepath =  os.path.realpath(__file__)
+curfolderpath = os.path.dirname(curfilepath)
+projhomepath = os.path.dirname(curfolderpath)
+
 class MITdbLoader:
-    def __init__(self,datafolderpath = ur'pydata'):
+    def __init__(self,datafolderpath = None):
+        if datafolderpath is None:
+            datafolderpath = os.path.join(curfolderpath,'pydata')
         self.datafolderpath = datafolderpath
         self.recIDlist = []
         # MITdb data :
@@ -25,7 +32,7 @@ class MITdbLoader:
         # ID info
         self.recID = None
 
-    def load_data(self,recID):
+    def load(self,recID):
         self.recID = recID
         with open(os.path.join(self.datafolderpath,'{}_sig1'.format(recID)),'r') as fin:
             self.sigd1 = pickle.load(fin)
@@ -39,6 +46,8 @@ class MITdbLoader:
             self.marklabel = pickle.load(fin)
         # convert mark position format
         self.convertLabelpos()
+        # return lead1 signal
+        return self.sigd1
         
     def getRecIDList(self):
         filelist = glob.glob(os.path.join(self.datafolderpath,'*_time'))
@@ -71,11 +80,12 @@ class MITdbLoader:
 
 
 if __name__ == "__main__":
+    pdb.set_trace()
     mit = MITdbLoader()
     IDlist = mit.getRecIDList()
     for recID in IDlist:
         logging.warning('loading:{}'.format(recID))
-        mit.load_data(recID)
+        mit.load(recID)
         mit.savetoimage()
         pdb.set_trace()
     
