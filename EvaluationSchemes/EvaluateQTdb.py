@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 # 
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
-curfolderpath = os.path.dirname(curfolderpath)
-projhomepath = curfolderpath;
+projhomepath = os.path.dirname(curfolderpath)
+print 'projhomepath:',projhomepath
 # configure file
 # conf is a dict containing keys
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
@@ -35,8 +35,6 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import QTdata.loadQTdata as QTdb
 from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
-from ECGPloter.ResultPloter import ECGResultPloter
-from MITdb.MITdbLoader import MITdbLoader
 
 
 def TestingAndSaveResult():
@@ -49,47 +47,16 @@ def TestingAndSaveResult():
     ## test
     rf.testmdl(reclist = sel1213[0:1])
 
-def SplitResultFile(picklefilename):
-    with open(picklefilename,'r') as fin:
-        ResultTupleList = pickle.load(fin)
-    for recname,Result in ResultTupleList:
-        with open(os.path.join(os.path.dirname(picklefilename),recname),'w') as fout:
-            print 'pickle dumping:{}'.format(recname)
-            pickle.dump((recname,Result),fout)
-
-
-class ResultPloter:
-    # plot and display test result
-    def __init__(self,FileName = None):
-        self.filename = FileName
-        with open(FileName,'r') as fin:
-            (self.recname,self.testresult) = pickle.load(fin)
-        
-    def plot(self):
-        Results = [(self.recname,self.testresult),]
-        fResults = ECGRF.ECGrf.resfilter(Results)
-        #
-        # show filtered results & raw results
-        # Evaluate prediction result statistics
-        #
-        recind = 0
-        ECGstats = ECGstatistics(fResults[recind:recind+1])
-        ECGstats.eval(debug = False)
-        ECGstats.dispstat0()
-        ECGstats.plotevalresofrec(Results[recind][0],Results)
-    def plotMITdb(self):
-        Results = [(self.recname,self.testresult),]
-        fResults = ECGRF.ECGrf.resfilter(Results)
-        # plot waveform and predict result
-
-
 def debug_show_eval_result(\
             picklefilename,\
-            target_recname = None\
+            target_recname = None,\
+            singleRecordFile = False\
         ):
     with open(picklefilename,'r') as fin:
         Results = pickle.load(fin)
-
+    # convert to a list
+    if singleRecordFile == True:
+        Results = [Results,]
     for recind in xrange(0,len(Results)):
         # only plot target rec
         if target_recname is not None:
@@ -102,9 +69,9 @@ def debug_show_eval_result(\
         # Evaluate prediction result statistics
         #
 
-        #ECGstats = ECGstatistics(fResults[recind:recind+1])
-        #ECGstats.eval(debug = False)
-        #ECGstats.dispstat0()
+        ECGstats = ECGstatistics(fResults[recind:recind+1])
+        ECGstats.eval(debug = False)
+        ECGstats.dispstat0()
         ECGstats.plotevalresofrec(Results[recind][0],Results)
 
 def LOOT_Eval(RFfolder):
@@ -329,81 +296,129 @@ class BestRoundSelector:
         for elem in res:
             print elem
         
-def plotMITdbTestResult():
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r3')
-    TargetRecordList = ['sel38','sel42',]
-    # ==========================
-    # plot prediction result
-    # ==========================
-    reslist = glob.glob(os.path.join(\
-           RFfolder,'*'))
-    for fi,fname in enumerate(reslist):
-        # block *.out
-        if fname[-4:] == '.out' or '.json' in fname:
-            continue
-        print 'file name:',fname
-        currecname = os.path.split(fname)[-1]
-        if currecname not in TargetRecordList:
-            pass
-        pdb.set_trace()
-        with open(fname,'r') as fin:
-            (recID,reslist) = pickle.load(fin)
-        # load signal
-        mitdb = MITdbLoader()
-        rawsig = mitdb.load(recID)
-        # plot res
-        resploter = ECGResultPloter(rawsig,reslist)
-        resploter.plot()
-        
-if __name__ == '__main__':
-    
 
-    # exit
+def EvalQTdbResults(resultfilelist):
+    if resultfilelist==None or len(resultfilelist)==0:
+        print "Empty result file list!"
+        return None
+    FN =  {
+                'pos':[],
+                'label':[],
+                'recname':[]
+                }
+    Err = {
+                'err':[],
+                'pos':[],
+                'label':[],
+                'recname':[]
+                }
+    #========================================
+    # select best round to compare with refs
+    #========================================
+    bRselector = BestRoundSelector()
+    InvalidRecordList = conf['InvalidRecords']
+
+    # for each record test result
+    for fi,fname in enumerate(resultfilelist):
+        
+        with open(fname,'rU') as fin:
+            Results = pickle.load(fin)
+        # skip invalid records
+        currecordname = Results[0]
+        if currecordname in InvalidRecordList:
+            continue
+        Results = [Results,]
+        # filter result
+        fResults = ECGRF.ECGrf.resfilter(Results)
+        # show filtered results & raw results
+        #for recname , recRes in Results:
+
+        # Evaluate prediction result statistics
+        #
+        ECGstats = ECGstatistics(fResults)
+        pErr,pFN = ECGstats.eval(debug = False)
+        # one test Error stat
+        print '[picle filename]:{}'.format(fname)
+        print '[{}] files left.'.format(len(resultfilelist) - fi)
+        evallabellist,evalstats = ECGstatistics.dispstat0(\
+                pFN = pFN,\
+                pErr = pErr\
+                )
+        # select best Round 
+        numofFN = len(pFN['pos'])
+        if numofFN == 0:
+            ExtraInfo = 'Best Round ResultFileName[{}]\nTestSet :{}\n#False Negtive:{}\n'.format(fname,[x[0] for x in Results],numofFN)
+            bRselector.input(evallabellist,evalstats,ExtraInfo = ExtraInfo)
+
+        for kk in Err:
+            Err[kk].extend(pErr[kk])
+        for kk in FN:
+            FN[kk].extend(pFN[kk])
+
+    # write to log file
+    #EvalLogfilename = os.path.join(curfolderpath,'res.log')
+    output_log_filename = os.path.join(curfolderpath,'res.log')
+    EvalLogfilename = output_log_filename
+    # display error stat for each label & save results to logfile
+    ECGstatistics.dispstat0(\
+            pFN = FN,\
+            pErr = Err,\
+            LogFileName = EvalLogfilename,\
+            LogText = 'Statistics of Results in FilePath [{}]'.format(os.path.split(resultfilelist[0])[0])\
+            )
+    with open(os.path.join(projhomepath,'tmp','Err.txt'),'w') as fout:
+        pickle.dump(Err,fout)
+    # find best round
+    bRselector.dispBestRound()
+    bRselector.dumpBestRound(EvalLogfilename)
+
+    ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
+
+def getresultfilelist():
     RFfolder = os.path.join(\
            projhomepath,\
            'TestResult',\
            'pc',\
            'r4')
-    TargetRecordList = ['sel38','sel42','result_sel820']
     # ==========================
     # plot prediction result
     # ==========================
     reslist = glob.glob(os.path.join(\
            RFfolder,'*'))
-    qtdb = QTdb.QTloader()
+    ret = []
+    for fpath in reslist:
+        len_path = len(fpath)
+        if fpath.find('.json') == len_path-5:
+            print '.json: ',fpath
+            continue
+        ret.append(fpath)
+    return ret
+    
+def QTEval():
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'r4')
+    # ==========================
+    # plot prediction result
+    # ==========================
+    reslist = glob.glob(os.path.join(\
+           RFfolder,'*'))
     for fi,fname in enumerate(reslist):
-        # block *.out
-        if fname[-4:] == '.out' or '.json' in fname:
+        curfname = os.path.split(fname)[1]
+        if '.json' in curfname:
             continue
-        print 'file name:',fname
-        currecname = os.path.split(fname)[-1]
-        print currecname
-        #if currecname == 'result_sel820':
-            #pdb.set_trace()
-        if currecname not in TargetRecordList:
+        if os.path.split(fname)[1] != 'hand284.out':
             pass
-            continue
-        # load signal and reslist
-        with open(fname,'r') as fin:
-            (recID,reslist) = pickle.load(fin)
-        # empty signal result
-        #if reslist is None or len(reslist) == 0:
             #continue
-        #pdb.set_trace()
-        sigstruct = qtdb.load(recID)
-        # plot figure
-        # plot res
-        resploter = ECGResultPloter(sigstruct['sig'],reslist)
-        resploter.plot()
-        
-        
+        print 'File name:',fname
+        debug_show_eval_result(fname,singleRecordFile = True)#,target_recname = 'sele0612')
 
-    #==========================
-    #show evaluation statistics
-    #==========================
-    #TestN_Eval(RFfolder)
-
+    # ==========================
+    # show evaluation statistics
+    # ==========================
+    #LOOT_Eval(RFfolder)
+    
+if __name__ == '__main__':
+    EvalQTdbResults(getresultfilelist())

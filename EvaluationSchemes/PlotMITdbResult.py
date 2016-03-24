@@ -343,13 +343,15 @@ def plotMITdbTestResult():
            RFfolder,'*'))
     for fi,fname in enumerate(reslist):
         # block *.out
+        # filter file name
         if fname[-4:] == '.out' or '.json' in fname:
             continue
-        print 'file name:',fname
         currecname = os.path.split(fname)[-1]
         if currecname not in TargetRecordList:
             pass
-        pdb.set_trace()
+        if not currecname.startswith('result'):
+            continue
+        print 'processing file name:',fname
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
         # load signal
@@ -357,53 +359,14 @@ def plotMITdbTestResult():
         rawsig = mitdb.load(recID)
         # plot res
         resploter = ECGResultPloter(rawsig,reslist)
-        resploter.plot()
+        dispRange = (20000,21000)
+        savefolderpath = ur'E:\ECGResults\MITdbTestResult\pic'
+        # debug
+        #pdb.set_trace()
+        #resploter.plot()
+        resploter.plotAndsave(os.path.join(savefolderpath,recID),plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
         
 if __name__ == '__main__':
-    
 
-    # exit
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r4')
-    TargetRecordList = ['sel38','sel42','result_sel820']
-    # ==========================
-    # plot prediction result
-    # ==========================
-    reslist = glob.glob(os.path.join(\
-           RFfolder,'*'))
-    qtdb = QTdb.QTloader()
-    for fi,fname in enumerate(reslist):
-        # block *.out
-        if fname[-4:] == '.out' or '.json' in fname:
-            continue
-        print 'file name:',fname
-        currecname = os.path.split(fname)[-1]
-        print currecname
-        #if currecname == 'result_sel820':
-            #pdb.set_trace()
-        if currecname not in TargetRecordList:
-            pass
-            continue
-        # load signal and reslist
-        with open(fname,'r') as fin:
-            (recID,reslist) = pickle.load(fin)
-        # empty signal result
-        #if reslist is None or len(reslist) == 0:
-            #continue
-        #pdb.set_trace()
-        sigstruct = qtdb.load(recID)
-        # plot figure
-        # plot res
-        resploter = ECGResultPloter(sigstruct['sig'],reslist)
-        resploter.plot()
-        
-        
-
-    #==========================
-    #show evaluation statistics
-    #==========================
-    #TestN_Eval(RFfolder)
-
+    plotMITdbTestResult()
+    sys.exit()

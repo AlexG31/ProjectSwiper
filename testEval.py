@@ -49,10 +49,14 @@ def TestingAndSaveResult():
 
 def debug_show_eval_result(\
             picklefilename,\
-            target_recname = None\
+            target_recname = None,\
+            singleRecordFile = False\
         ):
     with open(picklefilename,'r') as fin:
         Results = pickle.load(fin)
+    # convert to a list
+    if singleRecordFile == True:
+        Results = [Results,]
     for recind in xrange(0,len(Results)):
         # only plot target rec
         if target_recname is not None:
@@ -298,18 +302,21 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r2')
+           'r4')
     # ==========================
     # plot prediction result
     # ==========================
     reslist = glob.glob(os.path.join(\
-           RFfolder,'*.out'))
+           RFfolder,'*'))
     for fi,fname in enumerate(reslist):
+        curfname = os.path.split(fname)[1]
+        if '.json' in curfname:
+            continue
         if os.path.split(fname)[1] != 'hand284.out':
             pass
             #continue
-        print 'Fname:',fname
-        debug_show_eval_result(fname)#,target_recname = 'sele0612')
+        print 'File name:',fname
+        debug_show_eval_result(fname,singleRecordFile = True)#,target_recname = 'sele0612')
 
     # ==========================
     # show evaluation statistics

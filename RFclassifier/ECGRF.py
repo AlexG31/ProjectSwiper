@@ -742,6 +742,43 @@ class ECGrf:
             pickle.dump(RecResults ,fout)
             print 'saved prediction result to {}'.\
                     format(filename_saveresult)
+    def testrecords(\
+                self,\
+                reclist = ['sel103',],\
+                mdl = None,\
+                TestResultFileName = None\
+            ):
+        # default parameter
+        if mdl is None:
+            mdl = self.mdl
+
+        #
+        # save to model file 
+        if TestResultFileName is not None:
+            filename_saveresult = TestResultFileName
+        else:
+            filename_saveresult = os.path.join(\
+                    curfolderpath,\
+                    'testresult{}.out'.format(\
+                    int(time.time())))
+
+            # warning :save to default folder
+            print '**Warning: save result to {}'.format(filename_saveresult)
+            debugLogger.dump('**Warning: save result to {}'.format(filename_saveresult))
+
+        saveresultfolder = os.path.dirname(filename_saveresult)
+        for recname in reclist:
+            # testing
+            RecResults = self.testing([recname,])
+            # save results
+            with open(os.path.join(saveresultfolder,'result_{}'.format(recname)),'w') as fout:
+                if RecResults is None or len(RecResults) == 0:
+                    recres = (recname,[])
+                else:
+                    recres = RecResults[0]
+                pickle.dump(recres ,fout)
+                print 'saved prediction result to {}'.\
+                        format(filename_saveresult)
         
 
 # =======================

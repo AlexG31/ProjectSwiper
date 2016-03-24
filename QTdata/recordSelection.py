@@ -3,6 +3,7 @@ import os
 import sys
 import pickle
 import json
+import pdb
 import glob
 import marshal
 import matplotlib.pyplot as plt
@@ -29,16 +30,35 @@ class RecSelector():
         sel1213 = conf['sel1213']
         sel1213set = set(sel1213)
         
-        out_reclist = set(reclist) - sel1213set
+        out_reclist = set(reclist)# - sel1213set
 
+        # records selected
+        selected_record_list = []
         for ind,recname in enumerate(out_reclist):
             # inspect
             print '{} records left.'.format(len(out_reclist) - ind - 1)
             self.qt.plotrec(recname)
+            usethis = raw_input('Use this record as training record?(y/n):')
+            if usethis == 'y':
+                selected_record_list.append(recname)
             # debug
             if ind > 2:
-                print 'debug break'
-                break
+                pass
+                #print 'debug break'
+                #break
+        with open(os.path.join(os.path.dirname(curfilepath),'selected_records.json'),'w') as fout:
+            json.dump(selected_record_list,fout)
+
+    def pick_invalid_record(self):
+        reclist = self.qt.getQTrecnamelist()
+        invalidrecordlist = []
+        for ind,recname in enumerate(reclist):
+            # inspect
+            print 'Inspecting record ''{}'''.format(recname)
+            sig = self.qt.load(recname)
+            if sig['sig'][0] == float('inf'):
+                invalidrecordlist.append(recname)
+        return invalidrecordlist
 
     def save_recs_to_img(self):
         reclist = self.qt.getQTrecnamelist()
@@ -92,11 +112,20 @@ class RecSelector():
 
 
 
+def pickout_invalid_files():
+    recsel = RecSelector()
+    invalideList = recsel.pick_invalid_record()
+    print invalideList
+    # find those signals only contains 'inf'
+    with open('invalid_records.json','w') as fout:
+        json.dump(invalideList,fout)
 
 if __name__ == "__main__":
     recsel = RecSelector()
     #recsel.inspect_recname('sel16272')
-    recsel.save_recs_to_img()
+    #recsel.save_recs_to_img()
+    recsel.inspect_recs()
+
     print '-'*30
 
 

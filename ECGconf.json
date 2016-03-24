@@ -7,6 +7,8 @@
     "training_excludedist": 4,
     "negsampleratio": 0.004,
     "sel1213": ["sel231","sel103","sel117","sel123","sel16265","sel16272","sel16420","sel16483","sel16539","sel16773","sel16786","sel16795","sel17453","sel30","sel307","sel34","sel803","sel811","sel872","sele0121","sele0122","sele0124","sele0170","sele0211","sele0303","sele0411","sele0509","sele0603","sele0606","sele0612"],
+    "InvalidRecords": ["sel14157", "sel14172", "sel15814", "sel820", "sel847", "sel853", "sel883", "sel891"],
+    "selQTall0": ["sel223", "sel221", "sel16265", "sel231", "sel230", "sel16272", "sel16273", "sel16773", "sel34", "sel33", "sele0166", "sele0210", "sele0211", "sel16483", "sel17152", "sel16786", "sele0406", "sel123", "sele0170", "sele0203", "sel16795", "sel116", "sel117", "sel16539", "sele0405", "sele0104", "sel103", "sel100", "sele0509", "sel873", "sel872", "sel17453", "sele0114", "sele0110", "sele0612", "sele0303", "sele0122", "sele0121", "sel803", "sele0124", "sele0606", "sel16420", "sele0609", "sel310", "sele0136", "sel811", "sel307"],
     "sel0115": ["sel231","sel103","sel117","sel123","sel16265","sel16272","sel16420","sel16483","sel16539","sel16773","sel16786","sel16795","sel17453","sel30","sel307","sel34","sel803","sel811","sel872","sele0121","sele0122","sele0124","sele0170","sele0126","sele0303","sele0411","sele0509","sele0603","sele0606","sele0612"],
     "sel0116": ["sel231","sel103","sel117","sel123","sel16265","sel16272","sel16420","sel16483","sel16539","sel16773","sel16786","sel16795","sel17453","sel30","sel307","sele0406","sel803","sel811","sel872","sele0121","sele0122","sele0124","sele0170","sele0126","sele0303","sele0411","sele0509","sele0603","sele0606","sele0612"],
 	"labelblankrange":{
