@@ -56,7 +56,7 @@ class RecSelector():
             # inspect
             print 'Inspecting record ''{}'''.format(recname)
             sig = self.qt.load(recname)
-            if sig['sig'][0] == float('inf'):
+            if abs(sig['sig'][0]) == float('inf'):
                 invalidrecordlist.append(recname)
         return invalidrecordlist
 
@@ -121,6 +121,9 @@ def pickout_invalid_files():
         json.dump(invalideList,fout)
 
 if __name__ == "__main__":
+    #pickout_invalid_files()
+    #sys.exit()
+
     recsel = RecSelector()
     #recsel.inspect_recname('sel16272')
     #recsel.save_recs_to_img()

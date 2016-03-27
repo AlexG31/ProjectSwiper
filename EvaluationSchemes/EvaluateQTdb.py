@@ -1,6 +1,6 @@
 #encoding:utf-8
 """
-ECG classification Module
+ECG Evaluation Module
 Author : Gaopengfei
 """
 import os
@@ -420,5 +420,44 @@ def QTEval():
     # ==========================
     #LOOT_Eval(RFfolder)
     
+def get_training_testing_record_number():
+    # get the number of training & testing records
+    traininglist = conf['selQTall0']
+    testlist = getresultfilelist()
+    # filter testlist
+    eval_testlist = []
+    invalidlist = conf['InvalidRecords']
+    for testrec in testlist:
+        print 'processing record:{}'.format(testrec)
+        with open(testrec,'r') as fin:
+            (recname,resdata) = pickle.load(fin)
+        if recname not in invalidlist:
+            eval_testlist.append(recname)
+
+    num_training = len(traininglist)
+    num_testing = len(eval_testlist)
+    print 'num of training rec:{}'.format(num_training)
+    print 'num of testing rec:{}'.format(num_testing)
+    print 'total record number : {}'.format(num_training+num_testing)
+def getRRhisto():
+    ## plot RR histogram
+    from MedEvaluationClass import MedEvaluation
+    # get test result list
+    testlist = getresultfilelist()
+    # filter testlist
+    invalidlist = conf['InvalidRecords']
+    for testrec in testlist:
+        print 'processing record:{}'.format(testrec)
+        with open(testrec,'r') as fin:
+            (recname,resdata) = pickle.load(fin)
+            # RR histo
+            medeval = MedEvaluation(resdata)
+            medeval.RRhistogram()
+
 if __name__ == '__main__':
+    getRRhisto()
+    sys.exit()
+    # get number of test/training records
+    get_training_testing_record_number()
+    sys.exit()
     EvalQTdbResults(getresultfilelist())

@@ -368,7 +368,7 @@ if __name__ == '__main__':
            'TestResult',\
            'pc',\
            'r4')
-    TargetRecordList = ['sel38','sel42','result_sel820']
+    TargetRecordList = ['sel38','sel42','result_sel821','result_sel14046']
     # ==========================
     # plot prediction result
     # ==========================
