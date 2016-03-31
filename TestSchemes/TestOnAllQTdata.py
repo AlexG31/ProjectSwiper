@@ -57,6 +57,11 @@ def TestAllQTdata(saveresultpath):
 
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
+    print 'Totoal QT record number:{}'.format(len(QTreclist))
+    #debug
+    pdb.set_trace()
+
+    ## trainging on all of QT records
     selrecords= QTreclist
     rf = ECGRF.ECGrf()
     rf.useParallelTest = False
@@ -98,7 +103,8 @@ def TestAllQTdata(saveresultpath):
     
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r2')
+    #Training on ALL of QT records 
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r5')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
 

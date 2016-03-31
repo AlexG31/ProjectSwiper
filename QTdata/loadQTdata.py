@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pdb
 from scipy.io import matlab
 import numpy as np
-
+from matplotlib import pyplot as plt
 # project homepath
 curfilepath =  os.path.realpath(__file__)
 projhomepath = os.path.dirname(curfilepath)
@@ -52,7 +52,7 @@ class QTloader:
         labels = ['R','P','T','lp','rp']
         for ind,label in enumerate(labels):
             cplist = mat['markercell'][0][ind]
-            while isinstance(cplist[0],np.ndarray) == True:
+            while len(cplist)>0 and isinstance(cplist[0],np.ndarray) == True:
                 cplist = cplist[0]
             marks[label] = cplist.tolist()
         ret['sig'] = sig
@@ -81,8 +81,6 @@ class QTloader:
 
         plt.figure(num = 1,figsize = (20,10))
         Labels = self.getexpertlabeltuple(recname)
-        #debug
-        #pdb.set_trace()
 
         lpos = [x[0] for x in Labels]
         Amps = [sig['sig'][x] for x in lpos]
@@ -202,7 +200,11 @@ if __name__ == '__main__':
     #invalidlist = conf['InvalidRecords']
     #qt = QTloader()
     #recname = invalidlist[0]
-    #recname = 'sel100'
+    #recname = 'sel232'
     #sig = qt.load(recname)
+    ##self defined plot
+    ##plt.figure(1)
+    ##plt.plot(sig['sig'])
+    ##pdb.set_trace()
     #qt.plotrec(recname)
     #pdb.set_trace()

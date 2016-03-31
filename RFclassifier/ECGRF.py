@@ -79,10 +79,7 @@ class ECGrf:
 
     # label proc & convert to feature
     @staticmethod
-    def collectfeaturesforsig(\
-                sig,\
-                blankrangelist = None,\
-            ):
+    def collectfeaturesforsig(sig,blankrangelist = None):
         #
         # parameters:
         # blankrangelist : [[l,r],...]
@@ -102,7 +99,6 @@ class ECGrf:
         # modified negposlist inside function
         # =======================================================
         ExpertLabels = QTloader.getexpertlabeltuple(None,sigIN = sig,negposlist = negposlist)
-
         posposlist,labellist = zip(*ExpertLabels)
 
         # ===============================
@@ -121,29 +117,28 @@ class ECGrf:
         print 'Num of pos samples:',len(trainingX)
         print 'Num of neg samples:',Nneg
 
-        if len(negposlist) == 0:
-            print '[In function collect feature]\
-                    Warning: negtive sample position list length is 0.'
-            return 
-        # collect negtive sample features
-        #
-        #
-        # leave blank for area without labels
-        #
-        negposset = set(negposlist)
-        if blankrangelist is not None:
-            blklist = []
-            for pair in blankrangelist:
-                blklist.extend(range(pair[0],pair[1]+1))
-            blkset = set(blklist)
-            negposset -= blkset
-            
-        selnegposlist = random.sample(negposset,Nneg)
-        time_neg0 = time.time()
-        negFv = map(Extractor.frompos,selnegposlist)
-        trainingX.extend(negFv)
-        trainingy.extend(['white']*Nneg)
-        print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
+        # if Number of Neg>0 then add negtive samples
+        if len(negposlist) == 0 or Nneg<=0:
+            print '[In function collect feature] Warning: negtive sample position list length is 0.'
+        else:
+            # collect negtive sample features
+            #
+            # leave blank for area without labels
+            #
+            negposset = set(negposlist)
+            if blankrangelist is not None:
+                blklist = []
+                for pair in blankrangelist:
+                    blklist.extend(range(pair[0],pair[1]+1))
+                blkset = set(blklist)
+                negposset -= blkset
+                
+            selnegposlist = random.sample(negposset,Nneg)
+            time_neg0 = time.time()
+            negFv = map(Extractor.frompos,selnegposlist)
+            trainingX.extend(negFv)
+            trainingy.extend(['white']*Nneg)
+            print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
         return (trainingX,trainingy) 
         
     def training(self,reclist):
@@ -168,7 +163,6 @@ class ECGrf:
         map(trainingX.extend,tXlist)
         map(trainingy.extend,tylist)
 
-
         time_training0 = time.time()
         # train Random Forest Classifier
         rfclassifier = RandomForestClassifier(n_estimators = 30)
@@ -182,7 +176,6 @@ class ECGrf:
         # save&return classifier model
         self.mdl = rfclassifier
         return rfclassifier
-
     
     def test_signal(self,signal,rfmdl = None,MultiProcess = 'off'):
         # test rawsignal
@@ -203,7 +196,6 @@ class ECGrf:
             self,\
             reclist,\
             rfmdl = None,\
-            MultiProcess = 'on',\
             plot_result = 'off'):
         #
         # default parameter
@@ -220,7 +212,9 @@ class ECGrf:
         # test all files in reclist
         PrdRes = []
         for recname in reclist:
-            # start testing time
+            # --------------------
+            # start test time
+            # --------------------
             time_rec0 = time.time()
             # QT sig data
             sig = self.QTloader.load(recname)
@@ -252,7 +246,7 @@ class ECGrf:
 
             #
             # get prRange:
-            # testing in the same range as expert labels
+            # test in the same range as expert labels
             #
             expres = self.QTloader.\
                     getexpertlabeltuple(recname)
@@ -356,7 +350,8 @@ class ECGrf:
             ):
 
         # prompt
-        print 'testing with multiprocess function'
+        print '>>testing with multiprocess function'
+        print
         # init
         PrdRes = []
         #
@@ -830,6 +825,7 @@ def Testing_with_ref_to_bucket(Param):
 # Parallelly Collect training sample for each rec
 # ======================================
 def Parallel_CollectRecFeature(recname):
+    print 'Parallel Collect RecFeature from {}'.format(recname)
     # load blank area list
     blkArea = conf['labelblankrange']
     ## debug log:
