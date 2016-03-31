@@ -405,8 +405,31 @@ class ECGstatistics:
         map(lambda x: FNRec[x[2]][x[1]].append(x[0]), fninfo)
 
         # output stat to log
+        ResultStatArray = []
+        CSVTitles = ['Record Name',]
+        CSVTitles.extend(map(lambda x:'{} FN number'.format(x),LabelList))
+        for clabel in LabelList:
+            CSVTitles.append('{} mean error'.format(clabel))
+            CSVTitles.append('{} std error'.format(clabel))
+        # add csv title
+        ResultStatArray.append(CSVTitles)
         with open(LogFileName,'a') as fout:
             for recname in recnameset:
+                # for csv file,a row of record data
+                curResultStat = [recname,]
+                # get False Negtive number 
+                for csvlabel in LabelList:
+                    csvFN= len(FNRec[recname].get(csvlabel,[]))
+                    curResultStat.append(csvFN)
+                for labelname in LabelList:
+                    errs = ErrRec[recname][labelname]
+                    meanval = np.nanmean(errs)*4.0 if len(errs)>0 else -1
+                    stdval = np.nanstd(errs)*4.0 if len(errs)>0 else -1
+                    curResultStat.append(meanval)
+                    curResultStat.append(stdval)
+                # to array
+                ResultStatArray.append(curResultStat)
+
                 fout.write(os.linesep+'Record[{}]'.format(recname)+'='*20+os.linesep)
                 # if some label is totally overlooked
                 overlook_label = {'P':1,'T':1,'R':1}
@@ -431,6 +454,13 @@ class ECGstatistics:
                     meanval = np.nanmean(errs)*4.0 if len(errs)>0 else -1
                     stdval = np.nanstd(errs)*4.0 if len(errs)>0 else -1
                     fout.write('Err({}) mean({:03.2f} ms), std var({:03.2f} ms)'.format(labelname,meanval,stdval)+os.linesep)
+        # write to csv file
+        csvfilepath = os.path.join(os.path.dirname(LogFileName),'results.csv')
+        from EvaluationSchemes.csvwriter import CSVwriter
+        csvwriter = CSVwriter(csvfilepath)
+        csvwriter.output(ResultStatArray)
+
+        return ResultStatArray
 
     @staticmethod
     def dispstat0(pFN = None ,pErr = None,LogFileName = None,LogText = None):

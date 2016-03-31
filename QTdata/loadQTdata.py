@@ -7,6 +7,8 @@ import glob
 import marshal
 import matplotlib.pyplot as plt
 import pdb
+from scipy.io import matlab
+import numpy as np
 
 # project homepath
 curfilepath =  os.path.realpath(__file__)
@@ -20,13 +22,14 @@ sys.path.append(projhomepath)
 class QTloader:
     def __init__(self):
         # get QT records list
-        files = glob.glob(os.path.join(os.path.dirname(curfilepath),\
-                'QTdata_repo',\
-                '*.txt'))
+        self.rec_dir_path = os.path.join(os.path.dirname(curfilepath),'QTdb_full')
+        extension = r'.mat'
+        self.extension = extension
+        files = glob.glob(os.path.join(self.rec_dir_path,'*{}'.format(extension)))
         # get *.txt
         files = map(lambda x:os.path.split(x)[1],files)
         # strip '.txt'
-        files = map(lambda x:x.split('.txt')[0],files)
+        files = map(lambda x:x.split(extension)[0],files)
         self.reclist = files
 
         # display records info
@@ -34,23 +37,30 @@ class QTloader:
         #print '--- number of records:',len(files),'---'
 
     def load(self,recname = 'sel103'):
-        recfullpath = os.path.join(os.path.dirname(curfilepath),\
-                'QTdata_repo',\
-                recname+'.txt') 
-        #print '[debug] QTloading:',recfullpath
-        with open(os.path.join(os.path.dirname(curfilepath),\
-                'QTdata_repo',\
-                recname+'.txt'),\
-                'rb') as fin:
-            sig = marshal.load(fin)
+        filename = os.path.join(self.rec_dir_path,recname+self.extension)
+        mat = matlab.loadmat(filename)
+        sig = self.matdata_format_sigdata(mat)
         return sig
 
+    def matdata_format_sigdata(self,mat):
+        ret = dict()
+        # only first lead
+        sig = mat['sig'][0].tolist()
+        time = mat['time'].tolist()
+        marks = dict()
+        labels = mat['code_label'][0].tolist()
+        labels = ['R','P','T','lp','rp']
+        for ind,label in enumerate(labels):
+            cplist = mat['markercell'][0][ind]
+            while isinstance(cplist[0],np.ndarray) == True:
+                cplist = cplist[0]
+            marks[label] = cplist.tolist()
+        ret['sig'] = sig
+        ret['time'] = time
+        ret['marks'] = marks
+        return ret
     def getQTrecnamelist(self):
-        recfullpath = os.path.join(os.path.dirname(curfilepath),'QTdata_repo','*.txt') 
-        reclist = glob.glob(recfullpath)
-        reclist = [os.path.split(x)[1].split('.txt')[0] for x in reclist]
-        return reclist
-
+        return self.reclist
 
     def plotrec(self,recname = 'sel103',showExpertLabel = False):
         # show rawsig&labels
@@ -186,3 +196,13 @@ class QTloader:
 
 
 
+
+if __name__ == '__main__':
+    pass
+    #invalidlist = conf['InvalidRecords']
+    #qt = QTloader()
+    #recname = invalidlist[0]
+    #recname = 'sel100'
+    #sig = qt.load(recname)
+    #qt.plotrec(recname)
+    #pdb.set_trace()

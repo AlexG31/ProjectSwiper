@@ -32,7 +32,7 @@ sys.path.append(projhomepath)
 #
 # my project components
 import RFclassifier.extractfeature.extractfeature as extfeature
-import QTdata.loadQTdata as QTdb
+from QTdata.loadQTdata import QTloader
 from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
 
@@ -450,14 +450,21 @@ def getRRhisto():
         print 'processing record:{}'.format(testrec)
         with open(testrec,'r') as fin:
             (recname,resdata) = pickle.load(fin)
+            if recname in invalidlist:
+                continue
             # RR histo
             medeval = MedEvaluation(resdata)
             medeval.RRhistogram()
+            # load signal rawdata
+            qtloader = QTloader()
+            ECGsigstruct = qtloader.load(recname = recname)
+            ECGsig = ECGsigstruct['sig']
+            medeval.RRhisto_check(ECGsig)
 
 if __name__ == '__main__':
-    getRRhisto()
-    sys.exit()
+    #getRRhisto()
+    #sys.exit()
     # get number of test/training records
-    get_training_testing_record_number()
-    sys.exit()
+    #get_training_testing_record_number()
+    #sys.exit()
     EvalQTdbResults(getresultfilelist())
