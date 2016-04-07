@@ -76,16 +76,26 @@ class MITdbLoader:
         plt.title('MITdb record: {}'.format(self.recID))
         plt.savefig(os.path.join(savefolder,'{}.png'.format(self.recID)))
         plt.clf()
-
-
+    def checkwave(self,checkrange = None):
+        if checkrange is None:
+            checkrange = (0,len(self.sigd1)-1)
+        fig1 = plt.figure(1)
+        plt.plot(self.sigd1[checkrange[0]:checkrange[1]])
+        # draw label text
+        mpos_left = bisect.bisect_left(self.markpos,checkrange[0])
+        mpos_right = bisect.bisect_left(self.markpos,checkrange[1])
+        for m_ind,mpos in enumerate(self.markpos[mpos_left:mpos_right]):
+            mpos = int(mpos)
+            if mpos >=checkrange[0] and mpos < checkrange[1]:
+                plt.text(mpos-checkrange[0],self.sigd1[mpos],self.marklabel[m_ind])
+        plt.show()
 
 if __name__ == "__main__":
-    pdb.set_trace()
     mit = MITdbLoader()
     IDlist = mit.getRecIDList()
     for recID in IDlist:
         logging.warning('loading:{}'.format(recID))
         mit.load(recID)
-        mit.savetoimage()
+        mit.checkwave()
         pdb.set_trace()
     

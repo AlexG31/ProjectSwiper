@@ -6,6 +6,7 @@ import json
 import glob
 import marshal
 import pdb
+import bisect
 import matplotlib.pyplot as plt
 
 # project homepath
@@ -71,15 +72,18 @@ class ECGResultPloter:
         plt.clf()
         plt.figure(1)
         plt.plot(dispsig)
-        print 'raw sig None?'
-        pdb.set_trace()
         if self.testresult is not None and len(self.testresult)>0:
             if dispRange is not None:
-                dispres = self.testresult[dispRange[0]:dispRange[1]]
+                dispres = self.testresult
+                (poslist,reslabellist) = zip(*dispres)
+                resrange_L = bisect.bisect_left(poslist,dispRange[0])
+                resrange_R = bisect.bisect_left(poslist,dispRange[1])
+                poslist = poslist[resrange_L:resrange_R]
+                reslabellist = reslabellist[resrange_L:resrange_R]
             else:
                 dispres = self.testresult
-            # convert labels to plot markers
-            (poslist,reslabellist) = zip(*dispres)
+                # convert labels to plot markers
+                (poslist,reslabellist) = zip(*dispres)
             resplotmarkerlist = map(self.Label2PlotMarker,reslabellist)
             for mker in self.plotMarkerlist:
                 mkerposlist = []

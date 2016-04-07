@@ -246,6 +246,11 @@ class BestRoundSelector:
         meanlist,stdlist = zip(*stats)
         label_std_list = zip(labellist,stdlist)
         label_mean_list = zip(labellist,meanlist)
+        # cannot have inf/nan
+        for meanval in meanlist:
+            if np.isnan(meanval) or np.isinf(meanval):
+                print 'this record has nan/inf,not included in best round selection.'
+                return False
         # m and std Upper bound
         for label,std in label_std_list:
             if std > std_max[label]+4:
@@ -379,7 +384,7 @@ def getresultfilelist():
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r4')
+           'r5')
     # ==========================
     # plot prediction result
     # ==========================
@@ -423,6 +428,7 @@ def QTEval():
 def get_training_testing_record_number():
     # get the number of training & testing records
     traininglist = conf['selQTall0']
+    pdb.set_trace()
     testlist = getresultfilelist()
     # filter testlist
     eval_testlist = []
@@ -464,7 +470,8 @@ def getRRhisto():
 if __name__ == '__main__':
     #getRRhisto()
     #sys.exit()
-    # get number of test/training records
-    #get_training_testing_record_number()
+    #get number of test/training records
+    get_training_testing_record_number()
+    pdb.set_trace()
     #sys.exit()
     EvalQTdbResults(getresultfilelist())
