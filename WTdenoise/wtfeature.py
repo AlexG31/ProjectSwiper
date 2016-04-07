@@ -97,9 +97,15 @@ class WTfeature:
             waveletobj = pywt.Wavelet('db2'),\
             figureID = 1
             ):
-        # 
+        # ========================================================  
+        # description: this function is used to 
+        #   plot the rawsig with its dwt coefficients
+        #   along with a reference point to indicate the 
+        #   corresponding point in each level of dwt coefficients
+        # ========================================================  
         # Parameters:
         # N : number of dwt levels
+
         N = 5
         xL,xR = 1000,2000
         tarpos  = 1500
