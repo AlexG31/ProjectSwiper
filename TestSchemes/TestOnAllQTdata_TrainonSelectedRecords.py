@@ -102,7 +102,7 @@ def TestAllQTdata(saveresultpath):
     
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r5')
+    saveresultpath = os.path.join(curfolderpath,'PaperResults','FeatureVisualization')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
 

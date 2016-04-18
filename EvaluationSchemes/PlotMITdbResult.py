@@ -22,8 +22,7 @@ import matplotlib.pyplot as plt
 # 
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
-curfolderpath = os.path.dirname(curfolderpath)
-projhomepath = curfolderpath;
+projhomepath = os.path.dirname(curfolderpath)
 # configure file
 # conf is a dict containing keys
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
@@ -36,6 +35,7 @@ import QTdata.loadQTdata as QTdb
 from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
 from ECGPloter.ResultPloter import ECGResultPloter
+from ECGPostProcessing.GroupResult import ResultFilter
 from MITdb.MITdbLoader import MITdbLoader
 
 
@@ -329,6 +329,47 @@ class BestRoundSelector:
         for elem in res:
             print elem
         
+def snapshotMITdbTestResult():
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'r3')
+    TargetRecordList = ['sel38','sel42',]
+    # ==========================
+    # plot prediction result
+    # ==========================
+    reslist = glob.glob(os.path.join(\
+           RFfolder,'*'))
+    for fi,fname in enumerate(reslist):
+        # block *.out
+        # filter file name
+        if fname[-4:] == '.out' or '.json' in fname:
+            continue
+        currecname = os.path.split(fname)[-1]
+        if currecname not in TargetRecordList:
+            pass
+        if not currecname.startswith('result'):
+            continue
+        print 'processing file',fname,'...'
+        with open(fname,'r') as fin:
+            (recID,reslist) = pickle.load(fin)
+        print 'pickle file loaded.'
+        # load signal
+        mitdb = MITdbLoader()
+        rawsig = mitdb.load(recID)
+        # filter result list
+        resfilter = ResultFilter(reslist)
+        reslist = resfilter.groupresult()
+        # plot res
+        resploter = ECGResultPloter(rawsig,reslist)
+        dispRange = (20000,21000)
+        savefolderpath = os.path.join(curfolderpath,'tmp','MITdbTestResult')
+        # debug
+        #pdb.set_trace()
+        #resploter.plot()
+        resploter.plotAndsave(os.path.join(savefolderpath,recID),plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
+
 def plotMITdbTestResult():
     RFfolder = os.path.join(\
            projhomepath,\
@@ -351,20 +392,28 @@ def plotMITdbTestResult():
             pass
         if not currecname.startswith('result'):
             continue
-        print 'processing file name:',fname
+        print 'processing file',fname,'...'
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
-        # load signal
+        print 'pickle file loaded.'
+        # load signal from MITdb
+        print 'loading signal data from MITdb...'
         mitdb = MITdbLoader()
         rawsig = mitdb.load(recID)
+        print 'signal loaded.'
+        # filter result list
+        resfilter = ResultFilter(reslist)
+        reslist = resfilter.groupresult()
         # plot res
         resploter = ECGResultPloter(rawsig,reslist)
         dispRange = (20000,21000)
-        savefolderpath = ur'E:\ECGResults\MITdbTestResult\pic'
+        savefolderpath = os.path.join(curfolderpath,'tmp','MITdbTestResult')
         # debug
         #pdb.set_trace()
         #resploter.plot()
-        resploter.plotAndsave(os.path.join(savefolderpath,recID),plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
+        #resploter.plotAndsave(os.path.join(savefolderpath,recID),plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
+        resploter.plot(plotTitle = recID)
+        pdb.set_trace()
         
 if __name__ == '__main__':
 
