@@ -93,7 +93,6 @@ class RecSelector():
             # wavelet 
             waveletobj = dwtECG.gswt_wavelet() 
             self.plot_dwt_rswt(sig['sig'],waveletobj = waveletobj,ECGrecordname = recname,auto_plot = True)
-            #self.plot_dwt_rswt(sig['sig'],ECGrecordname = recname,auto_plot = True)
     def Normalise(self,sig):
         if sig is None or len(sig) == 0:
             return sig
@@ -114,7 +113,7 @@ class RecSelector():
         ## =========================================V    
         # 展示RSWT示意图
         ## =========================================V    
-        N = 7
+        N = 5
         xL,xR = 1000,1600
         tarpos  = 1500
         # props of ARROW
