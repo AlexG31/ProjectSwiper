@@ -50,6 +50,9 @@ def TestingAndSaveResult():
     rf.testmdl(reclist = sel1213[0:1])
 def backup_configure_file(saveresultpath):
     shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
+def backupobj(obj,savefilename):
+    with open(savefilename,'w') as fout:
+        pickle.dump(obj,fout)
     
 def TestAllQTdata(saveresultpath):
     # Leave Ntest out of 30 records to test
@@ -81,7 +84,6 @@ def TestAllQTdata(saveresultpath):
     # ====================
     ECGRF.debugLogger.dump('\n====Test Start ====\n')
 
-
     time0 = time.time()
     # training the rf classifier with reclist
     #
@@ -91,6 +93,10 @@ def TestAllQTdata(saveresultpath):
     time1 = time.time()
     print 'Total Training time:',time1-time0
     ECGRF.debugLogger.dump('Total Training time: {:.2f} s\n'.format(time1-time0))
+    # save trained mdl
+    backupobj(rf.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
+    #debug
+    pdb.set_trace()
 
     ## test
     testinglist = selall0
@@ -102,12 +108,12 @@ def TestAllQTdata(saveresultpath):
     
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'PaperResults','FeatureVisualization')
-    # refresh random select feature json file
-    ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
+    saveresultpath = os.path.join(curfolderpath,'PaperResults','FeatureVisualization','trained_model')
+    # refresh random select feature json file and backup
+    #ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 
     #backup configuration file
-    backup_configure_file(saveresultpath)
+    #backup_configure_file(saveresultpath)
 
     TestAllQTdata(saveresultpath)
 

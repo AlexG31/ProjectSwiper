@@ -71,7 +71,6 @@ class WTfeature:
     def getWTcoef_gswt(\
             self,\
             rawsig,\
-            Ndec = 5,\
             waveletobj = None\
             ):
         # 
@@ -80,6 +79,10 @@ class WTfeature:
 
         # waveletobj:
         # Type of wavelet used in DWT
+        # --------------
+        # level of DWT
+        # --------------
+        Ndec = conf['DWT_LEVEL']
         if waveletobj is None:
             waveletobj = self.gswt_wavelet()
         cA = rawsig

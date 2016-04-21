@@ -176,6 +176,13 @@ class ECGfeatures:
         #
         wtfobj = wtf.WTfeature()
         dslist = wtfobj.getWTcoef_gswt(normwinsig)
+        # debug:
+        # show len of dslist:
+        print 'winsig len:{}'.format(len(winsig))
+        print 'normwinsig len:{}'.format(len(normwinsig))
+        for ds in dslist:
+            print 'len(ds) = {}'.format(len(ds))
+        pdb.set_trace()
         # load Random Relations
         WTrrJsonFileName = os.path.join(curfolderpath,'WTcoefrandrel.json')
         

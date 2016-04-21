@@ -58,6 +58,14 @@ def valid_signal_value(sig):
     if float_inf in sig or float_nan in sig:
         return False
     return True
+def timing_for(function_handle,params,prompt = 'timing is'):
+    time0 = time.time()
+    ret = function_handle(*params)
+    time1 = time.time()
+    info_str = '{} [time cost {} s]'.format(prompt,time1-time0)
+    print info_str
+    # return value
+    return ret
 
 # train and test
 class ECGrf:
@@ -72,9 +80,9 @@ class ECGrf:
         # maximum samples for bucket testing
         self.MaxTestSample = 200
     @ staticmethod
-    def RefreshRandomFeatureJsonFile():
+    def RefreshRandomFeatureJsonFile(copyTo = None):
         # refresh random relations
-        RandRelation.refresh_project_random_relations()
+        RandRelation.refresh_project_random_relations(copyTo = copyTo)
 
 
     # label proc & convert to feature
@@ -112,10 +120,10 @@ class ECGrf:
         
         # add neg samples
         Nneg = int(len(negposlist)*conf['negsampleratio'])
-        print 'Total number of negposlist =',len(negposlist)
-        print '-- Number of Training samples -- '
-        print 'Num of pos samples:',len(trainingX)
-        print 'Num of neg samples:',Nneg
+        #print 'Total number of negposlist =',len(negposlist)
+        #print '-- Number of Training samples -- '
+        #print 'Num of pos samples:',len(trainingX)
+        #print 'Num of neg samples:',Nneg
 
         # if Number of Neg>0 then add negtive samples
         if len(negposlist) == 0 or Nneg<=0:
@@ -151,10 +159,8 @@ class ECGrf:
         pool = Pool(self.MAX_PARA_CORE)
         # train with reclist
         # map function (recname) -> (tx,ty)
-        time_training0 = time.time()
-        trainingTuples = pool.map(Parallel_CollectRecFeature,reclist)
-        time_training1 = time.time()
-        print 'All records collect feature time {:.2f}'.format(time_training1 - time_training0)
+
+        trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # close pool
         pool.close()
         pool.join()
@@ -163,16 +169,10 @@ class ECGrf:
         map(trainingX.extend,tXlist)
         map(trainingy.extend,tylist)
 
-        time_training0 = time.time()
         # train Random Forest Classifier
-        rfclassifier = RandomForestClassifier(n_estimators = 30)
-        print '正在训练随机森林分类器'.decode('utf-8')
-        print 'Training Sample Size : [{} x {}]'.format(len(trainingX),len(trainingX[0]))
-        rfclassifier.fit(trainingX,trainingy)
-        print '训练结束'.decode('utf-8')
-        time_training1 = time.time()
-        print 'All records Trainging Classifier time {:.2f}s'.format(time_training1 - time_training0)
-
+        rfclassifier = RandomForestClassifier(n_estimators = 30,max_depth = 30,n_jobs =4,warm_start = False)
+        print 'Random Forest Training Sample Size : [{} samples x {} features]'.format(len(trainingX),len(trainingX[0]))
+        timing_for(rfclassifier.fit,(trainingX,trainingy),prompt = 'Random Forest Fitting')
         # save&return classifier model
         self.mdl = rfclassifier
         return rfclassifier

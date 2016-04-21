@@ -49,17 +49,32 @@ class DecisionTreeInfo:
         self.trees = rfmdl.estimators_
         pass
     def info(self):
-        pass
+        t0 = self.trees[0]
+        # list dir
+        for attr in dir(t0):
+            print attr
+        print 'tree-------------------------'
+        for attr in dir(t0.tree_):
+            print attr
+
+        pdb.set_trace()
+        
     def saveSVG(self,savefilename,tree_ind = 0):
         if tree_ind>= len(self.trees):
             raise Exception('tree index(tree_ind) larger than the number of trees in estimator!')
         tree0 = self.trees[tree_ind]
-        self.decisiontree2pdf(tree0,savefilename)
+        self.decisiontree2svg(tree0,savefilename)
 
-    def decisiontree2pdf(self,decisiontree_in,outputpath):
+    def decisiontree2svg(self,decisiontree_in,outputpath):
         from sklearn.externals.six import StringIO
         dot_data = StringIO()
-        tree.export_graphviz(decisiontree_in,out_file = dot_data)
+        pdb.set_trace()
+        tree.export_graphviz(decisiontree_in,out_file = dot_data,
+                            #feature_names = tree.feature_names,
+                            class_names=self.rfmdl.classes_,
+                            filled=True,rounded=True,
+                            special_characters=True
+                )
         graph = pydot.graph_from_dot_data(dot_data.getvalue())
         graph.write_svg(outputpath)
 
@@ -78,11 +93,8 @@ def test_load(filename):
 # run script
 # =================================
 if __name__ == '__main__':
-    mdlpath = os.path.join(curfolderpath,'model','QT_sel.mdl')
+    mdlpath = os.path.join(curfolderpath,'model','trained_model.mdl')
     with open(mdlpath,'r') as fin:
         rfmdl = pickle.load(fin)
     tree_info = DecisionTreeInfo(rfmdl)
-    tree_info.saveSVG('tmp.svg',4)
-
-
-
+    tree_info.saveSVG('tmp.svg')
