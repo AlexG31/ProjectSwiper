@@ -2,6 +2,8 @@
 **.pyc
 **.py.swp
 **.out
+**.txt
+**.csv
 **.log
 **.py.orig
 TestResult/**

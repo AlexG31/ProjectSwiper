@@ -92,7 +92,7 @@ class FeatureVis:
             cur_feature_ind += 2*layerSZ
 
         return relation_importance
-    def plot_dwt_pairs_arrow(self,rawsig,relation_importance):
+    def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
         ## =========================================V    
         # 展示RSWT示意图
         ## =========================================V    
@@ -105,7 +105,7 @@ class FeatureVis:
         fs = conf['fs']
         FixedWindowLen = conf['winlen_ratio_to_fs']*fs
         print 'Fixed Window Length:{}'.format(FixedWindowLen)
-        xL = 1000
+        xL = Window_Left
         xR = xL+FixedWindowLen
         tarpos  = 1500
         # props of ARROW
@@ -134,7 +134,7 @@ class FeatureVis:
         # ====================
         # plot raw signal input
         # ====================
-        plt.figure(figureID)
+        Fig_main = plt.figure(figureID,figsize = figsize)
         # plot raw ECG
         plt.subplot(N+1,1,1)
         # get handle for annote arrow
@@ -145,7 +145,7 @@ class FeatureVis:
         plt.plot(pltxLim,sigAmp)
         # plot reference point
         #plt.plot(tarpos,rawsig[tarpos],'ro')
-        plt.title('ECG sample')
+        plt.title(figtitle)
         #plt.xlim(pltxLim)
 
         for i in range(2,N+2):
@@ -195,7 +195,11 @@ class FeatureVis:
             plt.xlim(0,len(cDamp)-1)
             plt.title('DWT Level ({}):'.format(i-1))
         # plot result
-        plt.show()
+        #plt.show()
+        # save fig
+        if savefigname is not None:
+            Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
+            Fig_main.clf()
     def plot_dwt_pairs(self,rawsig,relation_importance):
         ## =========================================V    
         # 展示RSWT示意图
@@ -283,11 +287,21 @@ class FeatureVis:
         # plot result
         plt.show()
 
-    def plot_fv_importance_test(self):
-        rID = 1
+    def plot_fv_importance(self):
+        rID = 2
         sig = self.qt.load(self.qt_reclist[rID])
         rel_imp = self.feature_importance_test()
-        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp)
+        # save current fig
+        for i in xrange(0,130,10):
+            savefigname = os.path.join(curfolderpath,'range_{}.png'.format(i))
+            self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
+    def plot_fv_importance_test(self):
+        rID = 2
+        sig = self.qt.load(self.qt_reclist[rID])
+        rel_imp = self.feature_importance_test()
+        # save current fig
+        savefigname = os.path.join(curfolderpath,'tmp.png')
+        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1230,savefigname = savefigname)
 
     def load_sig_test(self):
         pass
@@ -413,6 +427,7 @@ if __name__ == '__main__':
     with open(mdlfilename,'r') as fin:
         rfmdl = pickle.load(fin)
     fvis = FeatureVis(rfmdl)
-    fvis.plot_fv_importance_test()
+    #fvis.plot_fv_importance_test()
+    fvis.plot_fv_importance()
     
 
