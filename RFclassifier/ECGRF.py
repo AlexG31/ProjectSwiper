@@ -58,12 +58,15 @@ def valid_signal_value(sig):
     if float_inf in sig or float_nan in sig:
         return False
     return True
-def timing_for(function_handle,params,prompt = 'timing is'):
+def timing_for(function_handle,params,prompt = 'timing is',time_cost_output = None):
     time0 = time.time()
     ret = function_handle(*params)
     time1 = time.time()
     info_str = '{} [time cost {} s]'.format(prompt,time1-time0)
     print info_str
+    # output
+    if time_cost_output is not None and isinstance(time_cost_output,list):
+        time_cost_output.append(time1-time0) 
     # return value
     return ret
 
@@ -170,7 +173,8 @@ class ECGrf:
         map(trainingy.extend,tylist)
 
         # train Random Forest Classifier
-        rfclassifier = RandomForestClassifier(n_estimators = 30,max_depth = 30,n_jobs =4,warm_start = False)
+        Tree_Max_Depth = conf['Tree_Max_Depth']
+        rfclassifier = RandomForestClassifier(n_estimators = 30,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
         print 'Random Forest Training Sample Size : [{} samples x {} features]'.format(len(trainingX),len(trainingX[0]))
         timing_for(rfclassifier.fit,(trainingX,trainingy),prompt = 'Random Forest Fitting')
         # save&return classifier model

@@ -39,6 +39,28 @@ class ECGResultPloter:
                 'b>',
                 'w.']
         pass
+    def PlotMarker2Label(self,label):
+        if label == 'ro':
+            mker = 'T wave peak'
+        elif label == 'go':
+            mker = 'R wave peak'
+        elif label == 'bo':
+            mker = 'P wave peak'
+        elif label == 'r<':
+            mker = 'T onset'
+        elif label == 'r>':
+            mker = 'T offset'
+        elif label == 'g<':
+            mker = 'Ronset'
+        elif label == 'g>':
+            mker = 'Roffset'
+        elif label == 'b<':
+            mker = 'Ponset'
+        elif label == 'b>':
+            mker = 'Poffset'
+        else:# white
+            mker = 'non-characteristic points'
+        return mker
     def Label2PlotMarker(self,label):
         if label == 'T':
             mker = 'ro'
@@ -99,9 +121,11 @@ class ECGResultPloter:
                         Amplist.append(dispsig[mkerpos])
                 if len(mkerposlist)>0:
                     # have avaliable mker to plot
-                    plt.plot(mkerposlist,Amplist,mker)
+                    plt.plot(mkerposlist,Amplist,mker,markersize=10,label = '{}'.format(self.PlotMarker2Label(mker)))
         if plotTitle is not None:
             plt.title(plotTitle)
+        # show legend
+        plt.legend()
         plt.show()
     def plotAndsave(self,savefilefullpath,plotTitle = None,dispRange = None):
         # display range

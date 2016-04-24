@@ -37,6 +37,7 @@ from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
 from ECGPloter.ResultPloter import ECGResultPloter
 from MITdb.MITdbLoader import MITdbLoader
+from ECGPostProcessing.GroupResult import ResultFilter
 
 
 def TestingAndSaveResult():
@@ -367,7 +368,7 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r4')
+           'r5')
     TargetRecordList = ['sel38','sel42','result_sel821','result_sel14046']
     # ==========================
     # plot prediction result
@@ -375,9 +376,11 @@ if __name__ == '__main__':
     reslist = glob.glob(os.path.join(\
            RFfolder,'*'))
     qtdb = QTdb.QTloader()
+    non_result_extensions = ['out','json','log']
     for fi,fname in enumerate(reslist):
         # block *.out
-        if fname[-4:] == '.out' or '.json' in fname:
+        file_extension = fname.split('.')[-1]
+        if file_extension in non_result_extensions:
             continue
         print 'file name:',fname
         currecname = os.path.split(fname)[-1]
@@ -386,10 +389,13 @@ if __name__ == '__main__':
             #pdb.set_trace()
         if currecname not in TargetRecordList:
             pass
-            continue
+            #continue
         # load signal and reslist
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
+        # filter result of QT
+        resfilter = ResultFilter(reslist)
+        reslist = resfilter.group_local_result(cp_del_thres = 1)
         # empty signal result
         #if reslist is None or len(reslist) == 0:
             #continue
@@ -398,7 +404,7 @@ if __name__ == '__main__':
         # plot figure
         # plot res
         resploter = ECGResultPloter(sigstruct['sig'],reslist)
-        resploter.plot()
+        resploter.plot(plotTitle = 'QT database')
         
         
 

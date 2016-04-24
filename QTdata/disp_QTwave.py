@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import json
+import pdb
 # project homepath
 curfilepath =  os.path.realpath(__file__)
 projhomepath = os.path.dirname(curfilepath)
@@ -124,6 +125,23 @@ def convert_all_mark_to_index(folderpath = './QTdata_py/'):
             print 'saved as ','./QTdata_repo/'+filename
     print '--convertion complete--'
 
+def disp_recID(recID = 1):
+    if isinstance(recID,int) == False:
+        raise Exception('recID input must be integer!')
+    QTloader = QTdb.QTloader()
+    reclist = QTloader.getQTrecnamelist()
+    sig = QTloader.load(reclist[recID])
+
+    plt.figure(1)
+    #plt.subplot(211)
+    #mark_ind = [sig['time'][x] for x in sig['marks']['T']]
+    #mark_amp= [sig['sig'][x] for x in sig['marks']['T']]
+
+    plt.plot(sig['sig'],'k')
+    #plt.plot(sig['time'],sig['sig'],'k',mark_ind,mark_amp,'ro')
+    plt.title('ECG signal')
+    #plt.xlim(mark_ind[0],mark_ind[-1])
+    plt.show()
 def disp_rec(recname = 'sel103'):
     QTloader = QTdb.QTloader()
     sig = QTloader.load(recname)
@@ -143,4 +161,4 @@ def disp_rec(recname = 'sel103'):
 if __name__ == '__main__':
     #show_drawing()
     #convert_all_mark_to_index()
-    disp_rec()
+    disp_recID()

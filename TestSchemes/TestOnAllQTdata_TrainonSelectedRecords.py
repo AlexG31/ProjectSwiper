@@ -35,6 +35,7 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import QTdata.loadQTdata as QTdb
 import RFclassifier.evaluation as ecgEval
 import RFclassifier.ECGRF as ECGRF 
+from RFclassifier.ECGRF import timing_for
 from QTdata.loadQTdata import QTloader 
 from RunAndTime import RunAndTime
 
@@ -69,34 +70,23 @@ def TestAllQTdata(saveresultpath):
     rf.useParallelTest = True 
     rf.TestRange = 'All'
 
-    # ================
-    # evaluate time cost for each stage
-    # ================
-    rtimer = RunAndTime()
-    
     # clear debug logger
     ECGRF.debugLogger.clear()
-    # display the time left to finish program
-    one_round_time_cost = []
-
     # ====================
     # Training
     # ====================
     ECGRF.debugLogger.dump('\n====Test Start ====\n')
 
-    time0 = time.time()
     # training the rf classifier with reclist
     #
     # dump to debug logger
-    rf.training(selrecords)
-    # timing
-    time1 = time.time()
-    print 'Total Training time:',time1-time0
-    ECGRF.debugLogger.dump('Total Training time: {:.2f} s\n'.format(time1-time0))
+    time_cost_output = []
+    timing_for(rf.training,[selrecords,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
+    pdb.set_trace()
+    #rf.training(selrecords)
+    ECGRF.debugLogger.dump('Total Training time: {:.2f} s\n'.format(time_cost_output[-1]))
     # save trained mdl
     backupobj(rf.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
-    #debug
-    pdb.set_trace()
 
     ## test
     testinglist = selall0
@@ -108,12 +98,14 @@ def TestAllQTdata(saveresultpath):
     
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'PaperResults','FeatureVisualization','trained_model')
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r6')
     # refresh random select feature json file and backup
-    #ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
+    ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 
     #backup configuration file
-    #backup_configure_file(saveresultpath)
+    backup_configure_file(saveresultpath)
 
     TestAllQTdata(saveresultpath)
 
+    # back up processing debug output log
+    shutil.copy(os.path.join(projhomepath,'classification_process.log'),saveresultpath)

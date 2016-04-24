@@ -345,10 +345,7 @@ def EvalQTdbResults(resultfilelist):
         # one test Error stat
         print '[picle filename]:{}'.format(fname)
         print '[{}] files left.'.format(len(resultfilelist) - fi)
-        evallabellist,evalstats = ECGstatistics.dispstat0(\
-                pFN = pFN,\
-                pErr = pErr\
-                )
+        evallabellist,evalstats = ECGstatistics.dispstat0(pFN = pFN,pErr = pErr)
         # select best Round 
         numofFN = len(pFN['pos'])
         if numofFN == 0:
@@ -362,7 +359,7 @@ def EvalQTdbResults(resultfilelist):
 
     # write to log file
     #EvalLogfilename = os.path.join(curfolderpath,'res.log')
-    output_log_filename = os.path.join(curfolderpath,'res.log')
+    output_log_filename = os.path.join(curfolderpath,'result_output.log')
     EvalLogfilename = output_log_filename
     # display error stat for each label & save results to logfile
     ECGstatistics.dispstat0(\
@@ -379,57 +376,28 @@ def EvalQTdbResults(resultfilelist):
 
     ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
 
-def getresultfilelist():
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r5')
-    # ==========================
-    # plot prediction result
-    # ==========================
+def getresultfilelist(RFfolder):
+    # ================================
+    #  get the result file path list
+    # ================================
     reslist = glob.glob(os.path.join(\
            RFfolder,'*'))
     ret = []
+    non_result_extensions = ['out','json','tmp','log','mdl']
     for fpath in reslist:
-        len_path = len(fpath)
-        if fpath.find('.json') == len_path-5:
-            print '.json: ',fpath
+        cur_extension = fpath.split('.')[-1]
+        if cur_extension in non_result_extensions:
             continue
+        print 'add result file to analysis: {}'.format(fpath) 
         ret.append(fpath)
     return ret
     
-def QTEval():
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r4')
-    # ==========================
-    # plot prediction result
-    # ==========================
-    reslist = glob.glob(os.path.join(\
-           RFfolder,'*'))
-    for fi,fname in enumerate(reslist):
-        curfname = os.path.split(fname)[1]
-        if '.json' in curfname:
-            continue
-        if os.path.split(fname)[1] != 'hand284.out':
-            pass
-            #continue
-        print 'File name:',fname
-        debug_show_eval_result(fname,singleRecordFile = True)#,target_recname = 'sele0612')
-
-    # ==========================
-    # show evaluation statistics
-    # ==========================
-    #LOOT_Eval(RFfolder)
     
-def get_training_testing_record_number():
+def get_training_testing_record_number(RFfolder):
     # get the number of training & testing records
     traininglist = conf['selQTall0']
     pdb.set_trace()
-    testlist = getresultfilelist()
+    testlist = getresultfilelist(RFfolder)
     # filter testlist
     eval_testlist = []
     invalidlist = conf['InvalidRecords']
@@ -445,11 +413,11 @@ def get_training_testing_record_number():
     print 'num of training rec:{}'.format(num_training)
     print 'num of testing rec:{}'.format(num_testing)
     print 'total record number : {}'.format(num_training+num_testing)
-def getRRhisto():
+def getRRhisto(RFfolder):
     ## plot RR histogram
     from MedEvaluationClass import MedEvaluation
     # get test result list
-    testlist = getresultfilelist()
+    testlist = getresultfilelist(RFfolder)
     # filter testlist
     invalidlist = conf['InvalidRecords']
     for testrec in testlist:
@@ -468,10 +436,15 @@ def getRRhisto():
             medeval.RRhisto_check(ECGsig)
 
 if __name__ == '__main__':
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'r6')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records
-    get_training_testing_record_number()
+    get_training_testing_record_number(RFfolder)
     pdb.set_trace()
     #sys.exit()
-    EvalQTdbResults(getresultfilelist())
+    EvalQTdbResults(getresultfilelist(RFfolder))

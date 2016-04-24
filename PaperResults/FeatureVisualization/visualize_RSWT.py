@@ -92,6 +92,125 @@ class FeatureVis:
             cur_feature_ind += 2*layerSZ
 
         return relation_importance
+    def plot_dwt_pairs_arrow_partial_window_compare(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
+        ## =========================================V    
+        # 展示RSWT示意图
+        ## =========================================V    
+        #
+        #================
+        # constants
+        #================
+        N = 5
+        figureID = 1
+        fs = conf['fs']
+        FixedWindowLen = conf['winlen_ratio_to_fs']*fs
+        print 'Fixed Window Length:{}'.format(FixedWindowLen)
+        xL = Window_Left
+        xR = xL+FixedWindowLen
+        tarpos  = 1500
+        # props of ARROW
+        arrowprops = dict(width = 1,headwidth = 4,facecolor='black', shrink=0)
+        # -----------------
+        # get median
+        # -----------------
+        importance_arr = []
+        for rel_layer in relation_importance:
+            for rel,imp in rel_layer:
+                importance_arr.append(imp)
+        N_imp = len(importance_arr)
+        # ascending order:0->1
+        importance_arr.sort()
+        IMP_Thres = importance_arr[int(N_imp/2)]
+        IMP_MAX = importance_arr[-1]
+        # get wavelet obj
+        # dwt coef 
+        dwtECG = WTfeature()
+        waveletobj = dwtECG.gswt_wavelet() 
+        # props of ARROW
+        #arrowprops = dict(width = 1,headwidth = 4,facecolor='black', shrink=0)
+        pltxLim = range(xL,xR)
+        sigAmp = [rawsig[x] for x in pltxLim]
+        cA = rawsig
+        # ====================
+        # plot raw signal input
+        # ====================
+        Fig_main = plt.figure(figureID,figsize = figsize)
+        # plot raw ECG
+        plt.subplot(N+1,2,1)
+        # get handle for annote arrow
+        # hide axis
+        #frame = plt.gca()
+        #frame.axes.get_xaxis().set_visible(False)
+        #frame.axes.get_yaxis().set_visible(False)
+        plt.plot(pltxLim,sigAmp)
+        # plot reference point
+        #plt.plot(tarpos,rawsig[tarpos],'ro')
+        plt.title('Window the signal before DWT')
+        #plt.xlim(pltxLim)
+        # ===========Col2=================
+        plt.subplot(N+1,2,2)
+        plt.plot(pltxLim,sigAmp)
+        cA_col2 = cA[xL:xR]
+        plt.title('Window the signal after DWT')
+        
+
+        for i in range(2,N+2):
+            # ====================
+            # subplot col2
+            # ====================
+            cA_col2,cD_col2 = pywt.dwt(cA_col2,waveletobj)
+            plt.subplot(N+1,2,i*2-1)
+            plt.plot(cA_col2)
+            # relation&importance
+            rel_layer = relation_importance[i-2]
+            cA,cD = pywt.dwt(cA,waveletobj)
+            xL/=2
+            xR/=2
+            tarpos/=2
+            # crop x range out
+            xi = range(xL,xR)
+            cDamp = [cD[x] for x in xi]
+            # get relation points
+            rel_x = []
+            rel_y = []
+            cur_N = len(cDamp)
+            # ------------
+            # sub plot 
+            # ------------
+            # plot 
+            fig = plt.subplot(N+1,2,2*i)
+            #------------
+            # find pair&its amplitude
+            # -----------
+            for rel_pair,imp in rel_layer:
+                # importance thres
+                arrowprops = dict(width = 1,headwidth = 4,facecolor='r',edgecolor = 'r',alpha = imp/IMP_MAX,shrink=0)
+
+                rel_x.append(rel_pair[0])
+                if rel_x[-1] >= cur_N:
+                    rel_y.append(0)
+                else:
+                    rel_y.append(cDamp[rel_pair[0]])
+                rel_x.append(rel_pair[1])
+                if rel_x[-1] >= cur_N:
+                    rel_y.append(0)
+                else:
+                    rel_y.append(cDamp[rel_x[-1]])
+                fig.annotate('', xy=(rel_x[-2],rel_y[-2]), xytext=(rel_x[-1],rel_y[-1]),arrowprops=arrowprops)
+
+            #plt.grid(True)
+            plt.plot(rel_x,rel_y,'.b')
+            plt.plot(cDamp)
+            # reference point
+            # plt.plot(tarpos,cDamp[tarpos-xL],'ro')
+            plt.xlim(0,len(cDamp)-1)
+            plt.title('DWT Level ({}):'.format(i-1))
+        # plot result
+        plt.show()
+        # save fig
+        if savefigname is not None:
+            Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
+            Fig_main.clf()
     def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
         ## =========================================V    
         # 展示RSWT示意图
@@ -296,12 +415,13 @@ class FeatureVis:
             savefigname = os.path.join(curfolderpath,'range_{}.png'.format(i))
             self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
     def plot_fv_importance_test(self):
-        rID = 2
+        rID = 1
         sig = self.qt.load(self.qt_reclist[rID])
         rel_imp = self.feature_importance_test()
         # save current fig
-        savefigname = os.path.join(curfolderpath,'tmp.png')
-        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1230,savefigname = savefigname)
+        i = 3
+        savefigname = os.path.join(curfolderpath,'partial_DWT_compare_{}.png'.format(i))
+        self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
 
     def load_sig_test(self):
         pass
@@ -428,6 +548,6 @@ if __name__ == '__main__':
         rfmdl = pickle.load(fin)
     fvis = FeatureVis(rfmdl)
     #fvis.plot_fv_importance_test()
-    fvis.plot_fv_importance()
+    fvis.plot_fv_importance_test()
     
 
