@@ -35,6 +35,7 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 from QTdata.loadQTdata import QTloader
 from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
+from ECGPostProcessing.GroupResult import ResultFilter
 
 
 def TestingAndSaveResult():
@@ -332,9 +333,12 @@ def EvalQTdbResults(resultfilelist):
         currecordname = Results[0]
         if currecordname in InvalidRecordList:
             continue
-        Results = [Results,]
-        # filter result
-        fResults = ECGRF.ECGrf.resfilter(Results)
+        # filter result of QT
+        resfilter = ResultFilter(Results[1])
+        reslist = resfilter.group_local_result(cp_del_thres = 1)
+        fResults = (Results[0],reslist)
+
+        fResults = [fResults,]
         # show filtered results & raw results
         #for recname , recRes in Results:
 
@@ -396,7 +400,6 @@ def getresultfilelist(RFfolder):
 def get_training_testing_record_number(RFfolder):
     # get the number of training & testing records
     traininglist = conf['selQTall0']
-    pdb.set_trace()
     testlist = getresultfilelist(RFfolder)
     # filter testlist
     eval_testlist = []
@@ -440,11 +443,13 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r6')
+           'r7')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records
-    get_training_testing_record_number(RFfolder)
-    pdb.set_trace()
-    #sys.exit()
+    # =========================
+    # 分析训练和测试的record数目
+    # =========================
+    #get_training_testing_record_number(RFfolder)
+    # 计算误差
     EvalQTdbResults(getresultfilelist(RFfolder))

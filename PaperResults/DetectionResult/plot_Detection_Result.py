@@ -121,7 +121,58 @@ def plot_MITdb_filtered_Result():
         resploter.plot(plotTitle = recID)
         # debug
         pdb.set_trace()
+def plot_QTdb_filtered_Result():
+    # exit
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'r5')
+    TargetRecordList = ['sel38','sel42','result_sel821','result_sel14046']
+    # ==========================
+    # plot prediction result
+    # ==========================
+    reslist = glob.glob(os.path.join(\
+           RFfolder,'*'))
+    qtdb = QTloader()
+    non_result_extensions = ['out','json','log']
+    for fi,fname in enumerate(reslist):
+        # block *.out
+        file_extension = fname.split('.')[-1]
+        if file_extension in non_result_extensions:
+            continue
+        print 'file name:',fname
+        currecname = os.path.split(fname)[-1]
+        print currecname
+        #if currecname == 'result_sel820':
+            #pdb.set_trace()
+        if currecname not in TargetRecordList:
+            pass
+            #continue
+        # load signal and reslist
+        with open(fname,'r') as fin:
+            (recID,reslist) = pickle.load(fin)
+        # filter result of QT
+        resfilter = ResultFilter(reslist)
+        reslist = resfilter.group_local_result(cp_del_thres = 1)
+        # empty signal result
+        #if reslist is None or len(reslist) == 0:
+            #continue
+        #pdb.set_trace()
+        sigstruct = qtdb.load(recID)
+        # plot figure
+        # plot res
+        resploter = ECGResultPloter(sigstruct['sig'],reslist)
+        resploter.plot(plotTitle = 'QT database')
+        
+        
+
+    #==========================
+    #show evaluation statistics
+    #==========================
+    #TestN_Eval(RFfolder)
 
 if __name__ == "__main__":
-    plot_MITdb_filtered_Result();
+    #plot_MITdb_filtered_Result();
+    plot_QTdb_filtered_Result()
     sys.exit();
