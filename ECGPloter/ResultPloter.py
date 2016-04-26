@@ -84,7 +84,7 @@ class ECGResultPloter:
             mker = 'w.'
         return mker
         
-    def plot(self,plotTitle = None,dispRange = None):
+    def plot(self,plotTitle = None,dispRange = None,plotFig = 1,plotShow = True):
         # display range
         if dispRange is not None:
             dispsig = self.rawsig[dispRange[0]:dispRange[1]]
@@ -92,7 +92,7 @@ class ECGResultPloter:
             dispsig = self.rawsig
         # clear graph
         plt.clf()
-        plt.figure(1)
+        plt.figure(plotFig)
         plt.plot(dispsig)
         if self.testresult is not None and len(self.testresult)>0:
             if dispRange is not None:
@@ -126,7 +126,8 @@ class ECGResultPloter:
             plt.title(plotTitle)
         # show legend
         plt.legend()
-        plt.show()
+        if plotShow is True:
+            plt.show()
     def plotAndsave(self,savefilefullpath,plotTitle = None,dispRange = None):
         # display range
         if dispRange is not None:

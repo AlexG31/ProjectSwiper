@@ -142,6 +142,85 @@ class ResultFilter:
                 for x in frecres]
                 
         return frecres
+    def syntax_filter(self,reslist = None):
+        # nest function
+        def next_label(label):
+            ## syntax next label
+            ret = None
+            if label == 'T':
+                ret = 'Toffset'
+            elif label == 'R':
+                ret = 'Roffset'
+            elif label == 'P':
+                ret = 'Poffset'
+            elif label == 'Tonset':
+                ret = 'T'
+            elif label == 'Toffset':
+                ret = 'Ponset'
+            elif label == 'Ronset':
+                ret = 'R'
+            elif label == 'Roffset':
+                ret = 'Tonset'
+            elif label == 'Ponset':
+                ret = 'P'
+            elif label == 'Poffset':
+                ret = 'Ronset'
+            else:# white
+                ret = None
+            return ret
+        # parameter
+        if reslist is None:
+            reslist = self.recres
+        if len(reslist) == 0:
+            return []
+        # const
+        Max_Len = 30
+        # filtered result
+        flt_res = []
+        flt_res.append(reslist[0])
 
+        # prev label and pos
+        prev_label = reslist[0][1]
+        prev_pos = reslist[0][0]
+        prev_ind = 0
+
+        # ----------------------
+        # filtering
+        # ----------------------
+        N_reslist = len(reslist)
+        while prev_ind < N_reslist:
+            # find next non white point
+            while prev_label == 'white' and prev_ind+1<N_reslist:
+                prev_ind += 1
+                prev_pos,prev_label = reslist[prev_ind]
+                flt_res[-1] = reslist[prev_ind]
+            if prev_ind+1 >= N_reslist:
+                # no next
+                break
+            # matched next ind
+            match_ind = -1
+            for nxt_ind in xrange(prev_ind,N_reslist):
+                curpos,curlabel = reslist[nxt_ind]
+                if curpos - prev_pos > Max_Len:
+                    # not a label match
+                    if match_ind == -1:
+                        pass
+                        #print 'prev_ind = {},nxt_ind = {}'.format(prev_label,nxt_ind)
+                        #print 'reslist[{}:{}] = {}'.format(prev_ind,nxt_ind+1,reslist[prev_ind:nxt_ind+1])
+                        #pdb.set_trace()
+                    break
+                if next_label(prev_label) == curlabel:
+                    match_ind = nxt_ind
+            if match_ind == -1:
+                if nxt_ind >= N_reslist:
+                    break
+                else:
+                    # False negtive
+                    match_ind = nxt_ind
+            prev_ind = match_ind
+            flt_res.append(reslist[match_ind])
+            prev_pos,prev_label = reslist[match_ind]
+
+        return flt_res
 
 
