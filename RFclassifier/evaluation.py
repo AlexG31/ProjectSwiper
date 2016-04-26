@@ -535,7 +535,8 @@ class ECGstatistics:
 
         return ResultStatArray
 
-    def FP2CSV(self,FP,csv_output_filename):
+    def FP2CSV(self,FP,Err,csv_output_filename):
+        # [P+] = TP/(TP+FP)
         ResultStatArray = []
         # labels list
         labellist = [
@@ -555,9 +556,11 @@ class ECGstatistics:
         ResultStatArray.append(title_line)
         # dictionary of FP for each label
         FPdict = dict()
+        TPdict = dict()
         recname_set = set()
         for label in labellist:
             FPdict[label] = []
+            TPdict[label] = 0
         # total FP for each label
         totalFP_line = ['Total',]
         FPtuple = zip(FP['pos'],FP['label'],FP['recname'])
@@ -567,6 +570,16 @@ class ECGstatistics:
         for label in labellist:
             totalFP_line.append(len(FPdict[label]))
         ResultStatArray.append(totalFP_line)
+        # get TP number for each label
+        for label in Err['label']:
+            TPdict[label] += 1
+        PplusRate_line = ['P+ value',]
+        for label in labellist:
+            TP_label = TPdict[label]
+            FP_label = len(FPdict[label])
+            PplusRate_line.append(float(TP_label)/(TP_label+FP_label))
+        ResultStatArray.append(PplusRate_line)
+        
         # for each recname
         for recname in recname_set:
             recname_line = [recname,]

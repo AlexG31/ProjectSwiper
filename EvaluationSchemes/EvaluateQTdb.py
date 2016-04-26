@@ -392,7 +392,7 @@ def EvalQTdbResults(resultfilelist):
     ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
     # write csv file
     outputfilename = os.path.join(curfolderpath,'FalsePositive.csv')
-    ECGstats.FP2CSV(FP,outputfilename)
+    ECGstats.FP2CSV(FP,Err,outputfilename)
 
 def getresultfilelist(RFfolder):
     # ================================
