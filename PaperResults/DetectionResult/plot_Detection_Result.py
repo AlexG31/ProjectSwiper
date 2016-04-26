@@ -128,7 +128,7 @@ def plot_QTdb_filtered_Result_with_syntax_filter():
            'TestResult',\
            'pc',\
            'r5')
-    TargetRecordList = ['result_sel48',]#'sel38','sel42','result_sel821','result_sel14046']
+    TargetRecordList = ['result_sel39','result_sel41','result_sel48',]#'sel38','sel42','result_sel821','result_sel14046']
     # ==========================
     # plot prediction result
     # ==========================
@@ -148,7 +148,7 @@ def plot_QTdb_filtered_Result_with_syntax_filter():
             #pdb.set_trace()
         if currecname not in TargetRecordList:
             pass
-            #continue
+            continue
         # load signal and reslist
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
@@ -161,7 +161,6 @@ def plot_QTdb_filtered_Result_with_syntax_filter():
             #continue
         #pdb.set_trace()
         sigstruct = qtdb.load(recID)
-        # plot figure
         # plot res
         #resploter = ECGResultPloter(sigstruct['sig'],reslist)
         #resploter.plot(plotTitle = 'QT database',plotShow = True,plotFig = 2)

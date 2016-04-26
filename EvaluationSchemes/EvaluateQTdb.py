@@ -322,7 +322,7 @@ def EvalQTdbResults(resultfilelist):
     # select best round to compare with refs
     #========================================
     bRselector = BestRoundSelector()
-    InvalidRecordList = conf['InvalidRecords']
+    #InvalidRecordList = conf['InvalidRecords']
 
     # for each record test result
     for fi,fname in enumerate(resultfilelist):
@@ -331,11 +331,14 @@ def EvalQTdbResults(resultfilelist):
             Results = pickle.load(fin)
         # skip invalid records
         currecordname = Results[0]
-        if currecordname in InvalidRecordList:
-            continue
+        #if currecordname in InvalidRecordList:
+            #continue
+        # ==================================
         # filter result of QT
+        # ==================================
         resfilter = ResultFilter(Results[1])
         reslist = resfilter.group_local_result(cp_del_thres = 1)
+        reslist = resfilter.syntax_filter(reslist)
         fResults = (Results[0],reslist)
 
         fResults = [fResults,]
@@ -346,6 +349,8 @@ def EvalQTdbResults(resultfilelist):
         #
         ECGstats = ECGstatistics(fResults)
         pErr,pFN = ECGstats.eval(debug = False)
+        # get False Positive
+        pFP = ECGstats.pFP
         # one test Error stat
         print '[picle filename]:{}'.format(fname)
         print '[{}] files left.'.format(len(resultfilelist) - fi)
@@ -361,6 +366,7 @@ def EvalQTdbResults(resultfilelist):
         for kk in FN:
             FN[kk].extend(pFN[kk])
 
+    #====================================
     # write to log file
     #EvalLogfilename = os.path.join(curfolderpath,'res.log')
     output_log_filename = os.path.join(curfolderpath,'result_output.log')
@@ -378,6 +384,9 @@ def EvalQTdbResults(resultfilelist):
     bRselector.dispBestRound()
     bRselector.dumpBestRound(EvalLogfilename)
 
+    # debug info
+    print '[debug]len(FN) = {}\nlen(Err) = {}'.format(len(FN),len(Err))
+    pdb.set_trace()
     ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
 
 def getresultfilelist(RFfolder):
@@ -443,7 +452,7 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r7')
+           'r5')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records

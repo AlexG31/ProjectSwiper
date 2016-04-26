@@ -47,6 +47,7 @@ class ECGstatistics:
         self.QTloader = QTdb.QTloader()
         self.pErr = None
         self.pFN = None
+        self.pFP = None
 
     def bsMatchLabel(self,\
             expertLabelList,\
@@ -93,6 +94,7 @@ class ECGstatistics:
                 for ppos in matchposlist:
                     if abs(ppos-epos)<abs(curerr):
                         curerr = ppos - epos
+                # predicted pos = pErr['pos']+pErr['err']
                 # Err
                 pErr['err'].append(curerr)
                 pErr['pos'].append(epos)
@@ -104,14 +106,23 @@ class ECGstatistics:
         # Param:
         # debug: show match pairs
         #
-        evalres = []
-        # find error and FN
-        # false negtive
+        # Find error and FN and False Positive
+        #=======================================
+        # statistics in this round
+        #=======================================
+        # False Negtive
         pFN =  {
                 'pos':[],
                 'label':[],
                 'recname':[]
                 }
+        # False Positive
+        pFP =  {
+                'pos':[],
+                'label':[],
+                'recname':[]
+                }
+        # Error
         pErr = {
                 'err':[],
                 'pos':[],
@@ -120,38 +131,100 @@ class ECGstatistics:
                 }
         print 
         print '[Eval]','='*30
-        for recname,recres in self.fResultList:
+        for recname,reslist in self.fResultList:
             sig = self.QTloader.load(recname)
             # --------------------------------------
             # expert result and rf prediction result
             # --------------------------------------
             expres = self.QTloader.getexpertlabeltuple(recname)
-            recres.sort(key = lambda x:x[0])
-
-
+            reslist.sort(key = lambda x:x[0])
             # find closest predicted label with bw search
-            self.bsMatchLabel(\
-                    expres,\
-                    recname,\
-                    recres,\
-                    pErr,\
-                    pFN)
+            self.bsMatchLabel(expres,recname,reslist,pErr,pFN)
+            # get False Positive number
+            self.get_FalsePositive_InExpertLabelRange(reslist,pErr,pFP,recname)
                 
             # debug each recname per paragraph
-            print '[record{}]len pFN = {},mean= {:.2f} ms,stdvar = {:.2f} ms'.\
-                    format(\
-                        recname,\
-                        len(pFN['pos']),\
-                        np.nanmean(pErr['err'])*4.0,\
-                        np.nanstd(pErr['err'])*4.0\
-                    )
+            print '[record{}]len pFN = {},mean= {:.2f} ms,stdvar = {:.2f} ms'.format(recname,len(pFN['pos']),np.nanmean(pErr['err'])*4.0,np.nanstd(pErr['err'])*4.0)
             if debug:
                 print 
 
         self.pErr = pErr
         self.pFN = pFN
+        self.pFP = pFP
         return (pErr,pFN)
 
+    def get_FalsePositive_InExpertLabelRange(self,reslist,pErr,pFP,recname,skip_Thres = 100):
+        pass
+        ExpertPos_ErrorList = zip(pErr['pos'],pErr['err'])
+        matched_poslist = map(lambda x:x[0]+x[1],ExpertPos_ErrorList)
+        #raw_prediction_poslist = map(lambda x:x[0],reslist)
+        raw_prediction_poslist = reslist
+        # sort two list
+        matched_poslist.sort()
+        raw_prediction_poslist.sort(key = lambda x:x[0])
+        # find FP
+        FirstTime = True
+        raw_ind = 0
+        N_matched = len(matched_poslist)
+        for mpos_ind,mpos in enumerate(matched_poslist):
+            if mpos == raw_prediction_poslist[raw_ind][0]:
+                #print 'mpos=',mpos,'raw predict:',raw_prediction_poslist[raw_ind]
+                #pdb.set_trace()
+                raw_ind += 1
+            else:
+                while mpos != raw_prediction_poslist[raw_ind][0]:
+                    # find FP!
+                    if FirstTime == False:
+                        pFP['pos'].append(raw_prediction_poslist[raw_ind][0])
+                        pFP['label'].append(raw_prediction_poslist[raw_ind][1])
+                        pFP['recname'].append(recname)
+                    raw_ind += 1
+                FirstTime = False
+                #print 'mpos=',mpos,'raw predict:',raw_prediction_poslist[raw_ind],'and raw_ind=',raw_ind
+                #pdb.set_trace()
+                raw_ind += 1
+            # skip FP in large gap
+            if mpos_ind+1<N_matched and matched_poslist[mpos_ind+1]-mpos>=skip_Thres:
+                # skip False Positives inbetween,
+                # because these FP canbe real characteristic point without expert label
+                #print 'mpos = ',mpos
+                #print 'next mpos = ',matched_poslist[mpos_ind+1]
+                #print 'dist = ',matched_poslist[mpos_ind+1]-mpos
+                #pdb.set_trace()
+                FirstTime = True
+
+        print 'number of False Positive :{}'.format(len(pFP['pos']))
+        pdb.set_trace()
+        return None
+    def get_FalsePositive(self,reslist,pErr,pFP,recname):
+        pass
+        ExpertPos_ErrorList = zip(pErr['pos'],pErr['err'])
+        matched_poslist = map(lambda x:x[0]+x[1],ExpertPos_ErrorList)
+        #raw_prediction_poslist = map(lambda x:x[0],reslist)
+        raw_prediction_poslist = reslist
+        # sort two list
+        matched_poslist.sort()
+        raw_prediction_poslist.sort(key = lambda x:x[0])
+        # find FP
+        print 'number of False Positive :{}'.format(len(raw_prediction_poslist) - len(matched_poslist))
+        pdb.set_trace()
+        raw_ind = 0
+        # Error !! what about FP after the matched_poslist[-1]?
+        raise Exception('what about FP after the matched_poslist[-1]?')
+        for mpos in matched_poslist:
+            if mpos == raw_prediction_poslist[raw_ind][0]:
+                raw_ind += 1
+            else:
+                while mpos != raw_prediction_poslist[raw_ind][0]:
+                    # find FP!
+                    pFP['pos'].append(raw_prediction_poslist[raw_ind][0])
+                    pFP['label'].append(raw_prediction_poslist[raw_ind][1])
+                    pFP['recname'].append(recname)
+                    raw_ind += 1
+                raw_ind += 1
+        pdb.set_trace()
+        return None
+        
     def PlotMarkerList(self):
         return [
                 'ro',

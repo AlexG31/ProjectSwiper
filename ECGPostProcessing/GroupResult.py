@@ -174,7 +174,9 @@ class ResultFilter:
         if len(reslist) == 0:
             return []
         # const
-        Max_Len = 30
+        fs = 250
+        Max_Len = 3*fs/25
+        Offset_Len = fs/25
         # filtered result
         flt_res = []
         flt_res.append(reslist[0])
@@ -199,9 +201,12 @@ class ResultFilter:
                 break
             # matched next ind
             match_ind = -1
+            cur_Max_Dist = Max_Len
+            if 'offset' in prev_label:
+                cur_Max_Dist = Offset_Len
             for nxt_ind in xrange(prev_ind,N_reslist):
                 curpos,curlabel = reslist[nxt_ind]
-                if curpos - prev_pos > Max_Len:
+                if curpos - prev_pos > cur_Max_Dist:
                     # not a label match
                     if match_ind == -1:
                         pass
