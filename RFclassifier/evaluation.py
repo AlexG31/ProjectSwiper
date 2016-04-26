@@ -193,8 +193,8 @@ class ECGstatistics:
                 #pdb.set_trace()
                 FirstTime = True
 
-        print 'number of False Positive :{}'.format(len(pFP['pos']))
-        pdb.set_trace()
+        #print 'number of False Positive :{}'.format(len(pFP['pos']))
+        #pdb.set_trace()
         return None
     def get_FalsePositive(self,reslist,pErr,pFP,recname):
         pass
@@ -535,6 +535,53 @@ class ECGstatistics:
 
         return ResultStatArray
 
+    def FP2CSV(self,FP,csv_output_filename):
+        ResultStatArray = []
+        # labels list
+        labellist = [
+                'P',
+                'R',
+                'T',
+                'Ponset',
+                'Poffset',
+                'Ronset',
+                'Roffset',
+                'Toffset'
+                ]
+        # add title line
+        title_line = ['Record Name',]
+        for label in labellist:
+            title_line.append(label+' FP')
+        ResultStatArray.append(title_line)
+        # dictionary of FP for each label
+        FPdict = dict()
+        recname_set = set()
+        for label in labellist:
+            FPdict[label] = []
+        # total FP for each label
+        totalFP_line = ['Total',]
+        FPtuple = zip(FP['pos'],FP['label'],FP['recname'])
+        for pos,label,recname in FPtuple:
+            recname_set.add(recname)
+            FPdict[label].append((pos,recname))
+        for label in labellist:
+            totalFP_line.append(len(FPdict[label]))
+        ResultStatArray.append(totalFP_line)
+        # for each recname
+        for recname in recname_set:
+            recname_line = [recname,]
+            for label in labellist:
+                FP_cnt = 0
+                for pos,pos_recname in FPdict[label]:
+                    if pos_recname == recname:
+                        FP_cnt += 1
+                recname_line.append(FP_cnt)
+            ResultStatArray.append(recname_line)
+
+
+        from EvaluationSchemes.csvwriter import CSVwriter
+        csvwriter = CSVwriter(csv_output_filename)
+        csvwriter.output(ResultStatArray)
     @staticmethod
     def dispstat0(pFN = None ,pErr = None,LogFileName = None,LogText = None):
         # =====================================================================

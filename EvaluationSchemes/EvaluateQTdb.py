@@ -23,7 +23,6 @@ import matplotlib.pyplot as plt
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
 projhomepath = os.path.dirname(curfolderpath)
-print 'projhomepath:',projhomepath
 # configure file
 # conf is a dict containing keys
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
@@ -76,10 +75,6 @@ def debug_show_eval_result(\
         ECGstats.plotevalresofrec(Results[recind][0],Results)
 
 def LOOT_Eval(RFfolder):
-    #RFfolder = os.path.join(\
-            #curfolderpath,\
-            #'TestResult',\
-            #'t2')
     reslist = glob.glob(os.path.join(\
             RFfolder,'*.out'))
     FN =  {
@@ -312,6 +307,11 @@ def EvalQTdbResults(resultfilelist):
                 'label':[],
                 'recname':[]
                 }
+    FP =  {
+                'pos':[],
+                'label':[],
+                'recname':[]
+                }
     Err = {
                 'err':[],
                 'pos':[],
@@ -360,11 +360,13 @@ def EvalQTdbResults(resultfilelist):
         if numofFN == 0:
             ExtraInfo = 'Best Round ResultFileName[{}]\nTestSet :{}\n#False Negtive:{}\n'.format(fname,[x[0] for x in Results],numofFN)
             bRselector.input(evallabellist,evalstats,ExtraInfo = ExtraInfo)
-
+        # ==============================================
         for kk in Err:
             Err[kk].extend(pErr[kk])
         for kk in FN:
             FN[kk].extend(pFN[kk])
+        for kk in FP:
+            FP[kk].extend(pFP[kk])
 
     #====================================
     # write to log file
@@ -388,6 +390,9 @@ def EvalQTdbResults(resultfilelist):
     print '[debug]len(FN) = {}\nlen(Err) = {}'.format(len(FN),len(Err))
     pdb.set_trace()
     ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
+    # write csv file
+    outputfilename = os.path.join(curfolderpath,'FalsePositive.csv')
+    ECGstats.FP2CSV(FP,outputfilename)
 
 def getresultfilelist(RFfolder):
     # ================================
