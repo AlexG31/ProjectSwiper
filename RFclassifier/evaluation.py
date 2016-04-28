@@ -535,6 +535,67 @@ class ECGstatistics:
 
         return ResultStatArray
 
+    def FN2CSV(self,FN,Err,csv_output_filename):
+        # [Se] = TP/(TP+FN)
+        ResultStatArray = []
+        # labels list
+        labellist = [
+                'P',
+                'R',
+                'T',
+                'Ponset',
+                'Poffset',
+                'Ronset',
+                'Roffset',
+                'Toffset'
+                ]
+        # add title line
+        title_line = ['Record Name',]
+        for label in labellist:
+            title_line.append(label+' FN')
+        ResultStatArray.append(title_line)
+        # dictionary of FN for each label
+        FNdict = dict()
+        TPdict = dict()
+        recname_set = set()
+        for label in labellist:
+            FNdict[label] = []
+            TPdict[label] = 0
+        # total FN for each label
+        totalFN_line = ['Total',]
+        FNtuple = zip(FN['pos'],FN['label'],FN['recname'])
+        for pos,label,recname in FNtuple:
+            recname_set.add(recname)
+            FNdict[label].append((pos,recname))
+        for label in labellist:
+            totalFN_line.append(len(FNdict[label]))
+        ResultStatArray.append(totalFN_line)
+        # get TP number for each label
+        for label in Err['label']:
+            TPdict[label] += 1
+        # for False Negtive is Sensitivity
+        PplusRate_line = ['Se value',]
+        for label in labellist:
+            TP_label = TPdict[label]
+            FN_label = len(FNdict[label])
+            PplusRate_line.append(float(TP_label)/(TP_label+FN_label))
+        ResultStatArray.append(PplusRate_line)
+        
+        # for each recname
+        for recname in recname_set:
+            recname_line = [recname,]
+            for label in labellist:
+                FN_cnt = 0
+                for pos,pos_recname in FNdict[label]:
+                    if pos_recname == recname:
+                        FN_cnt += 1
+                recname_line.append(FN_cnt)
+            ResultStatArray.append(recname_line)
+
+
+        from EvaluationSchemes.csvwriter import CSVwriter
+        csvwriter = CSVwriter(csv_output_filename)
+        csvwriter.output(ResultStatArray)
     def FP2CSV(self,FP,Err,csv_output_filename):
         # [P+] = TP/(TP+FP)
         ResultStatArray = []

@@ -393,6 +393,9 @@ def EvalQTdbResults(resultfilelist):
     # write csv file
     outputfilename = os.path.join(curfolderpath,'FalsePositive.csv')
     ECGstats.FP2CSV(FP,Err,outputfilename)
+    # False Negtive
+    outputfilename = os.path.join(curfolderpath,'FalseNegtive.csv')
+    ECGstats.FN2CSV(FN,Err,outputfilename)
 
 def getresultfilelist(RFfolder):
     # ================================
@@ -457,7 +460,7 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r5')
+           'r7')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records

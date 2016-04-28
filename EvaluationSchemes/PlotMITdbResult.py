@@ -376,7 +376,7 @@ def plotMITdbTestResult():
            'TestResult',\
            'pc',\
            'r3')
-    TargetRecordList = ['sel38','sel42',]
+    TargetRecordList = ['result_104','sel38','sel42',]
     # ==========================
     # plot prediction result
     # ==========================
@@ -390,6 +390,7 @@ def plotMITdbTestResult():
         currecname = os.path.split(fname)[-1]
         if currecname not in TargetRecordList:
             pass
+            continue
         if not currecname.startswith('result'):
             continue
         print 'processing file',fname,'...'
@@ -403,16 +404,26 @@ def plotMITdbTestResult():
         print 'signal loaded.'
         # filter result list
         resfilter = ResultFilter(reslist)
-        reslist = resfilter.groupresult()
+        #reslist = resfilter.groupresult()
+        reslist = resfilter.group_local_result(reslist)
+        reslist = filter(lambda x:x[1]=='R',reslist)
+        # add Expert Labels
+        mitdb.markpos = map(lambda x:int(x),mitdb.markpos)
+        Expert_reslist = zip(mitdb.markpos,['T']*len(mitdb.markpos))
+        reslist.extend(Expert_reslist)
+        #reslist = Expert_reslist
         # plot res
         resploter = ECGResultPloter(rawsig,reslist)
-        dispRange = (20000,21000)
-        savefolderpath = os.path.join(curfolderpath,'tmp','MITdbTestResult')
+        resploter.plot(plotTitle = 'Detection Result:'+recID)
+        #dispRange = (20000,21000)
+        #savefolderpath = os.path.join(curfolderpath,'tmp','MITdbTestResult')
         # debug
         #pdb.set_trace()
         #resploter.plot()
         #resploter.plotAndsave(os.path.join(savefolderpath,recID),plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
-        resploter.plot(plotTitle = recID)
+        ## plot Expert Labels
+        #ExpertResultploter = ECGResultPloter(rawsig,mitdb.markpos)
+        #ExpertResultploter.plot(plotTitle = 'Expert Label:'+recID)
         pdb.set_trace()
         
 if __name__ == '__main__':

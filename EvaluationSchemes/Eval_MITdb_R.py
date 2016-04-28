@@ -39,7 +39,7 @@ from RFclassifier.evaluation import ECGstatistics
 import RFclassifier.ECGRF as ECGRF 
 from ECGPloter.ResultPloter import ECGResultPloter
 from MITdb.MITdbLoader import MITdbLoader
-from ECGPostProcessing.GroupResult import GroupClassificationResult as ECGGrouper
+from ECGPostProcessing.GroupResult import ResultFilter as ECGGrouper
 from csvwriter import CSVwriter
 
 def TestingAndSaveResult():
@@ -503,15 +503,15 @@ def plotMITdbTestResult():
         # plot res
         # group result labels
         resgrper = ECGGrouper(reslist)
-        reslist = resgrper.resultfilter(reslist)
+        reslist = resgrper.group_local_result(reslist)
 
         resploter = ECGResultPloter(rawsig,reslist)
         dispRange = (20000,21000)
         savefolderpath = ur'E:\ECGResults\MITdbTestResult\pic'
         # debug
-        #pdb.set_trace()
         #resploter.plot()
         resploter.plot(plotTitle = 'ID:{},Range:{}'.format(recID,dispRange),dispRange = dispRange)
+
 
 def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
     # analysis false negtive status
@@ -522,6 +522,9 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
            'r3')
     # write FN statistics to csv file
     csv = CSVwriter(csvfilepath)
+    title_line = ['record name','False Negtive number','Expert Label Number']
+    csv.output([title_line,])
+
     TargetRecordList = ['sel38','sel42',]
     # ==========================
     # analysis FN 
@@ -530,6 +533,7 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
     nFN = 0
     nExpLabel = 0
     reslist = glob.glob(os.path.join(RFfolder,'*'))
+    N_reslist = len(reslist)
     for fi,fname in enumerate(reslist):
         # block *.out
         # filter file name
@@ -540,7 +544,8 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
             pass
         if not currecname.startswith('result'):
             continue
-        print 'processing file name:',fname
+        print 'processing file:',fname
+        print '{} files left.'.format(N_reslist-fi-1)
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
         # load signal
@@ -551,7 +556,7 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
         # plot res
         # group result labels
         resgrper = ECGGrouper(reslist)
-        reslist = resgrper.resultfilter(reslist)
+        reslist = resgrper.group_local_result(reslist)
         res_poslist,res_labellist = zip(*reslist)
         #--------------------------------------
         # for each expert label find its closest match,if distance of this match exceeds match_dist_thres,then it is a classification dismatch.
@@ -566,7 +571,7 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
             if matchdist>match_dist_thres:
                 cFN+=1
         # to csv
-        csv.output([[fname,cFN,cExpLabel],])
+        csv.output([[currecname,cFN,cExpLabel],])
         # total stat
         nFN += cFN
         nExpLabel += cExpLabel
@@ -578,18 +583,157 @@ def FN_stat(csvfilepath = r'MITdb_FalseNegtive_stat.csv'):
     print 'Total FN rate:{},PD rate:{}'.format(float(nFN)/nExpLabel,1.0-float(nFN)/nExpLabel)
 
         
-class FNanalyser:
+class MITanalyser:
     # todo..
     # unused
-    def __init__(self):
+    def __init__(self,ResultFolderPath,savefolderpath):
         # number of False Negtives
         self.nFN = 0
         # number of expert labels
         self.nExpLabel = 0
-        pass
+        # folder to save result
+        self.savefolderpath = savefolderpath
+        # Folder contains results
+        self.RFfolder = ResultFolderPath
     def analyserecord(self,reslist,expertlabellist):
         pass
+    def getFN_FP(self,reslist,mit_expertlabel_list,recname,fs = 250):
+        FN = {
+                'pos':[],
+                'label':[],
+                'recname':[]
+            }
+        FP = {
+                'pos':[],
+                'label':[],
+                'recname':[]
+            }
+        match_dist_thres = fs/5
+        # load signal
+        cFN = 0
+        #mitdb = MITdbLoader()
+        #rawsig = mitdb.load(recID)
+        # plot res
+        # group result labels
+        resgrper = ECGGrouper(reslist)
+        reslist = resgrper.group_local_result(reslist)
+        reslist = resgrper.syntax_filter(reslist)
+        
+        # R wave pos only
+        reslist = filter(lambda x:x[1]=='R',reslist)
+        res_poslist,res_labellist = zip(*reslist)
+        # ------------------------------------------------
+        # for each expert label find its closest match,if 
+        # distance of this match exceeds match_dist_thres,
+        # then it is a classification dismatch.
+        # ------------------------------------------------
+        N_reslist = len(res_poslist)
+        N_TP = 0
+        matched_pred_ind_set = set()
+        matched_reslist_indexlist = []
+        for expmpos in mit_expertlabel_list:
+            # find the closest match in reslist
+            close_ind = bisect.bisect_left(res_poslist,expmpos)
+            if close_ind>= N_reslist:
+                FN['pos'].append(expmpos)
+                FN['label'].append('R')
+                FN['recname'].append(recname)
+                cFN += 1
+                continue
+            matchdist = abs(res_poslist[close_ind]-expmpos)
+            if close_ind>0:
+                # may find better match
+                if abs(res_poslist[close_ind-1]-expmpos)<matchdist:
+                    matchdist = abs(res_poslist[close_ind-1]-expmpos)
+                    close_ind -= 1
+            if matchdist>match_dist_thres or close_ind in matched_pred_ind_set:
+                FN['pos'].append(expmpos)
+                FN['label'].append('R')
+                FN['recname'].append(recname)
+                cFN+=1
+                continue
+            # find a right match:
+            N_TP += 1
+            matched_pred_ind_set.add(close_ind)
+            matched_reslist_indexlist.append(close_ind)
+        # find False Positive
+        matched_reslist_indexlist.sort()
+        start_ind = 0
+        for m_ind in  matched_reslist_indexlist:
+            while start_ind<N_reslist and start_ind != m_ind:
+                # a FP
+                FP['pos'].append(res_poslist[start_ind])
+                FP['label'].append('R')
+                FP['recname'].append(recname)
+                start_ind += 1
+            start_ind += 1
+        return (FN,FP,N_TP)
+    def analyse(self,csvfilepath = r'MITdb_FN_FP_statistics.csv'):
+        # analysis false negtive status
+        # analysis false positive status
+
+        #RFfolder = os.path.join(\
+               #projhomepath,\
+               #'TestResult',\
+               #'pc',\
+               #'r3')
+        RFfolder = self.RFfolder
+        # write FN statistics to csv file
+        csv = CSVwriter(csvfilepath)
+        title_line = ['record name','False Negtive Number','Expert Label Number','Sensitivity','False Positive Number','True Positive Number','P+']
+        csv.output([title_line,])
+
+        # ==========================
+        # analysis FN 
+        # ==========================
+        match_dist_thres = 50
+        nFN = 0
+        nExpLabel = 0
+        reslist = glob.glob(os.path.join(RFfolder,'*'))
+        N_reslist = len(reslist)
+        for fi,fname in enumerate(reslist):
+            # block *.out
+            # filter file name
+            if fname[-4:] == '.out' or '.json' in fname:
+                continue
+            currecname = os.path.split(fname)[-1]
+            #if currecname not in ['result_215',]:
+                #continue
+            if not currecname.startswith('result'):
+                continue
+            print 'processing file:',fname
+            print '{} files left.'.format(N_reslist-fi-1)
+            with open(fname,'r') as fin:
+                (recID,reslist) = pickle.load(fin)
+            # load signal
+            cFN = 0
+            mitdb = MITdbLoader()
+            rawsig = mitdb.load(recID)
+            cExpLabel = len(mitdb.markpos)
+            # analyse FN
+            curFN,curFP,N_TP = self.getFN_FP(reslist,mitdb.markpos,recID)
+            cFN = len(curFN['pos'])
+            cFP = len(curFP['pos'])
+            # to csv
+            csv.output([[currecname,cFN,cExpLabel,1-float(cFN)/cExpLabel,cFP,N_TP,1-(float(cFP)/(cFP+N_TP))],])
+            # total stat
+            nFN += cFN
+            nExpLabel += cExpLabel
+            print
+            print 'record[{}] FN rate:{},PD rate:{}'.format(fname,float(cFN)/cExpLabel,1-float(cFN)/cExpLabel)
+        # =================================
+        # total FN
+        # =================================
+        print 'Total FN rate:{},PD rate:{}'.format(float(nFN)/nExpLabel,1.0-float(nFN)/nExpLabel)
 if __name__ == '__main__':
-    FN_stat()
+    # R wave false negtive number
+    #FN_stat()
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'r3')
+    mitAna = MITanalyser(RFfolder,curfolderpath)
+    mitAna.analyse()
     sys.exit()
     EvalQTdbResults(getresultfilelist())
