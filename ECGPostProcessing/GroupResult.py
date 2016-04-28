@@ -83,7 +83,7 @@ class ResultFilter:
                 
         return frecres
 
-    def group_local_result(self,recres = None,white_del_thres = 20,cp_del_thres = 1):
+    def group_local_result(self,recres = None,white_del_thres = 20,cp_del_thres = 0):
         #
         # 参数说明：1.white_del_thres是删除较小白色组的阈值
         #           2.cp_del_thres是删除较小其他关键点组的阈值
@@ -98,7 +98,6 @@ class ResultFilter:
         # default parameter
         if recres is None:
             recres = self.recres
-        group_min_thres = 1
 
         # filtered test result
         frecres = []
@@ -137,12 +136,11 @@ class ResultFilter:
 
         frecres = filtered_local_res
         # [(label,[poslist])]
-        frecres = [x for x in frecres if len(x[1]) > group_min_thres]
         frecres = [(int(np.mean(x[1])),x[0]) \
                 for x in frecres]
                 
         return frecres
-    def syntax_filter(self,reslist = None):
+    def syntax_filter(self,reslist = None,fs = 250,Max_Len_Ratio = 3.0/25):
         # nest function
         def next_label(label):
             ## syntax next label
@@ -174,8 +172,7 @@ class ResultFilter:
         if len(reslist) == 0:
             return []
         # const
-        fs = 250
-        Max_Len = 3*fs/25
+        Max_Len = Max_Len_Ratio*fs
         Offset_Len = fs/25
         # filtered result
         flt_res = []

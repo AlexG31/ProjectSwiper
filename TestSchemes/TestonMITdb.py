@@ -133,7 +133,7 @@ def TestAllQTdata(saveresultpath):
         ECGRF.debugLogger.dump('\n\n====\ntrained model saved in {}\n'.format(saveresultpath))
         
 if __name__ == '__main__':
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r3')
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','MIT8')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
 

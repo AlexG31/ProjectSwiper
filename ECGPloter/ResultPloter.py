@@ -84,7 +84,12 @@ class ECGResultPloter:
             mker = 'w.'
         return mker
         
-    def plot(self,plotTitle = None,dispRange = None,plotFig = 1,plotShow = True):
+    def plot(self,plotTitle = None,dispRange = None,plotFig = 1,plotShow = True,AdditionalPlot = None):
+        # AdditionalPlot
+        # [ 
+        #   [plotmarker,legend,x,(y)],
+        #   ...
+        # ]
         # display range
         if dispRange is not None:
             dispsig = self.rawsig[dispRange[0]:dispRange[1]]
@@ -122,6 +127,20 @@ class ECGResultPloter:
                 if len(mkerposlist)>0:
                     # have avaliable mker to plot
                     plt.plot(mkerposlist,Amplist,mker,markersize=10,label = '{}'.format(self.PlotMarker2Label(mker)))
+        #=====================
+        # plot AdditionalPlot
+        #=====================
+        if AdditionalPlot is not None:
+            for plotElem in AdditionalPlot:
+                plotElem_x = plotElem[2]
+                if len(plotElem) == 3:
+                    plotElem_y = map(lambda x:dispsig[int(x)],plotElem_x)            
+                elif len(plotElem) == 4:
+                    plotElem_y = plotElem[3]
+                else:
+                    raise Exception('len(plotElem) should be 3 or 4!')
+                # plot 
+                plt.plot(plotElem_x,plotElem_y,plotElem[0],markersize = 10,label = plotElem[1])
         if plotTitle is not None:
             plt.title(plotTitle)
         # show legend

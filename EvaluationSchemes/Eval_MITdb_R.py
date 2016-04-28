@@ -617,10 +617,11 @@ class MITanalyser:
         # group result labels
         resgrper = ECGGrouper(reslist)
         reslist = resgrper.group_local_result(reslist)
-        reslist = resgrper.syntax_filter(reslist)
         
         # R wave pos only
         reslist = filter(lambda x:x[1]=='R',reslist)
+        # filtering
+        reslist = resgrper.syntax_filter(reslist,Max_Len_Ratio = 1.0/5.0)
         res_poslist,res_labellist = zip(*reslist)
         # ------------------------------------------------
         # for each expert label find its closest match,if 
@@ -697,8 +698,8 @@ class MITanalyser:
             if fname[-4:] == '.out' or '.json' in fname:
                 continue
             currecname = os.path.split(fname)[-1]
-            #if currecname not in ['result_215',]:
-                #continue
+            if currecname not in ['result_119','result_105']:
+                continue
             if not currecname.startswith('result'):
                 continue
             print 'processing file:',fname
@@ -712,6 +713,9 @@ class MITanalyser:
             cExpLabel = len(mitdb.markpos)
             # analyse FN
             curFN,curFP,N_TP = self.getFN_FP(reslist,mitdb.markpos,recID)
+            # debug plot
+            self.debug_FN_FP(rawsig,reslist,curFN,curFP)
+
             cFN = len(curFN['pos'])
             cFP = len(curFP['pos'])
             # to csv
@@ -725,6 +729,26 @@ class MITanalyser:
         # total FN
         # =================================
         print 'Total FN rate:{},PD rate:{}'.format(float(nFN)/nExpLabel,1.0-float(nFN)/nExpLabel)
+    def debug_FN_FP(self,rawsig,reslist,FN,FP):
+        # =================================
+        # group result labels
+        resgrper = ECGGrouper(reslist)
+        ft_reslist = resgrper.group_local_result(reslist)
+
+        # delete white point
+        reslist = filter(lambda x:x[1]=='R',reslist)
+        
+        # R wave pos only
+        ft_reslist = filter(lambda x:x[1]=='R',ft_reslist)
+        # filtering
+        ft_reslist = resgrper.syntax_filter(ft_reslist,Max_Len_Ratio = 1.0/5.0)
+        # =================================
+        FN_plot_line = ['rd','False Negtive',FN['pos']]
+        FP_plot_line = ['kx','False Negtive',FP['pos']]
+        res_plot_line = ['ko','filtered R',map(lambda x:x[0],ft_reslist)]
+        # plot res
+        resploter = ECGResultPloter(rawsig,reslist)
+        resploter.plot(plotTitle = 'Detection Result:'+FN['recname'][0],AdditionalPlot = [FN_plot_line,FP_plot_line,res_plot_line])
 if __name__ == '__main__':
     # R wave false negtive number
     #FN_stat()

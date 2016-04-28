@@ -410,11 +410,12 @@ def plotMITdbTestResult():
         # add Expert Labels
         mitdb.markpos = map(lambda x:int(x),mitdb.markpos)
         Expert_reslist = zip(mitdb.markpos,['T']*len(mitdb.markpos))
-        reslist.extend(Expert_reslist)
         #reslist = Expert_reslist
+        # Addition 
+        Exp_plot_line = ['ko','Expert R',map(lambda x:x[0],Expert_reslist)]
         # plot res
         resploter = ECGResultPloter(rawsig,reslist)
-        resploter.plot(plotTitle = 'Detection Result:'+recID)
+        resploter.plot(plotTitle = 'Detection Result:'+recID,AdditionalPlot = [Exp_plot_line,])
         #dispRange = (20000,21000)
         #savefolderpath = os.path.join(curfolderpath,'tmp','MITdbTestResult')
         # debug
