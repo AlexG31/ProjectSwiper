@@ -185,10 +185,12 @@ class ECGrf:
         # test rawsignal
         if rfmdl is None:
             rfmdl = self.mdl
+        # Extracting Feature
         if MultiProcess == 'off':
             FeatureExtractor = extfeature.ECGfeatures(signal)
         else:
             raise StandardError('MultiProcess on is not defined yet!')
+        # testing
         if MultiProcess == 'on':
             raise StandardError('MultiProcess on is not defined yet!')
         elif MultiProcess == 'off':

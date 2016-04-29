@@ -14,6 +14,7 @@ import time
 import shutil
 import numpy as np
 import pdb
+from multiprocessing import Pool
 ## machine learning methods
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
@@ -38,6 +39,7 @@ import RFclassifier.ECGRF as ECGRF
 from QTdata.loadQTdata import QTloader 
 from RunAndTime import RunAndTime
 from MITdb.MITdbLoader import MITdbLoader
+from TestOnAllQTdata_TrainonSelectedRecords import backupobj
 
 
 def TestingAndSaveResult():
@@ -83,6 +85,37 @@ def testonMITdb(rfClass,saveFolderpath):
     ECGRF.debugLogger.dump('\nTotal time cost:{:.2f} s\n'.format(total_time_cost))
     return TestResultList
 
+def _MultiProcess_testMITdb_recID(params):
+    recID,mitdb,rfClass,saveFolderpath = params
+    # load raw signal
+    rawsig = mitdb.load(recID)
+
+    # [result structure]
+    # -------------------------
+    # zip(positionlist,labellist)
+    # -------------------------
+    # timing:
+    time_test_start = time.time()
+    # testing
+    result = rfClass.test_signal(rawsig)
+    # timing:end
+    time_test_end = time.time()
+    ECGRF.debugLogger.dump('Testing time for {}: {:.2f} s\n'.format(recID,time_test_end - time_test_start))
+    # save result
+    with open(os.path.join(saveFolderpath,'result_{}'.format(recID)),'w') as fout:
+        pickle.dump((recID,result),fout)
+def testonMITdb_multiProcess(rfClass,saveFolderpath):
+    # load MITdb first
+    mitdb = MITdbLoader(os.path.join(projhomepath,'MITdb','pydata'))
+    # get MITdb record list
+    reclist = mitdb.getRecIDList()
+    # test each record
+    p = Pool(5)
+    N_reclist = len(reclist)
+    p.map(_MultiProcess_testMITdb_recID,zip(reclist,[mitdb]*N_reclist,[rfClass]*N_reclist,[saveFolderpath]*N_reclist))
+    #for recID in reclist:
+        #pass
+    return None
 def TestAllQTdata(saveresultpath):
     # Leave Ntest out of 30 records to test
     #
@@ -95,16 +128,8 @@ def TestAllQTdata(saveresultpath):
     # test Range in each signal
     rf.TestRange = 'All'
 
-    # ================
-    # evaluate time cost for each stage
-    # ================
-    rtimer = RunAndTime()
-    
     # clear debug logger
     ECGRF.debugLogger.clear()
-    # display the time left to finish program
-    one_round_time_cost = []
-
     # ====================
     # Training
     # ====================
@@ -116,6 +141,8 @@ def TestAllQTdata(saveresultpath):
     #
     # dump to debug logger
     rf.training(selrecords)
+    # save trained mdl
+    backupobj(rf.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
     # timing
     time1 = time.time()
     print 'Total Training time:',time1-time0
@@ -125,7 +152,7 @@ def TestAllQTdata(saveresultpath):
     testinglist = selrecords
     print '\n>>Testing:',testinglist
     ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(selrecords))
-    testonMITdb(rf,saveresultpath)
+    testonMITdb_multiProcess(rf,saveresultpath)
     #rf.testmdl(reclist = selrecords,TestResultFileName = os.path.join(saveresultpath,'TestResult.out'))
     # save trained mdl
     with open(os.path.join(saveresultpath,'trained_model'),'w') as fout:
@@ -133,12 +160,16 @@ def TestAllQTdata(saveresultpath):
         ECGRF.debugLogger.dump('\n\n====\ntrained model saved in {}\n'.format(saveresultpath))
         
 if __name__ == '__main__':
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','MIT8')
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','MIT8_a')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
+    # refresh random select feature json file and backup
+    ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 
     #backup configuration file
     backup_configure_file(saveresultpath)
 
     TestAllQTdata(saveresultpath)
+    # back up processing debug output log
+    shutil.copy(os.path.join(projhomepath,'classification_process.log'),saveresultpath)
 
