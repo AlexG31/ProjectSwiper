@@ -698,8 +698,8 @@ class MITanalyser:
             if fname[-4:] == '.out' or '.json' in fname:
                 continue
             currecname = os.path.split(fname)[-1]
-            if currecname not in ['result_119','result_105']:
-                continue
+            #if currecname not in ['result_119','result_105']:
+                #continue
             if not currecname.startswith('result'):
                 continue
             print 'processing file:',fname
@@ -714,7 +714,7 @@ class MITanalyser:
             # analyse FN
             curFN,curFP,N_TP = self.getFN_FP(reslist,mitdb.markpos,recID)
             # debug plot
-            self.debug_FN_FP(rawsig,reslist,curFN,curFP)
+            #self.debug_FN_FP(rawsig,reslist,curFN,curFP)
 
             cFN = len(curFN['pos'])
             cFP = len(curFP['pos'])
@@ -756,7 +756,7 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r3')
+           'MIT8_a')
     mitAna = MITanalyser(RFfolder,curfolderpath)
     mitAna.analyse()
     sys.exit()

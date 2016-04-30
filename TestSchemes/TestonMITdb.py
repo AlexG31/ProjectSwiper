@@ -84,12 +84,15 @@ def testonMITdb(rfClass,saveFolderpath):
     # Dump total time cost
     ECGRF.debugLogger.dump('\nTotal time cost:{:.2f} s\n'.format(total_time_cost))
     return TestResultList
-
 def _MultiProcess_testMITdb_recID(params):
     recID,mitdb,rfClass,saveFolderpath = params
     # load raw signal
     rawsig = mitdb.load(recID)
-
+    #----------------------
+    MIT_QT_ratio = 36.0/25
+    N_MITdownsample = int(len(rawsig)/MIT_QT_ratio)
+    sampling_arr = map(lambda x:int(round(x*MIT_QT_ratio)),xrange(0,N_MITdownsample))
+    rawsig = map(lambda x:rawsig[x],sampling_arr)
     # [result structure]
     # -------------------------
     # zip(positionlist,labellist)
@@ -98,6 +101,8 @@ def _MultiProcess_testMITdb_recID(params):
     time_test_start = time.time()
     # testing
     result = rfClass.test_signal(rawsig)
+    # resampling
+    result = map(lambda x:(sampling_arr[int(x[0])],x[1]),result)
     # timing:end
     time_test_end = time.time()
     ECGRF.debugLogger.dump('Testing time for {}: {:.2f} s\n'.format(recID,time_test_end - time_test_start))
@@ -123,6 +128,7 @@ def TestAllQTdata(saveresultpath):
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
     selrecords= QTreclist
+    # Random Forest Classifier
     rf = ECGRF.ECGrf()
     rf.useParallelTest = False
     # test Range in each signal
@@ -134,7 +140,6 @@ def TestAllQTdata(saveresultpath):
     # Training
     # ====================
     ECGRF.debugLogger.dump('\n====Test Start ====\n')
-
 
     time0 = time.time()
     # training the rf classifier with reclist
@@ -160,7 +165,7 @@ def TestAllQTdata(saveresultpath):
         ECGRF.debugLogger.dump('\n\n====\ntrained model saved in {}\n'.format(saveresultpath))
         
 if __name__ == '__main__':
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','MIT8_a')
+    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','mit_9_resampling')
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
     # refresh random select feature json file and backup
