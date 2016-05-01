@@ -143,10 +143,10 @@ class WTfeature:
         
         
     def gswt_wavelet(self):
-        declo = [0,2,-1,0]        
-        dechi = [1/8.0,3/8.0,3/8.0,1/8.0]
-        reclo = [0,1,-2,0]
-        rechi = [1/8.0,3/8.0,3/8.0,1/8.0]
+        dechi = [0,2,-2,0]        
+        declo = [1/8.0,3/8.0,3/8.0,1/8.0]
+        rechi = [0,2,-2,0]
+        reclo = [1/8.0,3/8.0,3/8.0,1/8.0]
         filterbanks = [declo,dechi,reclo,rechi]
         return pywt.Wavelet('gswt',filterbanks)
 
