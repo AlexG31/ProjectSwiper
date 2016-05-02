@@ -36,6 +36,7 @@ import extractfeature.extractfeature as extfeature
 import extractfeature.randomrelations as RandRelation
 import WTdenoise.wtdenoise as wtdenoise
 import QTdata.loadQTdata as QTdb
+from MatlabPloter.Result2Mat_Format import reslist_to_mat
 
 ## Main Scripts
 # ==========
@@ -90,7 +91,7 @@ class ECGrf:
 
     # label proc & convert to feature
     @staticmethod
-    def collectfeaturesforsig(sig,blankrangelist = None):
+    def collectfeaturesforsig(sig,blankrangelist = None,recID = None):
         #
         # parameters:
         # blankrangelist : [[l,r],...]
@@ -150,6 +151,29 @@ class ECGrf:
             trainingX.extend(negFv)
             trainingy.extend(['white']*Nneg)
             print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
+        # =========================================
+        # Save sample list
+        # =========================================
+        ResultFolder = projhomepath
+        ResultFolder_conf = conf['ResultFolder_Relative']
+        for folder in ResultFolder_conf:
+            ResultFolder = os.path.join(ResultFolder,folder)
+        ResultFolder = os.path.join(ResultFolder,'TrainingSamples')
+        # mkdir if not exists
+        if os.path.exists(ResultFolder) == False:
+            os.mkdir(ResultFolder)
+        # -----
+        # sample_list
+        # [(pos,label),...]
+        # -----
+        sample_list = zip(selnegposlist,len(selnegposlist)*['white'])
+        sample_list.extend(ExpertLabels)
+        if recID is not None:
+            # save recID sample list
+            with open(os.path.join(ResultFolder,recID+'.pkl'),'w') as fout:
+                pickle.dump(sample_list,fout)
+            save_mat_filename = os.path.join(ResultFolder,recID+'.mat')
+            reslist_to_mat(sample_list,mat_filename = save_mat_filename)
         return (trainingX,trainingy) 
         
     def training(self,reclist):
@@ -772,14 +796,14 @@ class ECGrf:
             # testing
             RecResults = self.testing([recname,])
             # save results
-            with open(os.path.join(saveresultfolder,'result_{}'.format(recname)),'w') as fout:
+            saveresult_filename = os.path.join(saveresultfolder,'result_{}'.format(recname))
+            with open(saveresult_filename,'w') as fout:
                 if RecResults is None or len(RecResults) == 0:
                     recres = (recname,[])
                 else:
                     recres = RecResults[0]
                 pickle.dump(recres ,fout)
-                print 'saved prediction result to {}'.\
-                        format(filename_saveresult)
+                print 'saved prediction result to {}'.format(saveresult_filename)
         
 
 # =======================
@@ -846,7 +870,7 @@ def Parallel_CollectRecFeature(recname):
     if recname in blkArea:
         print recname,'in blank Area list.'
         blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,blankrangelist = blklist)
+    tX,ty = ECGrf.collectfeaturesforsig(sig,blankrangelist = blklist,recID = recname)
     return (tX,ty)
     
 

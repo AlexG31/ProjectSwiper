@@ -29,11 +29,7 @@ with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
 sys.path.append(projhomepath)
 #
 # my project components
-import RFclassifier.extractfeature.extractfeature as extfeature
 from QTdata.loadQTdata import QTloader
-from RFclassifier.evaluation import ECGstatistics
-import RFclassifier.ECGRF as ECGRF 
-from ECGPostProcessing.GroupResult import ResultFilter
 
 def load_result(filename):
     with open(filename,'r') as fin:

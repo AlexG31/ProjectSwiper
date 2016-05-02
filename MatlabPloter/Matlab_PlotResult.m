@@ -27,13 +27,14 @@ Legend_Cell = [Legend_Cell,'R'];
 % plot(P,sig(P),'go','markerfacecolor','g');
 
 % Plot Expert labels
+ExpertMarkerSize = 14;
 if exist('expert_P') == 1
-    plot(expert_P,sig(expert_P),'kd','markerfacecolor','k'); 
+    plot(expert_P,sig(expert_P),'kd','markerfacecolor','k','markersize',ExpertMarkerSize); 
     Legend_Cell = [Legend_Cell,'Expert P'];
 end
-plot(expert_T,sig(expert_T),'kd','markerfacecolor','b'); 
+plot(expert_T,sig(expert_T),'kd','markerfacecolor','b','markersize',ExpertMarkerSize); 
 Legend_Cell = [Legend_Cell,'Expert T'];
-plot(expert_R,sig(expert_R),'kd','markerfacecolor','r'); 
+plot(expert_R,sig(expert_R),'kd','markerfacecolor','r','markersize',ExpertMarkerSize); 
 Legend_Cell = [Legend_Cell,'Expert R'];
 
 

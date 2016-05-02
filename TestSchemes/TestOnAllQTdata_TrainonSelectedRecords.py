@@ -82,7 +82,6 @@ def TestAllQTdata(saveresultpath):
     # dump to debug logger
     time_cost_output = []
     timing_for(rf.training,[selrecords,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
-    pdb.set_trace()
     #rf.training(selrecords)
     ECGRF.debugLogger.dump('Total Training time: {:.2f} s\n'.format(time_cost_output[-1]))
     # save trained mdl
@@ -92,13 +91,16 @@ def TestAllQTdata(saveresultpath):
     testinglist = selall0
     print '\n>>Testing:',testinglist
     ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(selrecords))
-    rf.testrecords(reclist = selrecords,TestResultFileName = os.path.join(saveresultpath,'TestResult.out'))
+    rf.testrecords(reclist = selrecords,TestResultFileName = os.path.join(saveresultpath,'selID.out'))
 
 
     
 if __name__ == '__main__':
 
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r7')
+    saveresultpath = projhomepath
+    Result_path_conf = conf['ResultFolder_Relative']
+    for folder in Result_path_conf:
+        saveresultpath = os.path.join(saveresultpath,folder)
     # refresh random select feature json file and backup
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 

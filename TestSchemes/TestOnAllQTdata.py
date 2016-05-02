@@ -103,8 +103,10 @@ def TestAllQTdata(saveresultpath):
     
 if __name__ == '__main__':
 
-    #Training on ALL of QT records 
-    saveresultpath = os.path.join(curfolderpath,'TestResult','pc','r5')
+    saveresultpath = projhomepath
+    Result_path_conf = conf['ResultFolder_Relative']
+    for folder in Result_path_conf:
+        saveresultpath = os.path.join(saveresultpath,folder)
     # refresh random select feature json file
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile()
 

@@ -460,7 +460,7 @@ if __name__ == '__main__':
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r7')
+           'r5')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records

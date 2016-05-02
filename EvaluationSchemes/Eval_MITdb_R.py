@@ -669,7 +669,7 @@ class MITanalyser:
                 start_ind += 1
             start_ind += 1
         return (FN,FP,N_TP)
-    def analyse(self,csvfilepath = r'MITdb_FN_FP_statistics.csv'):
+    def analyse(self,csvfilepath = r'tmp\MITdb_FN_FP_statistics.csv'):
         # analysis false negtive status
         # analysis false positive status
 
@@ -698,7 +698,7 @@ class MITanalyser:
             if fname[-4:] == '.out' or '.json' in fname:
                 continue
             currecname = os.path.split(fname)[-1]
-            #if currecname not in ['result_119','result_105']:
+            #if currecname not in ['result_231','result_108']:
                 #continue
             if not currecname.startswith('result'):
                 continue
@@ -744,19 +744,19 @@ class MITanalyser:
         ft_reslist = resgrper.syntax_filter(ft_reslist,Max_Len_Ratio = 1.0/5.0)
         # =================================
         FN_plot_line = ['rd','False Negtive',FN['pos']]
-        FP_plot_line = ['kx','False Negtive',FP['pos']]
-        res_plot_line = ['ko','filtered R',map(lambda x:x[0],ft_reslist)]
+        FP_plot_line = ['ks','False Negtive',FP['pos']]
+        #res_plot_line = ['ko','filtered R',map(lambda x:x[0],ft_reslist)]
         # plot res
         resploter = ECGResultPloter(rawsig,reslist)
-        resploter.plot(plotTitle = 'Detection Result:'+FN['recname'][0],AdditionalPlot = [FN_plot_line,FP_plot_line,res_plot_line])
+        resploter.plot(plotTitle = 'Detection Result:'+FN['recname'][0],AdditionalPlot = [FN_plot_line,FP_plot_line,])
 if __name__ == '__main__':
     # R wave false negtive number
     #FN_stat()
     RFfolder = os.path.join(\
            projhomepath,\
            'TestResult',\
-           'pc',\
-           'MIT8_a')
+           'sv0',\
+           'mit_resampling_gswtfixed')
     mitAna = MITanalyser(RFfolder,curfolderpath)
     mitAna.analyse()
     sys.exit()
