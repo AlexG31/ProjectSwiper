@@ -15,6 +15,7 @@ import pdb
 import bisect
 
 
+import scipy.io
 import numpy as np
 ## machine learning methods
 from sklearn.ensemble import RandomForestClassifier
@@ -715,6 +716,8 @@ class MITanalyser:
             curFN,curFP,N_TP = self.getFN_FP(reslist,mitdb.markpos,recID)
             # debug plot
             #self.debug_FN_FP(rawsig,reslist,curFN,curFP)
+            self.save_FNFP(curFN,curFP)
+            curFN,curFP = self.filterFNFP_with_humanMarks(curFN,curFP);
 
             cFN = len(curFN['pos'])
             cFP = len(curFP['pos'])
@@ -729,6 +732,80 @@ class MITanalyser:
         # total FN
         # =================================
         print 'Total FN rate:{},PD rate:{}'.format(float(nFN)/nExpLabel,1.0-float(nFN)/nExpLabel)
+    def filterFNFP_with_humanMarks(self,FN,FP):
+        HumanMarkFolder = r'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepout_Region';
+        #mark_file_list = glob.glob(os.path.join(HumanMarkFolder,'*.mat'))
+        # save recname
+        recname = None
+        if len(FN['recname']) >0:
+            recname = FN['recname'][0]
+        elif len(FP['recname']) > 0:
+            recname = FP['recname'][0]
+        if recname is None:
+            return (FN,FP)
+        mark_mat_filepath = os.path.join(HumanMarkFolder,'{}_humanMarks.mat'.format(recname))
+        if os.path.exists(mark_mat_filepath) == False:
+            return (FN,FP)
+        mks = scipy.io.loadmat(mark_mat_filepath)
+        regionlist = mks['region'];
+
+        filteredFN = {
+                'pos':[],
+                'label':[],
+                'recname':[]
+            }
+        filteredFP = {
+                'pos':[],
+                'label':[],
+                'recname':[]
+            }
+        # filtering
+        FNposlist = FN['pos']
+        FPposlist = FP['pos']
+        for pos in FNposlist:
+            is_in_range = False
+            for region_start,region_end in regionlist:
+                if region_start<=pos and pos<=region_end:
+                    is_in_range = True
+                    break
+            if is_in_range == False:
+                filteredFN['pos'].append(pos)
+                filteredFN['label'].append('R')
+                filteredFN['recname'].append(recname)
+        for pos in FPposlist:
+            is_in_range = False
+            for region_start,region_end in regionlist:
+                if region_start<=pos and pos<=region_end:
+                    is_in_range = True
+                    break
+            if is_in_range == False:
+                filteredFP['pos'].append(pos)
+                filteredFP['label'].append('R')
+                filteredFP['recname'].append(recname)
+        print 'filteredFN',filteredFN
+        print 'filteredFP',filteredFP
+
+        return (filteredFN,filteredFP)
+    def save_FNFP(self,FN,FP,OutputFolder = r'MIT_FNFP'):
+        # save pickle
+        recname = None
+        if len(FN['recname']) >0:
+            recname = FN['recname'][0]
+        elif len(FP['recname']) > 0:
+            recname = FP['recname'][0]
+        if recname is None:
+            return None
+        with open(os.path.join(OutputFolder,recname+'.pkl'),'w') as fout:
+            pickle.dump(dict(FN = FN,FP = FP),fout)
+        # save matlab .mat file
+        FNlist = []
+        FPlist = []
+        FNlist.extend(FN['pos'])
+        FPlist.extend(FP['pos'])
+        # save raw sig too
+        mitdb = MITdbLoader()
+        rawsig = mitdb.load(recname)
+        scipy.io.savemat(os.path.join(OutputFolder,recname+'.mat'),dict(FNlist = FNlist,FPlist = FPlist,recname = recname,MIT_rawsig = rawsig))
     def debug_FN_FP(self,rawsig,reslist,FN,FP):
         # =================================
         # group result labels
