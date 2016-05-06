@@ -63,8 +63,9 @@ def TestAllQTdata(saveresultpath):
     QTreclist = qt_loader.getQTrecnamelist()
     print 'Totoal QT record number:{}'.format(len(QTreclist))
     ## Training record list
-    selall0 = conf["selQTall0"]
-    selrecords= list(set(QTreclist) - set(selall0))
+    traininglist = conf["selQTall0"]
+    testinglist = list(set(QTreclist) - set(traininglist))
+
     rf = ECGRF.ECGrf()
     # Multi Process
     rf.useParallelTest = True 
@@ -81,17 +82,15 @@ def TestAllQTdata(saveresultpath):
     #
     # dump to debug logger
     time_cost_output = []
-    timing_for(rf.training,[selrecords,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
-    #rf.training(selrecords)
+    timing_for(rf.training,[traininglist,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
     ECGRF.debugLogger.dump('Total Training time: {:.2f} s\n'.format(time_cost_output[-1]))
     # save trained mdl
     backupobj(rf.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
 
     ## test
-    testinglist = selall0
     print '\n>>Testing:',testinglist
-    ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(selrecords))
-    rf.testrecords(reclist = selrecords,TestResultFileName = os.path.join(saveresultpath,'selID.out'))
+    ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(testinglist))
+    rf.testrecords(reclist = testinglist,TestResultFileName = os.path.join(saveresultpath,'selID.out'))
 
 
     

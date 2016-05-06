@@ -198,7 +198,8 @@ class ECGrf:
 
         # train Random Forest Classifier
         Tree_Max_Depth = conf['Tree_Max_Depth']
-        rfclassifier = RandomForestClassifier(n_estimators = 30,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
+        RF_TreeNumber = conf['RF_TreeNumber']
+        rfclassifier = RandomForestClassifier(n_estimators = RF_TreeNumber,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
         print 'Random Forest Training Sample Size : [{} samples x {} features]'.format(len(trainingX),len(trainingX[0]))
         timing_for(rfclassifier.fit,(trainingX,trainingy),prompt = 'Random Forest Fitting')
         # save&return classifier model
