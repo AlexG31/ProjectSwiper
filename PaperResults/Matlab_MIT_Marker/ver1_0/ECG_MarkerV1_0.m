@@ -312,11 +312,11 @@ grid on;
 title(['False Negtive & False Positive of ',mit.recname]);
 % Plot False Negtives&False Positives
 hold on;
-plot(mit.FPlist,sig(mit.FPlist),'ks','markerfacecolor','k','markersize',FalseMarkerSize)
+plot(mit.FPlist,sig(mit.FPlist),'ks','markerfacecolor','r','markersize',FalseMarkerSize)
 plot(mit.FNlist,sig(mit.FNlist),'kd','markerfacecolor','k','markersize',FalseMarkerSize)
 
 %% Load Marks
-MarkFilePath = 'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepout_Region\';
+MarkFilePath = 'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepin_Region\';
 markFileName = [MarkFilePath,FileName_pure,'_humanMarks.mat'];
 
 %% struct humanMarks
