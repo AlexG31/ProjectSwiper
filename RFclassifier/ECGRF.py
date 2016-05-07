@@ -77,7 +77,6 @@ class ECGrf:
         # only test on areas with expert labels
         self.TestRange = 'Partial'# or 'All'
         # Parallel
-        self.useParallelTest = True
         self.QTloader = QTdb.QTloader()
         self.mdl = None
         self.MAX_PARA_CORE = MAX_PARA_CORE
@@ -223,11 +222,7 @@ class ECGrf:
         return record_predict_result
 
     # testing ECG record with trained mdl
-    def testing(\
-            self,\
-            reclist,\
-            rfmdl = None,\
-            plot_result = 'off'):
+    def testing(self,reclist,rfmdl = None,plot_result = 'off'):
         #
         # default parameter
         #
@@ -235,7 +230,7 @@ class ECGrf:
             rfmdl = self.mdl
 
         # Parallel 
-        if self.useParallelTest == True:
+        if conf['ParallelTesting'] == 'True':
             MultiProcess = 'on'
         else:
             MultiProcess = 'off'
@@ -279,28 +274,21 @@ class ECGrf:
             # get prRange:
             # test in the same range as expert labels
             #
-            expres = self.QTloader.\
-                    getexpertlabeltuple(recname)
+            expres = self.QTloader.getexpertlabeltuple(recname)
+            # Leave Testing Blank Regions in Head&Tail
+            WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
+            Blank_Len = WindowLen/2+1
+            prRange = range(Blank_Len,N_signal - 1-Blank_Len)
 
-            if self.TestRange == 'All':
-                WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
-                Blank_Len = WindowLen/2+1
-                prRange = range(Blank_Len,N_signal - 1-Blank_Len)
-            else:
-                #
-                # expand a little bit outside of the original expert's label range
-                #
-                test_expand_width = 20
-                prRangeLb = min([x[0] for x in expres])-test_expand_width
-                prRangeRb = max([x[0] for x in expres])+test_expand_width+1
-                prRangeLb = max(0,prRangeLb)
-                prRangeRb = min(N_signal - 1,prRangeRb)
-                prRange = range(prRangeLb,prRangeRb)
+            if conf['QTtest'] == 'FastTest':
+                TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
+                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'r') as fin:
+                    TestRegions = pickle.load(fin)
+                prRange = []
+                for region in TestRegions:
+                    prRange.extend(range(region[0],region[1]+1))
             
-            
-            debugLogger.dump(\
-                    'Testing samples with lenth {}\n'.\
-                    format(len(prRange)))
+            debugLogger.dump('Testing samples with lenth {}\n'.format(len(prRange)))
             #
             # pickle dumple modle to file for multi process testing
             #
@@ -357,11 +345,10 @@ class ECGrf:
 
             # get each bucket's range
             #
-            bkt_L = i*Ntest + poslist[0]
-            bkt_R = i*Ntest + Ntest + poslist[0]
-            if poslist[-1]+1 < bkt_R:
-                bkt_R = poslist[-1]+1
-            samples_tobe_tested = map(featureextractor.frompos,range(bkt_L,bkt_R))
+            index_L = i*Ntest
+            index_R = (i+1)*Ntest
+            index_R = min(index_R,Lposlist)
+            samples_tobe_tested = map(featureextractor.frompos,poslist[index_L:index_R])
             # predict
             #
             res = rfmdl.predict(samples_tobe_tested)
@@ -369,17 +356,16 @@ class ECGrf:
             
             
         if len(PrdRes) != len(poslist):
+            print 'len(prd Results) = ',len(PrdRes),'Len(poslist) = ',len(poslist)
+            print 'PrdRes:'
+            print PrdRes
+            print 'poslist:'
+            print poslist
+            pdb.set_trace()
             raise StandardError('test Error: output label length doesn''t match!')
         return zip(poslist,PrdRes)
 
-    def test_with_positionlist_multiprocess(\
-            self,\
-            rfmdl,\
-            poslist,\
-            denoisesig,\
-            origrawsig
-            ):
-
+    def test_with_positionlist_multiprocess(self,rfmdl,poslist,denoisesig,origrawsig):
         # prompt
         print '>>testing with multiprocess function'
         print
@@ -403,12 +389,10 @@ class ECGrf:
             sys.stdout.write('\rTesting: {:02}buckets left.'.format(Nbuckets - i -1))
             sys.stdout.flush()
 
-            bkt_L = i*Ntest + poslist[0]
-            bkt_R = i*Ntest + Ntest + poslist[0]
-            if poslist[-1]+1 < bkt_R:
-                bkt_R = poslist[-1]+1
-            bktList.append(\
-                    range(bkt_L,bkt_R))
+            index_L = i*Ntest
+            index_R = (i+1)*Ntest
+            index_R = min(index_R,Lposlist)
+            bktList.append(poslist[index_L:index_R])
         #
         # multi process
         #
@@ -431,6 +415,11 @@ class ECGrf:
             
         # simple error check
         if len(PrdRes) != len(poslist):
+            print 'len(prd Results) = ',len(PrdRes),'Len(poslist) = ',len(poslist)
+            print 'PrdRes:'
+            print PrdRes
+            print 'poslist:'
+            print poslist
             raise StandardError('test Error: output label length doesn''t match!')
         return zip(poslist,PrdRes)
 
@@ -768,37 +757,18 @@ class ECGrf:
             pickle.dump(RecResults ,fout)
             print 'saved prediction result to {}'.\
                     format(filename_saveresult)
-    def testrecords(\
-                self,\
-                reclist = ['sel103',],\
-                mdl = None,\
-                TestResultFileName = None\
-            ):
+    def testrecords(self,saveresultfolder,reclist = ['sel103',],mdl = None,TestResultFileName = None):
         # default parameter
         if mdl is None:
             mdl = self.mdl
-
-        #
-        # save to model file 
-        if TestResultFileName is not None:
-            filename_saveresult = TestResultFileName
-        else:
-            filename_saveresult = os.path.join(\
-                    curfolderpath,\
-                    'testresult{}.out'.format(\
-                    int(time.time())))
-
-            # warning :save to default folder
-            print '**Warning: save result to {}'.format(filename_saveresult)
-            debugLogger.dump('**Warning: save result to {}'.format(filename_saveresult))
-
-        saveresultfolder = os.path.dirname(filename_saveresult)
+        #saveresultfolder = os.path.dirname(filename_saveresult)
         for recname in reclist:
             # testing
             RecResults = self.testing([recname,])
             # save results
             saveresult_filename = os.path.join(saveresultfolder,'result_{}'.format(recname))
             with open(saveresult_filename,'w') as fout:
+                # No detection
                 if RecResults is None or len(RecResults) == 0:
                     recres = (recname,[])
                 else:

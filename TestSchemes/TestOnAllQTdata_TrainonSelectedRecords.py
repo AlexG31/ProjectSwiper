@@ -90,7 +90,7 @@ def TestAllQTdata(saveresultpath):
     ## test
     print '\n>>Testing:',testinglist
     ECGRF.debugLogger.dump('\n======\n\nTest Set :{}'.format(testinglist))
-    rf.testrecords(reclist = testinglist,TestResultFileName = os.path.join(saveresultpath,'selID.out'))
+    rf.testrecords(saveresultpath,reclist = testinglist)
 
 
     
