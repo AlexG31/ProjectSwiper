@@ -327,6 +327,7 @@ def EvalQTdbResults(resultfilelist):
     # for each record test result
     for fi,fname in enumerate(resultfilelist):
         
+        print 'pickle load :',fname
         with open(fname,'rU') as fin:
             Results = pickle.load(fin)
         # skip invalid records
@@ -404,9 +405,12 @@ def getresultfilelist(RFfolder):
     reslist = glob.glob(os.path.join(\
            RFfolder,'*'))
     ret = []
-    non_result_extensions = ['out','json','tmp','log','mdl']
+    non_result_extensions = ['out','json','tmp','log','mdl','txt']
     for fpath in reslist:
         cur_extension = fpath.split('.')[-1]
+        # not folder
+        if os.path.isdir(fpath) == True:
+            continue
         if cur_extension in non_result_extensions:
             continue
         print 'add result file to analysis: {}'.format(fpath) 
@@ -433,34 +437,13 @@ def get_training_testing_record_number(RFfolder):
     print 'num of training rec:{}'.format(num_training)
     print 'num of testing rec:{}'.format(num_testing)
     print 'total record number : {}'.format(num_training+num_testing)
-def getRRhisto(RFfolder):
-    ## plot RR histogram
-    from MedEvaluationClass import MedEvaluation
-    # get test result list
-    testlist = getresultfilelist(RFfolder)
-    # filter testlist
-    invalidlist = conf['InvalidRecords']
-    for testrec in testlist:
-        print 'processing record:{}'.format(testrec)
-        with open(testrec,'r') as fin:
-            (recname,resdata) = pickle.load(fin)
-            if recname in invalidlist:
-                continue
-            # RR histo
-            medeval = MedEvaluation(resdata)
-            medeval.RRhistogram()
-            # load signal rawdata
-            qtloader = QTloader()
-            ECGsigstruct = qtloader.load(recname = recname)
-            ECGsig = ECGsigstruct['sig']
-            medeval.RRhisto_check(ECGsig)
 
 if __name__ == '__main__':
     RFfolder = os.path.join(\
            projhomepath,\
            'TestResult',\
            'pc',\
-           'r5')
+           'r13')
     #getRRhisto()
     #sys.exit()
     #get number of test/training records

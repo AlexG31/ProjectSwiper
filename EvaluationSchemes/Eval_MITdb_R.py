@@ -717,7 +717,10 @@ class MITanalyser:
             # debug plot
             #self.debug_FN_FP(rawsig,reslist,curFN,curFP)
             self.save_FNFP(curFN,curFP)
-            curFN,curFP = self.filterFNFP_with_humanMarks(curFN,curFP);
+            HumanMarkFolder = r'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepout_Region';
+            curFN,curFP = self.filterFNFP_with_humanMarks(curFN,curFP,HumanMarkFolder,Not_In_Range_Mark = False);
+            HumanMarkFolder = r'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepin_Region';
+            curFN,curFP = self.filterFNFP_with_humanMarks(curFN,curFP,HumanMarkFolder,Not_In_Range_Mark = True);
 
             cFN = len(curFN['pos'])
             cFP = len(curFP['pos'])
@@ -732,8 +735,7 @@ class MITanalyser:
         # total FN
         # =================================
         print 'Total FN rate:{},PD rate:{}'.format(float(nFN)/nExpLabel,1.0-float(nFN)/nExpLabel)
-    def filterFNFP_with_humanMarks(self,FN,FP):
-        HumanMarkFolder = r'F:\LabGit\ECG_RSWT\PaperResults\Matlab_MIT_Marker\ver1_0\MIT_keepout_Region';
+    def filterFNFP_with_humanMarks(self,FN,FP,HumanMarkFolder,Not_In_Range_Mark = False):
         #mark_file_list = glob.glob(os.path.join(HumanMarkFolder,'*.mat'))
         # save recname
         recname = None
@@ -768,7 +770,7 @@ class MITanalyser:
                 if region_start<=pos and pos<=region_end:
                     is_in_range = True
                     break
-            if is_in_range == False:
+            if is_in_range == Not_In_Range_Mark:
                 filteredFN['pos'].append(pos)
                 filteredFN['label'].append('R')
                 filteredFN['recname'].append(recname)
@@ -778,7 +780,7 @@ class MITanalyser:
                 if region_start<=pos and pos<=region_end:
                     is_in_range = True
                     break
-            if is_in_range == False:
+            if is_in_range == Not_In_Range_Mark:
                 filteredFP['pos'].append(pos)
                 filteredFP['label'].append('R')
                 filteredFP['recname'].append(recname)
