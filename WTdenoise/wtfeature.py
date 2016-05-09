@@ -60,15 +60,18 @@ class WTfeature:
         fs = conf['fs']
         winlen_ratio = conf['winlen_ratio_to_fs']
         WinLen = winlen_ratio*fs
+        DWT_LEVEL = conf['DWT_LEVEL']
         # get number of coef in each dwt level
-        sig = range(1,WinLen+1)
-        dslist = self.getWTcoef_gswt(sig)
+        #sig = range(1,WinLen+1)
+        #dslist = self.getWTcoef_gswt(sig)
         cnlist = []
-        for wtcoef in dslist:
-            cnlist.append(len(wtcoef))
+        curWinLen = int(WinLen)
+        for ind in xrange(0,DWT_LEVEL):
+            cnlist.append(curWinLen/2)
+            curWinLen /= int(2)
         return cnlist
 
-    def getWTcoef_gswt(\
+    def getWT_Features(\
             self,\
             rawsig,\
             waveletobj = None\
@@ -84,7 +87,10 @@ class WTfeature:
         # --------------
         Ndec = conf['DWT_LEVEL']
         if waveletobj is None:
-            waveletobj = self.gswt_wavelet()
+            if conf['Wavelet_type'] == 'gswt':
+                waveletobj = self.gswt_wavelet()
+            else:
+                waveletobj = pywt.Wavelet(conf['Wavelet_type'])
         cA = rawsig
 
         detailList = []
