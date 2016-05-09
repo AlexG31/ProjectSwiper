@@ -175,7 +175,7 @@ class ECGfeatures:
         # WT features
         #
         wtfobj = wtf.WTfeature()
-        dslist = wtfobj.getWTcoef_gswt(normwinsig)
+        dslist = wtfobj.getWT_Features(normwinsig)
         # debug:======================================
         # show len of dslist:
         #print 'winsig len:{}'.format(len(winsig))
@@ -186,7 +186,12 @@ class ECGfeatures:
         # debug =======================================
 
         # load Random Relations
-        WTrrJsonFileName = os.path.join(curfolderpath,'WTcoefrandrel.json')
+        Result_path_conf = conf['ResultFolder_Relative']
+        saveresultpath = projhomepath
+        for folder in Result_path_conf:
+            saveresultpath = os.path.join(saveresultpath,folder)
+
+        WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
         
         with open(WTrrJsonFileName,'r') as fin:
             WTrelList = json.load(fin)
