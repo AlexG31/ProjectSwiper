@@ -100,6 +100,9 @@ if __name__ == '__main__':
     Result_path_conf = conf['ResultFolder_Relative']
     for folder in Result_path_conf:
         saveresultpath = os.path.join(saveresultpath,folder)
+    # create result folder if not exist
+    if os.path.exists(saveresultpath) == False:
+        os.mkdir(saveresultpath)
     # refresh random select feature json file and backup
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 
