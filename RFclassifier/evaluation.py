@@ -33,6 +33,7 @@ sys.path.append(projhomepath)
 # my project components
 import extractfeature.extractfeature as extfeature
 import QTdata.loadQTdata as QTdb
+from EvaluationSchemes.csvwriter import CSVwriter
 
 
 class ECGstatistics:
@@ -480,7 +481,7 @@ class ECGstatistics:
         # output stat to log
         ResultStatArray = []
         CSVTitles = ['Record Name',]
-        CSVTitles.extend(map(lambda x:'{} FN number'.format(x),LabelList))
+        #CSVTitles.extend(map(lambda x:'{} FN number'.format(x),LabelList))
         for clabel in LabelList:
             CSVTitles.append('{} mean error'.format(clabel))
             CSVTitles.append('{} std error'.format(clabel))
@@ -491,9 +492,9 @@ class ECGstatistics:
                 # for csv file,a row of record data
                 curResultStat = [recname,]
                 # get False Negtive number 
-                for csvlabel in LabelList:
-                    csvFN= len(FNRec[recname].get(csvlabel,[]))
-                    curResultStat.append(csvFN)
+                #for csvlabel in LabelList:
+                    #csvFN= len(FNRec[recname].get(csvlabel,[]))
+                    #curResultStat.append(csvFN)
                 for labelname in LabelList:
                     errs = ErrRec[recname][labelname]
                     meanval = np.nanmean(errs)*4.0 if len(errs)>0 else -1
@@ -608,7 +609,8 @@ class ECGstatistics:
                 'Poffset',
                 'Ronset',
                 'Roffset',
-                'Toffset'
+                'Toffset',
+                'white'
                 ]
         # add title line
         title_line = ['Record Name',]
@@ -638,7 +640,11 @@ class ECGstatistics:
         for label in labellist:
             TP_label = TPdict[label]
             FP_label = len(FPdict[label])
-            PplusRate_line.append(float(TP_label)/(TP_label+FP_label))
+            if TP_label+FP_label ==0:
+                Pp_val = 'nan'
+            else:
+                Pp_val = float(TP_label)/(TP_label+FP_label)
+            PplusRate_line.append(Pp_val)
         ResultStatArray.append(PplusRate_line)
         
         # for each recname
@@ -657,7 +663,7 @@ class ECGstatistics:
         csvwriter = CSVwriter(csv_output_filename)
         csvwriter.output(ResultStatArray)
     @staticmethod
-    def dispstat0(pFN = None ,pErr = None,LogFileName = None,LogText = None):
+    def dispstat0(pFN = None ,pErr = None,LogFileName = None,LogText = None,OutputFolder = None):
         # =====================================================================
         # statistics: display statistics about the test result
         #           write output to log file
@@ -710,6 +716,27 @@ class ECGstatistics:
         print 'CSEtol: ',
         print '  '.join(map(lambda x:'{:.2f}ms'.format(x),CSEtolerance))
         print '-'*60
+        # output to CSV file
+        if OutputFolder is not None:
+            csvMat = []
+            mean_arr,std_arr = zip(*stats)
+
+            label_line = [LogText,]
+            label_line.extend(labellist)
+            csvMat.append(label_line)
+            # mean
+            mean_line = ['mean error',]
+            mean_line.extend(mean_arr)
+            csvMat.append(mean_line)
+            # std error
+            std_line = ['standard error',]
+            std_line.extend(std_arr)
+            csvMat.append(std_line)
+
+            # output 
+            csv_output_filename = os.path.join(OutputFolder,'Total_Stats.csv'.format())
+            csvwriter = CSVwriter(csv_output_filename)
+            csvwriter.output(csvMat)
         # output to Log file
         if LogFileName is not None:
             with open(LogFileName,'w') as fout:
