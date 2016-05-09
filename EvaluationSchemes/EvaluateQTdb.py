@@ -298,7 +298,7 @@ class BestRoundSelector:
             print elem
         
 
-def EvalQTdbResults(resultfilelist):
+def EvalQTdbResults(resultfilelist,OutputFolder):
     if resultfilelist==None or len(resultfilelist)==0:
         print "Empty result file list!"
         return None
@@ -337,9 +337,10 @@ def EvalQTdbResults(resultfilelist):
         # ==================================
         # filter result of QT
         # ==================================
-        resfilter = ResultFilter(Results[1])
+        reslist = Results[1]
+        resfilter = ResultFilter(reslist)
         reslist = resfilter.group_local_result(cp_del_thres = 1)
-        reslist = resfilter.syntax_filter(reslist)
+        #reslist = resfilter.syntax_filter(reslist)
         fResults = (Results[0],reslist)
 
         fResults = [fResults,]
@@ -372,30 +373,22 @@ def EvalQTdbResults(resultfilelist):
     #====================================
     # write to log file
     #EvalLogfilename = os.path.join(curfolderpath,'res.log')
-    output_log_filename = os.path.join(curfolderpath,'result_output.log')
+    output_log_filename = os.path.join(OutputFolder,'RecordResults.log')
     EvalLogfilename = output_log_filename
     # display error stat for each label & save results to logfile
-    ECGstatistics.dispstat0(\
-            pFN = FN,\
-            pErr = Err,\
-            LogFileName = EvalLogfilename,\
-            LogText = 'Statistics of Results in FilePath [{}]'.format(os.path.split(resultfilelist[0])[0])\
-            )
+    ECGstatistics.dispstat0(pFN = FN,pErr = Err,LogFileName = EvalLogfilename,LogText = 'Statistics of Results in FilePath [{}]'.format(os.path.split(resultfilelist[0])[0]),OutputFolder = OutputFolder)
     with open(os.path.join(projhomepath,'tmp','Err.txt'),'w') as fout:
         pickle.dump(Err,fout)
     # find best round
     bRselector.dispBestRound()
     bRselector.dumpBestRound(EvalLogfilename)
 
-    # debug info
-    print '[debug]len(FN) = {}\nlen(Err) = {}'.format(len(FN),len(Err))
-    pdb.set_trace()
     ECGstats.stat_record_analysis(pErr = Err,pFN = FN,LogFileName = EvalLogfilename)
     # write csv file
-    outputfilename = os.path.join(curfolderpath,'FalsePositive.csv')
+    outputfilename = os.path.join(OutputFolder,'FalsePositive.csv')
     ECGstats.FP2CSV(FP,Err,outputfilename)
     # False Negtive
-    outputfilename = os.path.join(curfolderpath,'FalseNegtive.csv')
+    outputfilename = os.path.join(OutputFolder,'FalseNegtive.csv')
     ECGstats.FN2CSV(FN,Err,outputfilename)
 
 def getresultfilelist(RFfolder):
@@ -405,13 +398,16 @@ def getresultfilelist(RFfolder):
     reslist = glob.glob(os.path.join(\
            RFfolder,'*'))
     ret = []
-    non_result_extensions = ['out','json','tmp','log','mdl','txt']
+    non_result_extensions = ['out','json','tmp','log','mdl','txt','rar']
     for fpath in reslist:
         cur_extension = fpath.split('.')[-1]
         # not folder
         if os.path.isdir(fpath) == True:
             continue
         if cur_extension in non_result_extensions:
+            continue
+        result_filename = os.path.split(fpath)[-1]
+        if result_filename.startswith('result_') == False:
             continue
         print 'add result file to analysis: {}'.format(fpath) 
         ret.append(fpath)
@@ -439,17 +435,20 @@ def get_training_testing_record_number(RFfolder):
     print 'total record number : {}'.format(num_training+num_testing)
 
 if __name__ == '__main__':
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r13')
-    #getRRhisto()
-    #sys.exit()
-    #get number of test/training records
-    # =========================
-    # 分析训练和测试的record数目
-    # =========================
-    #get_training_testing_record_number(RFfolder)
-    # 计算误差
-    EvalQTdbResults(getresultfilelist(RFfolder))
+    for round_i in xrange(5,22):
+        RFfolder = os.path.join(\
+               projhomepath,\
+               'TestResult',\
+               'pc',\
+               'r{}'.format(round_i))
+        #getRRhisto()
+        #sys.exit()
+        #get number of test/training records
+        # =========================
+        # 分析训练和测试的record数目
+        # =========================
+        #get_training_testing_record_number(RFfolder)
+        # 计算误差
+        OutputFolder = os.path.join(curfolderpath,'QT_Result','GroupResult','Round_{}'.format(round_i))
+        os.mkdir(OutputFolder)
+        EvalQTdbResults(getresultfilelist(RFfolder),OutputFolder)
