@@ -85,7 +85,7 @@ class ECGrf:
     @ staticmethod
     def RefreshRandomFeatureJsonFile(copyTo = None):
         # refresh random relations
-        RandRelation.refresh_project_random_relations(copyTo = copyTo)
+        RandRelation.refresh_project_random_relations_computeLen(copyTo = copyTo)
 
 
     # label proc & convert to feature
@@ -222,7 +222,7 @@ class ECGrf:
         return record_predict_result
 
     # testing ECG record with trained mdl
-    def testing(self,reclist,rfmdl = None,plot_result = 'off'):
+    def testing(self,reclist,rfmdl = None,saveresultfolder = None):
         #
         # default parameter
         #
@@ -323,6 +323,18 @@ class ECGrf:
             'Testing time for {} is {:.2f} s\n'.\
                     format(recname,time_rec1-time_rec0))
 
+        # save Prediction Result
+        if saveresultfolder is not None:
+            # save results
+            saveresult_filename = os.path.join(saveresultfolder,'result_{}'.format(recname))
+            with open(saveresult_filename,'w') as fout:
+                # No detection
+                if PrdRes is None or len(PrdRes) == 0:
+                    recres = (recname,[])
+                else:
+                    recres = PrdRes[0]
+                pickle.dump(recres ,fout)
+                print 'saved prediction result to {}'.format(saveresult_filename)
         return PrdRes
 
     def test_with_positionlist(self,rfmdl,poslist,featureextractor):
@@ -764,17 +776,7 @@ class ECGrf:
         #saveresultfolder = os.path.dirname(filename_saveresult)
         for recname in reclist:
             # testing
-            RecResults = self.testing([recname,])
-            # save results
-            saveresult_filename = os.path.join(saveresultfolder,'result_{}'.format(recname))
-            with open(saveresult_filename,'w') as fout:
-                # No detection
-                if RecResults is None or len(RecResults) == 0:
-                    recres = (recname,[])
-                else:
-                    recres = RecResults[0]
-                pickle.dump(recres ,fout)
-                print 'saved prediction result to {}'.format(saveresult_filename)
+            RecResults = self.testing([recname,],saveresultfolder = saveresultfolder)
         
 
 # =======================
