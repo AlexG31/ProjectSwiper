@@ -98,7 +98,7 @@ class FeatureVis:
             cur_feature_ind += 2*layerSZ
 
         return relation_importance
-    def plot_dwt_pairs_arrow_partial_window_compare(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
+    def plot_dwt_pairs_arrow_partial_window_compare(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
         ## =========================================V    
         # 展示RSWT示意图
         ## =========================================V    
@@ -212,12 +212,13 @@ class FeatureVis:
             plt.xlim(0,len(cDamp)-1)
             plt.title('DWT Level ({}):'.format(i-1))
         # plot result
-        plt.show()
+        if showFigure == True:
+            plt.show()
         # save fig
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
             Fig_main.clf()
-    def get_min_Importance_threshold(self,relation_importance):
+    def get_min_Importance_threshold(self,relation_importance,top_importance_ratio = 9.0/10):
         if relation_importance == None or len(relation_importance) == 0:
             raise Exception('relation_importance is empty!')
         imp_list = []
@@ -227,11 +228,11 @@ class FeatureVis:
             imp_list.extend(imps)
         # get the min_importance threshold
         N = len(imp_list)
-        midpos = N*6/7
+        midpos = int(top_importance_ratio*float(N))
         imp_list.sort()
         return imp_list[midpos]
 
-    def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
+    def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
         ## =========================================V    
         # 展示RSWT示意图
         # Plot Arrow
@@ -288,7 +289,8 @@ class FeatureVis:
         plt.plot(pltxLim,sigAmp)
         # plot reference point
         #plt.plot(tarpos,rawsig[tarpos],'ro')
-        plt.title(figtitle+'[Window Left = {}]'.format(Window_Left))
+        #plt.title(figtitle+'[Window Left = {}]'.format(Window_Left))
+        plt.title(figtitle)
         plt.xlim(pltxLim[0],pltxLim[-1])
 
         for i in range(2,N_subplot):
@@ -381,7 +383,8 @@ class FeatureVis:
         plt.xlim(0,len(cAamp)-1)
 
         # plot result
-        plt.show()
+        if showFigure == True:
+            plt.show()
         # save fig
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
@@ -491,7 +494,7 @@ class FeatureVis:
         for i in xrange(0,130,10):
             savefigname = os.path.join(curfolderpath,'range_{}.png'.format(i))
             self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
-    def plot_fv_importance_gswt(self,savefigname):
+    def plot_fv_importance_gswt(self,savefigname,showFigure,WindowLeftBias = 0):
         # QT record ID
         rID = 1
         sig = self.qt.load(self.qt_reclist[rID])
@@ -504,9 +507,9 @@ class FeatureVis:
         # ----
         rel_imp = self.get_pair_importance_list()
         # save current fig
-        i = 3
         #self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
-        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'ECG Raw Signal')
+        figtitle = 'ECG from QTdb Record {}'.format(self.qt_reclist[rID])
+        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 54100+WindowLeftBias,savefigname = savefigname,figsize = (20,18),figtitle = figtitle,showFigure = showFigure)
 
 
     def load_sig_test(self):
@@ -638,6 +641,6 @@ if __name__ == '__main__':
     # if savefigname == None:do not save
     savefigname = os.path.join(curfolderpath,'Feature_Importance.pdf')
     #savefigname = None
-    fvis.plot_fv_importance_gswt(savefigname)
+    fvis.plot_fv_importance_gswt(savefigname,False,50)
     
 
