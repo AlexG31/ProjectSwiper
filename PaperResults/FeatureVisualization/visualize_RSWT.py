@@ -217,6 +217,20 @@ class FeatureVis:
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
             Fig_main.clf()
+    def get_min_Importance_threshold(self,relation_importance):
+        if relation_importance == None or len(relation_importance) == 0:
+            raise Exception('relation_importance is empty!')
+        imp_list = []
+        for layer in relation_importance:
+            # unzip the lists
+            pairs,imps = zip(*layer)
+            imp_list.extend(imps)
+        # get the min_importance threshold
+        N = len(imp_list)
+        midpos = N*6/7
+        imp_list.sort()
+        return imp_list[midpos]
+
     def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
         ## =========================================V    
         # 展示RSWT示意图
@@ -228,6 +242,8 @@ class FeatureVis:
         #================
         N = 5
         N_subplot = N+2
+        # importance pairs lower than this threshold is not shown in the figure
+        Thres_min_importance = self.get_min_Importance_threshold(relation_importance)
         figureID = 1
         fs = conf['fs']
         FixedWindowLen = conf['winlen_ratio_to_fs']*fs
@@ -298,9 +314,16 @@ class FeatureVis:
             #------------
             # find pair&its amplitude
             # -----------
+            # sort rel_layer with imp
+            rel_layer.sort(key = lambda x:x[1])
             for rel_pair,imp in rel_layer:
+                # do not show imp lower than threshold
+                if imp<Thres_min_importance:
+                    continue 
                 # importance thres
-                arrowprops = dict(width = 1,headwidth = 4,facecolor='r',edgecolor = 'r',alpha = imp/IMP_MAX,shrink=0)
+                alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
+                arrow_color = self.get_RGB_from_Alpha((1,0,0),alpha,(1,1,1))
+                arrowprops = dict(width = 0.15,linewidth = 0.15,headwidth = 1.5,headlength = 1.5,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
 
                 rel_x.append(rel_pair[0])
                 if rel_x[-1] >= cur_N:
@@ -323,13 +346,22 @@ class FeatureVis:
         # plot Approximation Level
         rel_x = []
         rel_y = []
+        rel_layer = relation_importance[-1]
         #fig = plt.subplot((N_subplot + 1)/2,2,N_subplot)
         fig = plt.subplot(4,1,4)
         plt.title('Approximation Coefficient')
         cAamp = [cA[x] for x in xi]
+        # sort rel_layer with imp
+        rel_layer.sort(key = lambda x:x[1])
         for rel_pair,imp in rel_layer:
+            # do not show imp lower than threshold
+            if imp<Thres_min_importance:
+                continue
             # importance thres
-            arrowprops = dict(width = 1,headwidth = 4,facecolor='r',edgecolor = 'r',alpha = imp/IMP_MAX,shrink=0)
+            alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
+            arrow_color = self.get_RGB_from_Alpha((1,0,0),alpha,(1,1,1))
+            #arrowprops = dict(width = 1,headwidth = 4,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
+            arrowprops = dict(width = 0.15,linewidth = 0.15,headwidth = 1.5,headlength = 1.5,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
 
             rel_x.append(rel_pair[0])
             if rel_x[-1] >= cur_N:
@@ -354,6 +386,14 @@ class FeatureVis:
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
             Fig_main.clf()
+    def get_RGB_from_Alpha(self,color,alpha,bgcolor):
+        new_color = []
+        for color_elem,bg_color_elem in zip(color,bgcolor):
+            color_elem = float(color_elem)
+            bg_color_elem = float(bg_color_elem)
+            ncolor = (1.0-alpha)*bg_color_elem+alpha*color_elem
+            new_color.append(ncolor)
+        return new_color
     def plot_dwt_pairs_no_arrow(self,rawsig,relation_importance):
         ## =========================================V    
         # 展示RSWT示意图
