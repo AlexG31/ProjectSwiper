@@ -113,17 +113,16 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     # [125]..
     #==========================================
     Nwt = conf['WTrandselfeaturenumber_apprx']
-    Nlevel = N
-    Nltimes = (4**Nlevel - 1)/3
-    N_this_level = Nwt/Nltimes * 4**(Nlevel-1)
-    for WinLen_this_level in cnlist:
+    Ndwt = N
+    N_current_layer = Nwt*(2**(Ndwt-1))/((2**Ndwt)-1)
+    for cnlist_ind,WinLen_this_level in enumerate(cnlist):
         #----------
         # WinLen: WinLen_this_level
         # number of pairs: N_this_level
         # No repeat pairs
         #----------
         #rel = gen_rand_relations(N_this_level,WinLen_this_level)
-        rel = random.sample(Window_Pair_Generator(WinLen_this_level),N_this_level)
+        rel = random.sample(Window_Pair_Generator(WinLen_this_level),N_current_layer)
         # ================
         # Add nearby pairs
         # fs = 250
@@ -132,7 +131,12 @@ def refresh_project_random_relations_computeLen(copyTo = None):
         # ================
         AddNearbyPairs(rel,WinLen_this_level)
         RelList.append(rel)
-        N_this_level/=4
+        if cnlist_ind == len(cnlist)-1:
+            # Approximation level pairs
+            rel = random.sample(Window_Pair_Generator(WinLen_this_level),N_current_layer)
+            AddNearbyPairs(rel,WinLen_this_level)
+            RelList.append(rel)
+        N_current_layer /=2
     with open(WTrrJsonFileName,'w') as fout:
         json.dump(RelList,fout)
     #==============================================

@@ -186,7 +186,9 @@ class ECGrf:
         # train with reclist
         # map function (recname) -> (tx,ty)
 
-        trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
+        #trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
+        # single core:
+        trainingTuples = timing_for(map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # close pool
         pool.close()
         pool.join()

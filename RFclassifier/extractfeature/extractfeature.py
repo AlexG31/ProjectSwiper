@@ -195,6 +195,8 @@ class ECGfeatures:
         
         with open(WTrrJsonFileName,'r') as fin:
             WTrelList = json.load(fin)
+        # debug
+        #pdb.set_trace()
         for detailsignal,randrels in zip(dslist,WTrelList):
             # debug:
             for x in randrels:
