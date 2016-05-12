@@ -48,7 +48,12 @@ EPS = 1e-6
 
 
 class FeatureVis:
-    def __init__(self,rfmdl):
+    def __init__(self,rfmdl,RandomPairList_Path):
+        # get random relations
+        randrel_path = RandomPairList_Path
+        with open(randrel_path,'r') as fin:
+            self.randrels = json.load(fin)
+
         self.rfmdl = rfmdl
         self.trees = rfmdl.estimators_
         self.qt = QTloader()
@@ -63,18 +68,19 @@ class FeatureVis:
             print attr
 
         pdb.set_trace()
+    def get_pair_importance_list(self):
+        return self.feature_importance_test()
     def feature_importance_test(self):
+        # return pairs&their importance
         rID = 1
         sig = self.qt.load(self.qt_reclist[rID])
         # random relations 
-        randrel_path = os.path.join(curfolderpath,'rand_relations.json')
-        with open(randrel_path,'r') as fin:
-            randrels = json.load(fin)
+        randrels = self.randrels
         fimp = self.rfmdl.feature_importances_
         sum_rr = 0
         for rr in randrels:
             sum_rr += len(rr)
-        print 'len(fimp) = {},len(randrel) = {}'.format(len(fimp),sum_rr)
+        print 'len(feature importance) = {},len(random relations) = {}'.format(len(fimp),sum_rr)
         # ===========================
         # get a struct of importance:
         # ------------
@@ -214,12 +220,14 @@ class FeatureVis:
     def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample'):
         ## =========================================V    
         # 展示RSWT示意图
+        # Plot Arrow
         ## =========================================V    
         #
         #================
         # constants
         #================
         N = 5
+        N_subplot = N+2
         figureID = 1
         fs = conf['fs']
         FixedWindowLen = conf['winlen_ratio_to_fs']*fs
@@ -255,7 +263,7 @@ class FeatureVis:
         # ====================
         Fig_main = plt.figure(figureID,figsize = figsize)
         # plot raw ECG
-        plt.subplot(N+1,1,1)
+        plt.subplot((N_subplot + 1)/2,2,1)
         # get handle for annote arrow
         # hide axis
         #frame = plt.gca()
@@ -264,10 +272,10 @@ class FeatureVis:
         plt.plot(pltxLim,sigAmp)
         # plot reference point
         #plt.plot(tarpos,rawsig[tarpos],'ro')
-        plt.title(figtitle)
-        #plt.xlim(pltxLim)
+        plt.title(figtitle+'[Window Left = {}]'.format(Window_Left))
+        plt.xlim(pltxLim[0],pltxLim[-1])
 
-        for i in range(2,N+2):
+        for i in range(2,N_subplot):
             # relation&importance
             rel_layer = relation_importance[i-2]
             cA,cD = pywt.dwt(cA,waveletobj)
@@ -284,7 +292,9 @@ class FeatureVis:
             # ------------
             # sub plot 
             # ------------
-            fig = plt.subplot(N+1,1,i)
+            #fig = plt.subplot(N+1,1,i)
+            fig = plt.subplot((N_subplot + 1)/2,2,i)
+            plt.title('DWT Detail Coefficient {}'.format(i-1))
             #------------
             # find pair&its amplitude
             # -----------
@@ -303,8 +313,6 @@ class FeatureVis:
                 else:
                     rel_y.append(cDamp[rel_x[-1]])
                 fig.annotate('', xy=(rel_x[-2],rel_y[-2]), xytext=(rel_x[-1],rel_y[-1]),arrowprops=arrowprops)
-            # plot 
-            fig = plt.subplot(N+1,1,i)
 
             #plt.grid(True)
             plt.plot(rel_x,rel_y,'.b')
@@ -312,16 +320,44 @@ class FeatureVis:
             # reference point
             # plt.plot(tarpos,cDamp[tarpos-xL],'ro')
             plt.xlim(0,len(cDamp)-1)
-            plt.title('DWT Level ({}):'.format(i-1))
+        # plot Approximation Level
+        rel_x = []
+        rel_y = []
+        #fig = plt.subplot((N_subplot + 1)/2,2,N_subplot)
+        fig = plt.subplot(4,1,4)
+        plt.title('Approximation Coefficient')
+        cAamp = [cA[x] for x in xi]
+        for rel_pair,imp in rel_layer:
+            # importance thres
+            arrowprops = dict(width = 1,headwidth = 4,facecolor='r',edgecolor = 'r',alpha = imp/IMP_MAX,shrink=0)
+
+            rel_x.append(rel_pair[0])
+            if rel_x[-1] >= cur_N:
+                rel_y.append(0)
+            else:
+                rel_y.append(cAamp[rel_pair[0]])
+            rel_x.append(rel_pair[1])
+            if rel_x[-1] >= cur_N:
+                rel_y.append(0)
+            else:
+                rel_y.append(cAamp[rel_x[-1]])
+            fig.annotate('', xy=(rel_x[-2],rel_y[-2]), xytext=(rel_x[-1],rel_y[-1]),arrowprops=arrowprops)
+
+        # reference point
+        plt.plot(rel_x,rel_y,'.b')
+        plt.plot(cAamp)
+        plt.xlim(0,len(cAamp)-1)
+
         # plot result
-        #plt.show()
+        plt.show()
         # save fig
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
             Fig_main.clf()
-    def plot_dwt_pairs(self,rawsig,relation_importance):
+    def plot_dwt_pairs_no_arrow(self,rawsig,relation_importance):
         ## =========================================V    
         # 展示RSWT示意图
+        # No Arrow, only points
         ## =========================================V    
         N = 5
         figureID = 1
@@ -337,7 +373,7 @@ class FeatureVis:
         importance_arr = []
         for rel_layer in relation_importance:
             for rel,imp in rel_layer:
-                importance.append(imp)
+                importance_arr.append(imp)
         N_imp = len(importance_arr)
         # ascending order:0->1
         importance_arr.sort()
@@ -407,6 +443,7 @@ class FeatureVis:
         plt.show()
 
     def plot_fv_importance(self):
+        # cycling plot importance of list of positions
         rID = 2
         sig = self.qt.load(self.qt_reclist[rID])
         rel_imp = self.feature_importance_test()
@@ -414,14 +451,23 @@ class FeatureVis:
         for i in xrange(0,130,10):
             savefigname = os.path.join(curfolderpath,'range_{}.png'.format(i))
             self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
-    def plot_fv_importance_test(self):
+    def plot_fv_importance_gswt(self,savefigname):
+        # QT record ID
         rID = 1
         sig = self.qt.load(self.qt_reclist[rID])
-        rel_imp = self.feature_importance_test()
+        # get layers of list [pair,importance]
+        # ----
+        # Format:
+        # [[(pair,importance),...],# layer 1
+        # [...],# layer 2
+        # ,]
+        # ----
+        rel_imp = self.get_pair_importance_list()
         # save current fig
         i = 3
-        savefigname = os.path.join(curfolderpath,'partial_DWT_compare_{}.png'.format(i))
-        self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
+        #self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
+        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'ECG Raw Signal')
+
 
     def load_sig_test(self):
         pass
@@ -543,11 +589,15 @@ class FeatureVis:
 
 
 if __name__ == '__main__':
-    mdlfilename = os.path.join(curfolderpath,'trained_model.mdl')
+    mdlfilename = os.path.join(curfolderpath,'trained_model','A_5.mdl')
+    rand_relation_path = os.path.join(curfolderpath,'trained_model','A_5_randrel.json')
     with open(mdlfilename,'r') as fin:
         rfmdl = pickle.load(fin)
-    fvis = FeatureVis(rfmdl)
+    fvis = FeatureVis(rfmdl,rand_relation_path)
     #fvis.plot_fv_importance_test()
-    fvis.plot_fv_importance_test()
+    # if savefigname == None:do not save
+    savefigname = os.path.join(curfolderpath,'Feature_Importance.pdf')
+    #savefigname = None
+    fvis.plot_fv_importance_gswt(savefigname)
     
 
