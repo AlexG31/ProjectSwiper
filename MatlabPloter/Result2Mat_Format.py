@@ -4,11 +4,15 @@ import pdb
 import numpy as np
 import scipy.io
 
-sys.path.append(r'F:\LabGit\ECG_RSWT\EvaluationSchemes')
-sys.path.append(r'F:\LabGit\ECG_RSWT\QTdata')
-from loadResult import load_result_simple
-from loadResult import load_result
-from loadQTdata import QTloader
+from EvaluationSchemes.loadResult import load_result_simple
+from EvaluationSchemes.loadResult import load_result
+from QTdata.loadQTdata import QTloader
+
+curfilepath =  os.path.realpath(__file__)
+curfolderpath = os.path.dirname(curfilepath)
+projhomepath = curfolderpath
+projhomepath = os.path.dirname(projhomepath)
+sys.path.append(projhomepath)
 
 def list2mat(list_in):
     scipy.io.savemat('test.mat',dict(sig = list_in))
