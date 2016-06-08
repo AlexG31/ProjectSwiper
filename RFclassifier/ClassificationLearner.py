@@ -83,6 +83,7 @@ class ECGrf:
         self.MaxTestSample = 200
         # save training samples folder
         if SaveTrainingSampleFolder is None:
+            ResultFolder = projhomepath
             ResultFolder_conf = conf['ResultFolder_Relative']
             for folder in ResultFolder_conf:
                 ResultFolder = os.path.join(ResultFolder,folder)

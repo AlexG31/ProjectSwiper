@@ -20,3 +20,9 @@ PaperResults/**/*.pdf
 PaperResults/**/*.ps
 PaperResults/**/*.eps
 PaperResults/**/*.rar
+EvaluationSchemes/tmp/*.xlsx
+PaperResults/Matlab_MIT_Marker/*
+**副本**.**
+PaperResults/FeatureVisualization/Feature_Importance_transparent.jpg
+PaperResults/FeatureVisualization/Feature_Importance_transparent236.jpg
+PaperResults/QT_TestResult/test1
