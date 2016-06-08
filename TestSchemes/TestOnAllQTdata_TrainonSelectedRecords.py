@@ -5,6 +5,7 @@ Author : Gaopengfei
 """
 import os
 import sys
+sys.stdout = open('test.txt','w')
 import json
 import glob
 import math
@@ -58,13 +59,12 @@ def backupobj(obj,savefilename):
 def TestAllQTdata(saveresultpath):
     # Leave Ntest out of 30 records to test
     #
-
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
     print 'Totoal QT record number:{}'.format(len(QTreclist))
     ## Training record list
-    traininglist = conf["selQTall0"]
-    testinglist = list(set(QTreclist) - set(traininglist))
+    testinglist = conf["selQTall0_test_set"]
+    traininglist = list(set(QTreclist) - set(testinglist))
 
     rf = ECGRF.ECGrf()
     # Multi Process
@@ -101,8 +101,8 @@ if __name__ == '__main__':
     for folder in Result_path_conf:
         saveresultpath = os.path.join(saveresultpath,folder)
     # create result folder if not exist
-    if os.path.exists(saveresultpath) == False:
-        os.mkdir(saveresultpath)
+    #if os.path.exists(saveresultpath) == False:
+    os.mkdir(saveresultpath)
     # refresh random select feature json file and backup
     ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
 
