@@ -232,6 +232,166 @@ class FeatureVis:
         imp_list.sort()
         return imp_list[midpos]
 
+    def plot_dwt_pairs_arrow_transparent(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
+        ## =========================================V    
+        # 展示RSWT示意图
+        # Plot Arrow
+        # with alpha value: png , pdf file
+        ## =========================================V    
+        #
+        #================
+        # constants
+        #================
+        N = 5
+        N_subplot = N+2
+        # importance pairs lower than this threshold is not shown in the figure
+        Thres_min_importance = self.get_min_Importance_threshold(relation_importance)
+        figureID = 1
+        fs = conf['fs']
+        FixedWindowLen = conf['winlen_ratio_to_fs']*fs
+        print 'Fixed Window Length:{}'.format(FixedWindowLen)
+        xL = Window_Left
+        xR = xL+FixedWindowLen
+        tarpos  = 1500
+        # props of ARROW
+        arrowprops = dict(width = 1,headwidth = 4,facecolor='black', shrink=0)
+        # -----------------
+        # get median
+        # -----------------
+        importance_arr = []
+        for rel_layer in relation_importance:
+            for rel,imp in rel_layer:
+                importance_arr.append(imp)
+        N_imp = len(importance_arr)
+        # ascending order:0->1
+        importance_arr.sort()
+        IMP_Thres = importance_arr[int(N_imp/2)]
+        IMP_MAX = importance_arr[-1]
+        # get wavelet obj
+        # dwt coef 
+        dwtECG = WTfeature()
+        waveletobj = dwtECG.gswt_wavelet() 
+        # props of ARROW
+        #arrowprops = dict(width = 1,headwidth = 4,facecolor='black', shrink=0)
+        pltxLim = range(xL,xR)
+        sigAmp = [rawsig[x] for x in pltxLim]
+        cA = rawsig
+        # ====================
+        # plot raw signal input
+        # ====================
+        Fig_main = plt.figure(figureID,figsize = figsize)
+        # plot raw ECG
+        plt.subplot((N_subplot + 1)/2,2,1)
+        # get handle for annote arrow
+        # hide axis
+        #frame = plt.gca()
+        #frame.axes.get_xaxis().set_visible(False)
+        #frame.axes.get_yaxis().set_visible(False)
+        plt.plot(pltxLim,sigAmp)
+        # plot reference point
+        #plt.plot(tarpos,rawsig[tarpos],'ro')
+        #plt.title(figtitle+'[Window Left = {}]'.format(Window_Left))
+        plt.title(figtitle)
+        plt.xlim(pltxLim[0],pltxLim[-1])
+
+        for i in range(2,N_subplot):
+            # relation&importance
+            rel_layer = relation_importance[i-2]
+            cA,cD = pywt.dwt(cA,waveletobj)
+            xL/=2
+            xR/=2
+            tarpos/=2
+            # crop x range out
+            xi = range(xL,xR)
+            cDamp = [cD[x] for x in xi]
+            # get relation points
+            rel_x = []
+            rel_y = []
+            cur_N = len(cDamp)
+            # ------------
+            # sub plot 
+            # ------------
+            #fig = plt.subplot(N+1,1,i)
+            fig = plt.subplot((N_subplot + 1)/2,2,i)
+            plt.title('DWT Detail Coefficient {}'.format(i-1))
+            #------------
+            # find pair&its amplitude
+            # -----------
+            # sort rel_layer with imp
+            rel_layer.sort(key = lambda x:x[1])
+            for rel_pair,imp in rel_layer:
+                # do not show imp lower than threshold
+                if imp<Thres_min_importance:
+                    continue 
+                # importance thres
+                alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
+                #arrow_color = self.get_RGB_from_Alpha((1,0,0),alpha,(1,1,1))
+                arrow_color = (1,0,0)
+                arrowprops = dict(alpha = alpha,width = 0.15,linewidth = 0.15,headwidth = 1.5,headlength = 1.5,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
+
+                rel_x.append(rel_pair[0])
+                if rel_x[-1] >= cur_N:
+                    rel_y.append(0)
+                else:
+                    rel_y.append(cDamp[rel_pair[0]])
+                rel_x.append(rel_pair[1])
+                if rel_x[-1] >= cur_N:
+                    rel_y.append(0)
+                else:
+                    rel_y.append(cDamp[rel_x[-1]])
+                fig.annotate('', xy=(rel_x[-2],rel_y[-2]), xytext=(rel_x[-1],rel_y[-1]),arrowprops=arrowprops)
+
+            #plt.grid(True)
+            plt.plot(rel_x,rel_y,'.b')
+            plt.plot(cDamp)
+            # reference point
+            # plt.plot(tarpos,cDamp[tarpos-xL],'ro')
+            plt.xlim(0,len(cDamp)-1)
+        # plot Approximation Level
+        rel_x = []
+        rel_y = []
+        rel_layer = relation_importance[-1]
+        #fig = plt.subplot((N_subplot + 1)/2,2,N_subplot)
+        fig = plt.subplot(4,1,4)
+        plt.title('Approximation Coefficient')
+        cAamp = [cA[x] for x in xi]
+        # sort rel_layer with imp
+        rel_layer.sort(key = lambda x:x[1])
+        for rel_pair,imp in rel_layer:
+            # do not show imp lower than threshold
+            if imp<Thres_min_importance:
+                continue
+            # importance thres
+            alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
+            #arrow_color = self.get_RGB_from_Alpha((1,0,0),alpha,(1,1,1))
+            arrow_color = (1,0,0)
+            #arrowprops = dict(width = 1,headwidth = 4,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
+            arrowprops = dict(alpha = alpha,width = 0.15,linewidth = 0.15,headwidth = 1.5,headlength = 1.5,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
+
+            rel_x.append(rel_pair[0])
+            if rel_x[-1] >= cur_N:
+                rel_y.append(0)
+            else:
+                rel_y.append(cAamp[rel_pair[0]])
+            rel_x.append(rel_pair[1])
+            if rel_x[-1] >= cur_N:
+                rel_y.append(0)
+            else:
+                rel_y.append(cAamp[rel_x[-1]])
+            fig.annotate('', xy=(rel_x[-2],rel_y[-2]), xytext=(rel_x[-1],rel_y[-1]),arrowprops=arrowprops)
+
+        # reference point
+        plt.plot(rel_x,rel_y,'.b')
+        plt.plot(cAamp)
+        plt.xlim(0,len(cAamp)-1)
+
+        # plot result
+        if showFigure == True:
+            plt.show()
+        # save fig
+        if savefigname is not None:
+            Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
+            Fig_main.clf()
     def plot_dwt_pairs_arrow(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
         ## =========================================V    
         # 展示RSWT示意图
@@ -509,7 +669,7 @@ class FeatureVis:
         # save current fig
         #self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
         figtitle = 'ECG from QTdb Record {}'.format(self.qt_reclist[rID])
-        self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 54100+WindowLeftBias,savefigname = savefigname,figsize = (20,18),figtitle = figtitle,showFigure = showFigure)
+        self.plot_dwt_pairs_arrow_transparent(sig['sig'],rel_imp,Window_Left = 54100+WindowLeftBias,savefigname = savefigname,figsize = (20,18),figtitle = figtitle,showFigure = showFigure)
 
 
     def load_sig_test(self):

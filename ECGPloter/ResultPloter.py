@@ -126,7 +126,10 @@ class ECGResultPloter:
                         Amplist.append(dispsig[mkerpos])
                 if len(mkerposlist)>0:
                     # have avaliable mker to plot
-                    plt.plot(mkerposlist,Amplist,mker,markersize=10,label = '{}'.format(self.PlotMarker2Label(mker)))
+                    if mker == 'w.':
+                        plt.plot(mkerposlist,Amplist,mker,markerfacecolor = 'b',markersize=10,label = '{}'.format(self.PlotMarker2Label(mker)))
+                    else:
+                        plt.plot(mkerposlist,Amplist,mker,markersize=10,label = '{}'.format(self.PlotMarker2Label(mker)))
         #=====================
         # plot AdditionalPlot
         #=====================
@@ -144,7 +147,9 @@ class ECGResultPloter:
         if plotTitle is not None:
             plt.title(plotTitle)
         # show legend
-        plt.legend()
+        plt.legend(numpoints = 1)
+        plt.xlabel('Samples')
+        plt.ylabel('Amplitude')
         if plotShow is True:
             plt.show()
     def plotAndsave(self,savefilefullpath,plotTitle = None,dispRange = None):

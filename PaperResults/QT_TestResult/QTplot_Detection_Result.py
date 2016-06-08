@@ -95,14 +95,8 @@ def getresultfilelist(RFfolder):
         print 'add result file to analysis: {}'.format(fpath) 
         ret.append(fpath)
     return ret
-def plot_QTdb_filtered_Result_with_syntax_filter():
+def plot_QTdb_filtered_Result_with_syntax_filter(RFfolder,TargetRecordList,ResultFilterType,showExpertLabels = False):
     # exit
-    RFfolder = os.path.join(\
-           projhomepath,\
-           'TestResult',\
-           'pc',\
-           'r19')
-    TargetRecordList = ['result_sel102','result_sel104']#'sel38','sel42','result_sel821','result_sel14046']
     # ==========================
     # plot prediction result
     # ==========================
@@ -119,33 +113,38 @@ def plot_QTdb_filtered_Result_with_syntax_filter():
         print currecname
         #if currecname == 'result_sel820':
             #pdb.set_trace()
-        if currecname not in TargetRecordList:
-            pass
-            continue
+        if TargetRecordList is not None:
+            if currecname not in TargetRecordList:
+                continue
         # load signal and reslist
         with open(fname,'r') as fin:
             (recID,reslist) = pickle.load(fin)
         # filter result of QT
         resfilter = ResultFilter(reslist)
-        reslist = resfilter.group_local_result(cp_del_thres = 1)
+        if len(ResultFilterType)>=1 and ResultFilterType[0]=='G':
+            reslist = resfilter.group_local_result(cp_del_thres = 1)
         reslist_syntax = reslist
-        reslist_syntax = resfilter.syntax_filter(reslist)
+        if len(ResultFilterType)>=2 and ResultFilterType[1]=='S':
+            reslist_syntax = resfilter.syntax_filter(reslist)
         # empty signal result
         #if reslist is None or len(reslist) == 0:
             #continue
         #pdb.set_trace()
         sigstruct = qtdb.load(recID)
-        # Expert Label AdditionalPlot
-        ExpertRes = qtdb.getexpertlabeltuple(recID)
-        ExpertPoslist = map(lambda x:x[0],ExpertRes)
-        AdditionalPlot = [['kd','Expert Labels',ExpertPoslist],]
+        if showExpertLabels == True:
+            # Expert Label AdditionalPlot
+            ExpertRes = qtdb.getexpertlabeltuple(recID)
+            ExpertPoslist = map(lambda x:x[0],ExpertRes)
+            AdditionalPlot = [['kd','Expert Labels',ExpertPoslist],]
+        else:
+            AdditionalPlot = None
         
         # plot res
         #resploter = ECGResultPloter(sigstruct['sig'],reslist)
         #resploter.plot(plotTitle = 'QT database',plotShow = True,plotFig = 2)
         # syntax_filter
         resploter_syntax = ECGResultPloter(sigstruct['sig'],reslist_syntax)
-        resploter_syntax.plot(plotTitle = 'QT database syntax_filter',plotShow = True,AdditionalPlot = AdditionalPlot)
+        resploter_syntax.plot(plotTitle = 'QT Record {}'.format(recID),plotShow = True,AdditionalPlot = AdditionalPlot)
 
 def plot_QTdb_filtered_Result():
     # exit
@@ -195,5 +194,12 @@ def plot_QTdb_filtered_Result():
 
 if __name__ == "__main__":
     #plot_MITdb_filtered_Result();
-    plot_QTdb_filtered_Result_with_syntax_filter()
+    RFfolder = os.path.join(\
+           projhomepath,\
+           'TestResult',\
+           'pc',\
+           'A_13')
+    TargetRecordList = ['result_sel221','result_sele0166','result_sele0104','result_sel16773']
+    TargetRecordList = ['result_sele0114',]
+    plot_QTdb_filtered_Result_with_syntax_filter(RFfolder,TargetRecordList,'')
     sys.exit();

@@ -73,7 +73,7 @@ def timing_for(function_handle,params,prompt = 'timing is',time_cost_output = No
 
 # train and test
 class ECGrf:
-    def __init__(self,MAX_PARA_CORE = 6):
+    def __init__(self,MAX_PARA_CORE = 6,SaveTrainingSampleFolder = None):
         # only test on areas with expert labels
         self.TestRange = 'Partial'# or 'All'
         # Parallel
@@ -82,6 +82,14 @@ class ECGrf:
         self.MAX_PARA_CORE = MAX_PARA_CORE
         # maximum samples for bucket testing
         self.MaxTestSample = 200
+        # save training samples folder
+        if SaveTrainingSampleFolder is None:
+            ResultFolder_conf = conf['ResultFolder_Relative']
+            for folder in ResultFolder_conf:
+                ResultFolder = os.path.join(ResultFolder,folder)
+            self.SaveTrainingSampleFolder = ResultFolder
+        else:
+            self.SaveTrainingSampleFolder = SaveTrainingSampleFolder
     @ staticmethod
     def RefreshRandomFeatureJsonFile(copyTo = None):
         # refresh random relations
@@ -90,7 +98,7 @@ class ECGrf:
 
     # label proc & convert to feature
     @staticmethod
-    def collectfeaturesforsig(sig,blankrangelist = None,recID = None):
+    def collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = None,recID = None):
         #
         # parameters:
         # blankrangelist : [[l,r],...]
@@ -153,11 +161,7 @@ class ECGrf:
         # =========================================
         # Save sample list
         # =========================================
-        ResultFolder = projhomepath
-        ResultFolder_conf = conf['ResultFolder_Relative']
-        for folder in ResultFolder_conf:
-            ResultFolder = os.path.join(ResultFolder,folder)
-        ResultFolder = os.path.join(ResultFolder,'TrainingSamples')
+        ResultFolder = os.path.join(SaveTrainingSampleFolder,'TrainingSamples')
         # mkdir if not exists
         if os.path.exists(ResultFolder) == False:
             os.mkdir(ResultFolder)
@@ -175,6 +179,25 @@ class ECGrf:
             reslist_to_mat(sample_list,mat_filename = save_mat_filename)
         return (trainingX,trainingy) 
         
+    def CollectRecFeature(self,recname):
+        print 'Parallel Collect RecFeature from {}'.format(recname)
+        # load blank area list
+        blkArea = conf['labelblankrange']
+        ## debug log:
+        debugLogger.dump('collecting feature for {}\n'.format(recname))
+        # load sig
+        QTloader = QTdb.QTloader()
+        sig = QTloader.load(recname)
+        if valid_signal_value(sig['sig']) == False:
+            return [[],[]]
+        # blank list
+        blklist = None
+        if recname in blkArea:
+            print recname,'in blank Area list.'
+            blklist = blkArea[recname]
+        tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
+        return (tX,ty)
+
     def training(self,reclist):
         # training feature vector
         trainingX = []
@@ -182,13 +205,15 @@ class ECGrf:
 
         # Parallel
         # Multi Process
-        pool = Pool(self.MAX_PARA_CORE)
+        #pool = Pool(self.MAX_PARA_CORE)
+        pool = Pool(2)
+
         # train with reclist
         # map function (recname) -> (tx,ty)
 
         #trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # single core:
-        trainingTuples = timing_for(map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
+        trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # close pool
         pool.close()
         pool.join()
@@ -845,7 +870,7 @@ def Parallel_CollectRecFeature(recname):
     if recname in blkArea:
         print recname,'in blank Area list.'
         blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,blankrangelist = blklist,recID = recname)
+    tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
     return (tX,ty)
     
 

@@ -81,8 +81,10 @@ class RecSelector():
     def inspect_recname(self,tarrecname):
         self.qt.plotrec(tarrecname)
     def inspect_selrec(self):
-        sel0115 = conf['sel0115']
-        for ind,recname in enumerate(sel0115):
+        QTreclist = self.qt.getQTrecnamelist()
+        sel0115 = conf['selQTall0']
+        test_reclist = set(QTreclist) - set(sel0115)
+        for ind,recname in enumerate(test_reclist):
             print '{} records left.'.format(len(sel0115) - ind - 1)
             self.inspect_recname(recname)
             
@@ -125,9 +127,10 @@ if __name__ == "__main__":
     #sys.exit()
 
     recsel = RecSelector()
-    #recsel.inspect_recname('sel16272')
+    #recsel.inspect_recname('sel46')
     #recsel.save_recs_to_img()
-    recsel.inspect_recs()
+    #recsel.inspect_recs()
+    recsel.inspect_selrec()
 
     print '-'*30
 

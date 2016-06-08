@@ -94,10 +94,10 @@ class WTfeature:
         cA = rawsig
 
         detailList = []
-        for i in range(2,Ndec+2):
+        for i in xrange(0,Ndec):
             cA,cD = pywt.dwt(cA,waveletobj)
             detailList.append(cD)
-
+        detailList.append(cA) 
         return detailList
 
     def plot_wtcoefs(\
