@@ -25,6 +25,20 @@ from RFclassifier.evaluation import ECGstatistics as ECGstats
 class RecSelector():
     def __init__(self):
         self.qt= QTloader()
+    def select_records(self,display_list,output_filename):
+        out_reclist = display_list
+        # records selected
+        selected_record_list = []
+        for ind,recname in enumerate(out_reclist):
+            # inspect
+            print '{} records left.'.format(len(out_reclist) - ind - 1)
+            self.qt.plotrec(recname)
+            usethis = raw_input('select this record?(y/n):')
+            if usethis == 'y':
+                selected_record_list.append(recname)
+        # save selection result
+        with open(os.path.join(os.path.dirname(curfilepath),output_filename),'w') as fout:
+            json.dump(selected_record_list,fout)
     def inspect_recs(self):
         reclist = self.qt.getQTrecnamelist()
         sel1213 = conf['sel1213']
@@ -130,7 +144,8 @@ if __name__ == "__main__":
     #recsel.inspect_recname('sel46')
     #recsel.save_recs_to_img()
     #recsel.inspect_recs()
-    recsel.inspect_selrec()
+    # recsel.inspect_selrec()
+    recsel.select_records(conf['selQTall0_test_set'],'sel30_from_36.json')
 
     print '-'*30
 
