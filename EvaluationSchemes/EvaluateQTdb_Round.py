@@ -437,11 +437,7 @@ def get_training_testing_record_number(RFfolder):
 if __name__ == '__main__':
         #for round_i in xrange(29,30):
         round_i = 'A_14'
-        RFfolder = os.path.join(\
-               projhomepath,\
-               'TestResult',\
-               'pc',\
-               '{}'.format(round_i))
+        RFfolder = r'F:\LabGit\ECG_RSWT\TestResult\pc\A_15\Round1'
         #getRRhisto()
         #sys.exit()
         #get number of test/training records
@@ -450,6 +446,6 @@ if __name__ == '__main__':
         # =========================
         #get_training_testing_record_number(RFfolder)
         # 计算误差
-        OutputFolder = os.path.join(curfolderpath,'QT_Result','Round_{}'.format(round_i))
+        OutputFolder = os.path.join(curfolderpath,'QT_RoundTest','Round_{}'.format(round_i))
         os.mkdir(OutputFolder)
         EvalQTdbResults(getresultfilelist(RFfolder),OutputFolder)
