@@ -65,9 +65,9 @@ class Window_Pair_Generator(object):
     #return relations
 def AddNearbyPairs(rel,WinLen,fs = 250):
     CenterPos = int(WinLen/2)
-    LBound = -int(fs/10)
+    LBound = CenterPos-int(fs/10)
     LBound = max(0,LBound)
-    RBound = int(fs/10)
+    RBound = CenterPos + int(fs/10)
     RBound = min(WinLen - 1,RBound)
     for pair_right in xrange(LBound,RBound+1):
         if pair_right == CenterPos:
@@ -148,11 +148,13 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     N = conf['windowpairnumber_ratio_to_winlen']*WinLen
     #rel = gen_rand_relations(N,WinLen)
     rel = random.sample(Window_Pair_Generator(WinLen),N)
-    with open(os.path.dirname(curfilepath)+os.sep+'ECGrandrel.json','w') as fout:
+    TimeDomainRelationFilename = os.path.join(curfolderpath,'ECGrandrel.json')
+    with open(TimeDomainRelationFilename,'w') as fout:
         json.dump(rel,fout)
     # copyTo result folder:
     if copyTo is not None:
         copyfile(WTrrJsonFileName,copyTo)
+        copyfile(TimeDomainRelationFilename,copyTo)
     
 
 if __name__ == '__main__':
