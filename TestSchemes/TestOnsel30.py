@@ -5,7 +5,6 @@ Author : Gaopengfei
 """
 import os
 import sys
-sys.stdout = open('test.txt','w')
 import json
 import glob
 import math
@@ -94,19 +93,27 @@ def TestAllQTdata(saveresultpath,trained_model = None):
     
 if __name__ == '__main__':
 
+    decision_input = raw_input(r'redirect stdout?(y/n)')
+    if decision_input in ['y','Y']:
+        sys.stdout = open('test.txt','w')
     saveresultpath = projhomepath
     Result_path_conf = conf['ResultFolder_Relative']
     for folder in Result_path_conf:
         saveresultpath = os.path.join(saveresultpath,folder)
     # create result folder if not exist
     #if os.path.exists(saveresultpath) == False:
-    os.mkdir(saveresultpath)
+    #os.mkdir(saveresultpath)
     # refresh random select feature json file and backup
-    ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
+    decision_input = raw_input(r'Regenerate Random Relations?(y/n)')
+    if decision_input in ['y','Y']:
+        ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
+    else:
+        print 'Use current random relations instead.'
 
     #backup configuration file
     backup_configure_file(saveresultpath)
 
+    print 'saveresultfolder:',saveresultpath
     with open(os.path.join(saveresultpath,'trained_model.mdl'),'r') as fin:
         trained_model = pickle.load(fin)
     TestAllQTdata(saveresultpath,trained_model = trained_model)

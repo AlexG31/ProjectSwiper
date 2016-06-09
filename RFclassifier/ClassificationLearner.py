@@ -323,7 +323,13 @@ class ECGrf:
         # [(pos,label)...]
         PrdRes = []
         # prediction probability
-        PrdProb = []
+        PrdProba = []
+        # get class->index dictionary
+        dict_class2index = dict()
+        cur_index = 0
+        for class_label in rfmdl.classes_:
+            dict_class2index[class_label] = cur_index
+            cur_index += 1
 
         # testing & show progress
         Ntest = self.MaxTestSample
@@ -345,17 +351,17 @@ class ECGrf:
             # predict
             #
             res = rfmdl.predict(samples_tobe_tested)
-            mean_prob = rfmdl.predict(samples_tobe_tested)
-            print 'probability shape:',mean_prob.shape
-            print 'mean probability:',mean_prob
-            print 'array of classes:',rfmdl.classes_
-            # sample to make sure
-            n_debug = 3
-            print 'first {} result is :',res[0:n_debug]
-            print 'predict probability is :',mean_prob[0:n_debug,:]
-            pdb.set_trace()
+            mean_proba = rfmdl.predict_proba(samples_tobe_tested)
+            label_proba_vec = map(lambda x:x[1][dict_class2index[x[0]]],zip(res,mean_proba))
+            # debug
+            #print 'probability shape:',mean_proba.shape
+            #print 'array of classes:',rfmdl.classes_
+            ### sample to make sure
+            #n_debug = 30
+            #print 'predict label & its proba:',zip(res,label_proba_vec)[0:n_debug]
+            #pdb.set_trace()
             PrdRes.extend(res.tolist())
-            # PrdProb.extend(res[
+            PrdProba.extend(label_proba_vec)
             
             
         if len(PrdRes) != len(poslist):
@@ -366,7 +372,7 @@ class ECGrf:
             print poslist
             pdb.set_trace()
             raise StandardError('test Error: output label length doesn''t match!')
-        return zip(poslist,PrdRes,PrdProb)
+        return zip(poslist,PrdRes,PrdProba)
 
     def plotresult(\
             self,\

@@ -155,7 +155,6 @@ class ECGstatistics:
         return (pErr,pFN)
 
     def get_FalsePositive_InExpertLabelRange(self,reslist,pErr,pFP,recname,skip_Thres = 100):
-        pass
         ExpertPos_ErrorList = zip(pErr['pos'],pErr['err'])
         matched_poslist = map(lambda x:x[0]+x[1],ExpertPos_ErrorList)
         #raw_prediction_poslist = map(lambda x:x[0],reslist)
