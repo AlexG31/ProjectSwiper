@@ -45,7 +45,7 @@ tmpmdlfilename = os.path.join(projhomepath,'tmpmdl.txt')
 
 def show_drawing(folderpath = os.path.join(\
         os.path.dirname(curfilepath),'..','QTdata','QTdata_repo')):
-    with open(os.path.join(folderpath,'sel103.txt'),'r') as fin:
+    with open(os.path.join(folderpath,'sel103.txt'),'rb') as fin:
         sig = pickle.load(fin)
     # sig with 'sig','time'and 'marks'
     ECGfv = extfeature.ECGfeatures(sig['sig'])
@@ -174,8 +174,8 @@ class ECGrf:
         sample_list.extend(ExpertLabels)
         if recID is not None:
             # save recID sample list
-            with open(os.path.join(ResultFolder,recID+'.pkl'),'w') as fout:
-                pickle.dump(sample_list,fout)
+            with open(os.path.join(ResultFolder,recID+'.json'),'w') as fout:
+                json.dump(sample_list,fout,indent = 4,sort_keys = True)
             save_mat_filename = os.path.join(ResultFolder,recID+'.mat')
             reslist_to_mat(sample_list,mat_filename = save_mat_filename)
         return (trainingX,trainingy) 
@@ -251,6 +251,8 @@ class ECGrf:
 
     # testing ECG record with trained mdl
     def testing(self,reclist,rfmdl = None,saveresultfolder = None):
+        def test_lead(leadname = 'sig'):
+            pass
         #
         # default parameter
         #
@@ -279,6 +281,9 @@ class ECGrf:
             if MultiProcess == 'off':
                 FeatureExtractor = extfeature.ECGfeatures(sig['sig'])
 
+            # ------------------------
+            # test lead I
+            # ------------------------
             # original rawsig
             rawsig = sig['sig']
             N_signal = len(rawsig)
@@ -310,7 +315,7 @@ class ECGrf:
 
             if conf['QTtest'] == 'FastTest':
                 TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
-                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'r') as fin:
+                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
                     TestRegions = pickle.load(fin)
                 prRange = []
                 for region in TestRegions:
@@ -318,9 +323,9 @@ class ECGrf:
             
             debugLogger.dump('Testing samples with lenth {}\n'.format(len(prRange)))
             #
-            # pickle dumple modle to file for multi process testing
+            # pickle  dump model to file for multi process testing
             #
-            with open(tmpmdlfilename,'w') as fout:
+            with open(tmpmdlfilename,'wb') as fout:
                 pickle.dump(rfmdl,fout)
             if MultiProcess == 'on':
                 record_predict_result = self.\
@@ -350,6 +355,80 @@ class ECGrf:
             debugLogger.dump(\
             'Testing time for {} is {:.2f} s\n'.\
                     format(recname,time_rec1-time_rec0))
+            # ------------------------
+            # test lead II
+            # ------------------------
+            # original rawsig
+            rawsig = sig['sig2']
+            N_signal = len(rawsig)
+
+            # denoise signal
+            #
+            if MultiProcess == 'on':
+                feature_type = conf['feature_type']
+                if feature_type == 'wavelet':
+                    denoisesig = rawsig
+                else:
+                    denoisesig = wtdenoise.denoise(rawsig)
+                    denoisesig = denoisesig.tolist()
+                    N_signal = len(denoisesig)
+            
+            # init
+            prRes = []
+            testSamples = []
+
+            #
+            # get prRange:
+            # test in the same range as expert labels
+            #
+            expres = self.QTloader.getexpertlabeltuple(recname)
+            # Leave Testing Blank Regions in Head&Tail
+            WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
+            Blank_Len = WindowLen/2+1
+            prRange = range(Blank_Len,N_signal - 1-Blank_Len)
+
+            if conf['QTtest'] == 'FastTest':
+                TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
+                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
+                    TestRegions = pickle.load(fin)
+                prRange = []
+                for region in TestRegions:
+                    prRange.extend(range(region[0],region[1]+1))
+            
+            debugLogger.dump('Testing samples with lenth {}\n'.format(len(prRange)))
+            #
+            # pickle  dumple model to file for multi process testing
+            #
+            with open(tmpmdlfilename,'wb') as fout:
+                pickle.dump(rfmdl,fout)
+            if MultiProcess == 'on':
+                record_predict_result = self.\
+                        test_with_positionlist_multiprocess(\
+                            rfmdl,\
+                            prRange,\
+                            denoisesig,\
+                            origrawsig = rawsig
+                        )
+            elif MultiProcess == 'off':
+                record_predict_result = self.\
+                        test_with_positionlist(\
+                            rfmdl,\
+                            prRange,\
+                            FeatureExtractor\
+                        )
+
+            #
+            # prediction result for each record            
+            #
+            PrdRes.append(('{}_sig2'.format(recname),record_predict_result))
+            
+            # end testing time
+            time_rec1 = time.time()
+            print 'Testing time for {} is {:.2f} s'.\
+                    format(recname,time_rec1-time_rec0)
+            debugLogger.dump(\
+            'Testing time for {} is {:.2f} s\n'.\
+                    format(recname,time_rec1-time_rec0))
 
         # save Prediction Result
         if saveresultfolder is not None:
@@ -360,8 +439,10 @@ class ECGrf:
                 if PrdRes is None or len(PrdRes) == 0:
                     recres = (recname,[])
                 else:
-                    recres = PrdRes[0]
-                pickle.dump(recres ,fout)
+                    if len(PrdRes)>1:
+                        raise Exception('len(PrdRes) is larger than 1!')
+
+                json.dump(recres ,fout,indent = 4,sort_keys = True)
                 print 'saved prediction result to {}'.format(saveresult_filename)
         return PrdRes
 
@@ -794,7 +875,7 @@ class ECGrf:
             debugLogger.dump('**Warning: save result to {}'.format(filename_saveresult))
 
         with open(filename_saveresult,'w') as fout:
-            pickle.dump(RecResults ,fout)
+            json.dump(RecResults ,fout,indent = 4,sort_keys = True)
             print 'saved prediction result to {}'.\
                     format(filename_saveresult)
     def testrecords(self,saveresultfolder,reclist = ['sel103',],mdl = None,TestResultFileName = None):
@@ -847,7 +928,7 @@ def Testing_with_ref_to_bucket(Param):
     #
     # pickle load rfmdl file
     #
-    with open(tmpmdlfilename,'r') as fin:
+    with open(tmpmdlfilename,'rb') as fin:
         rfmdl = pickle.load(fin)
     res = rfmdl.predict(samples_tobe_tested)
     return res

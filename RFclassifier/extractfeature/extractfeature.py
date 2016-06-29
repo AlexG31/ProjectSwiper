@@ -198,7 +198,11 @@ class ECGfeatures:
         # debug
         #pdb.set_trace()
         for detailsignal,randrels in zip(dslist,WTrelList):
+
             # debug:
+            #print len(WTrelList)
+            #print len(dslist)
+            #pdb.set_trace()
             for x in randrels:
                 for xval in x:
                     if xval<0 or xval >= len(detailsignal):
@@ -222,5 +226,16 @@ def frompos_with_denoisedsig(Params):
     denoisedsig,pos = Params
     fvExtractor = ECGfeatures(denoisedsig,isdenoised = True)
     return fvExtractor.frompos(pos)
+
+
+# debug
+if __name__ == '__main__':
+    from QTdata.loadQTdata import QTloader
+    qt = QTloader()
+
+    sigStruct = qt.load('sel100')
+    ft = ECGfeatures(sigStruct['sig'])
+    ft.getWTfeatureforpos(1000)
+
 
 

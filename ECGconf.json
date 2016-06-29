@@ -46,7 +46,7 @@
     "ResultFolder_Relative": [
         "TestResult", 
         "paper", 
-        "A1"
+        "MultiRound1"
     ], 
     "Tree_Max_Depth": 35, 
     "WTrandselfeaturenumber_apprx": 8000, 

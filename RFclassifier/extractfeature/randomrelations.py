@@ -138,7 +138,7 @@ def refresh_project_random_relations_computeLen(copyTo = None):
             RelList.append(rel)
         N_current_layer /=2
     with open(WTrrJsonFileName,'w') as fout:
-        json.dump(RelList,fout)
+        json.dump(RelList,fout,indent = 4)
     #==============================================
     #  Generate random relations for time-domain signal
     #==============================================
@@ -150,11 +150,11 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     rel = random.sample(Window_Pair_Generator(WinLen),N)
     TimeDomainRelationFilename = os.path.join(curfolderpath,'ECGrandrel.json')
     with open(TimeDomainRelationFilename,'w') as fout:
-        json.dump(rel,fout)
+        json.dump(rel,fout,indent = 4)
     # copyTo result folder:
     if copyTo is not None:
         copyfile(WTrrJsonFileName,copyTo)
-        copyfile(TimeDomainRelationFilename,copyTo)
+        #copyfile(TimeDomainRelationFilename,copyTo)
     
 
 if __name__ == '__main__':
