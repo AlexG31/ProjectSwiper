@@ -45,7 +45,8 @@ class QTloader:
     def matdata_format_sigdata(self,mat):
         ret = dict()
         # only first lead
-        sig = mat['sig'][0].tolist()
+        leadnum = 0
+        sig = mat['sig'][leadnum].tolist()
         time = mat['time'].tolist()
         marks = dict()
         labels = mat['code_label'][0].tolist()
@@ -58,6 +59,7 @@ class QTloader:
         ret['sig'] = sig
         ret['time'] = time
         ret['marks'] = marks
+        ret['sig2'] = mat['sig'][1-leadnum].tolist()
         return ret
     def getQTrecnamelist(self):
         return self.reclist

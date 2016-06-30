@@ -145,20 +145,24 @@ def disp_recID(recID = 1):
 def disp_rec(recname = 'sel103'):
     QTloader = QTdb.QTloader()
     sig = QTloader.load(recname)
+    pdb.set_trace()
 
     plt.figure(1)
     #plt.subplot(211)
-    mark_ind = [sig['time'][x] for x in sig['marks']['T']]
-    mark_amp= [sig['sig'][x] for x in sig['marks']['T']]
+    #mark_ind = [sig['time'][x] for x in sig['marks']['T']]
+    #mark_amp= [sig['sig'][x] for x in sig['marks']['T']]
 
-    plt.plot(sig['time'],sig['sig'],'k',\
-            mark_ind,mark_amp,'ro')
-    plt.title('ECG signal')
-    plt.xlim(mark_ind[0],mark_ind[-1])
+    plt.plot(sig['sig'],'g')
+    plt.plot(sig['sig2'],'r')
+    #plt.plot(sig['time'],sig['sig'],'g')
+    #plt.plot(sig['time'],sig['sig2'],'r')
+    plt.title('QT rec: '+recname)
+    #plt.xlim(mark_ind[0],mark_ind[-1])
     plt.show()
 
 
 if __name__ == '__main__':
     #show_drawing()
     #convert_all_mark_to_index()
-    disp_recID()
+    disp_rec(recname = 'sel103')
+    #disp_recID()

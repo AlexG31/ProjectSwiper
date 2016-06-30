@@ -36,7 +36,7 @@ import extractfeature.extractfeature as extfeature
 import extractfeature.randomrelations as RandRelation
 import WTdenoise.wtdenoise as wtdenoise
 import QTdata.loadQTdata as QTdb
-from MatlabPloter.Result2Mat_Format import reslist_to_mat
+from RFclassifier.pickNegtiveSample import pickNegtiveSample
 
 ## Main Scripts
 # ==========
@@ -131,34 +131,15 @@ class ECGrf:
         trainingy.extend(labellist)
         
         # add neg samples
-        Nneg = int(len(negposlist)*conf['negsampleratio'])
-        #print 'Total number of negposlist =',len(negposlist)
-        #print '-- Number of Training samples -- '
-        #print 'Num of pos samples:',len(trainingX)
-        #print 'Num of neg samples:',Nneg
+        pickneg = pickNegtiveSample()
+        negList = pickneg.getNegList4rec(recID)
 
-        # if Number of Neg>0 then add negtive samples
-        if len(negposlist) == 0 or Nneg<=0:
-            print '[In function collect feature] Warning: negtive sample position list length is 0.'
-        else:
-            # collect negtive sample features
-            #
-            # leave blank for area without labels
-            #
-            negposset = set(negposlist)
-            if blankrangelist is not None:
-                blklist = []
-                for pair in blankrangelist:
-                    blklist.extend(range(pair[0],pair[1]+1))
-                blkset = set(blklist)
-                negposset -= blkset
-                
-            selnegposlist = random.sample(negposset,Nneg)
-            time_neg0 = time.time()
-            negFv = map(Extractor.frompos,selnegposlist)
-            trainingX.extend(negFv)
-            trainingy.extend(['white']*Nneg)
-            print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
+        # collect feature for negtive sample
+        time_neg0 = time.time()
+        negFv = map(Extractor.frompos,negList)
+        trainingX.extend(negFv)
+        trainingy.extend(['white']*len(negList))
+        print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
         # =========================================
         # Save sample list
         # =========================================
@@ -170,14 +151,12 @@ class ECGrf:
         # sample_list
         # [(pos,label),...]
         # -----
-        sample_list = zip(selnegposlist,len(selnegposlist)*['white'])
+        sample_list = zip(negList,len(negList)*['white'])
         sample_list.extend(ExpertLabels)
         if recID is not None:
             # save recID sample list
             with open(os.path.join(ResultFolder,recID+'.json'),'w') as fout:
                 json.dump(sample_list,fout,indent = 4,sort_keys = True)
-            save_mat_filename = os.path.join(ResultFolder,recID+'.mat')
-            reslist_to_mat(sample_list,mat_filename = save_mat_filename)
         return (trainingX,trainingy) 
         
     def CollectRecFeature(self,recname):
@@ -437,12 +416,9 @@ class ECGrf:
             with open(saveresult_filename,'w') as fout:
                 # No detection
                 if PrdRes is None or len(PrdRes) == 0:
-                    recres = (recname,[])
-                else:
-                    if len(PrdRes)>1:
-                        raise Exception('len(PrdRes) is larger than 1!')
+                    PrdRes =(recname,)
 
-                json.dump(recres ,fout,indent = 4,sort_keys = True)
+                json.dump(PrdRes,fout,indent = 4,sort_keys = True)
                 print 'saved prediction result to {}'.format(saveresult_filename)
         return PrdRes
 
