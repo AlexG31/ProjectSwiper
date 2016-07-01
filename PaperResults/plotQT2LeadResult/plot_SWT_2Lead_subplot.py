@@ -40,6 +40,10 @@ from QTdata.loadQTdata import QTloader
 from EvaluationSchemes.csvwriter import CSVwriter
 
 
+sys.path.append(curfolderpath)
+from Evaluation2Leads import Evaluation2Leads
+
+
 eps = 1e-3
 
 debugmod = True
@@ -228,7 +232,6 @@ class PointBrowser(object):
 
         # add white Mark
         self.addMarkx(x)
-        self.text.set_text('Marking region: ({}) [whiteCnt {}][expertCnt {}]'.format(self.whiteRegionList[-1],self.totalWhiteCount,len(self.expLabels)))
 
         # update canvas
         self.fig.canvas.draw()
@@ -261,9 +264,52 @@ class PointBrowser(object):
         # plot Result labels
         self.plotResultLabels(ax,0,self.rawSig)
         self.plotResultLabels(self.ax2,1,self.rawSig2)
+        # plot error statistics
+        self.plotErrorList(ax,0,self.rawSig)
 
         # update draw
         self.fig.canvas.draw()
+
+    def plotErrorList(self,ax,leadnum,rawSig,TargetLabel = 'T'):
+        resultfilename = self.resultlist[self.recInd]
+        label = TargetLabel
+
+        # Evaluation
+        eva= Evaluation2Leads()
+        eva.loadlabellist(resultfilename,label)
+        eva.evaluate(label)
+
+        # get Error List
+        errorList = []
+        eva_errorList = eva.errList
+        eva_expMatchList = eva.expMatchList
+
+        # iter match list, find -1
+        errInd = 0
+        for matchInd1,matchInd2 in zip(eva_expMatchList[0],eva_expMatchList[1]):
+            if matchInd1 ==-1 and matchInd2 == -1:
+                errorList.append(-1)
+            else:
+                errorList.append(eva_errorList[errInd])
+                errInd += 1
+        if errInd != len(eva_errorList):
+            print 'errInd != len(eva_errorList)'
+            pdb.set_trace()
+            raise Exception('error Ind != len(eva_errorList)')
+
+        # expert poslist with Target Label
+        TargetExpPosList = map(lambda x:x[0],filter(lambda x:x[1]==label,self.expLabels))
+        if len(errorList) != len(TargetExpPosList):
+            print 'if len(errorList) != len(TargetExpPosList)'
+            pdb.set_trace()
+            raise Exception('if len(errorList) != len(TargetExpPosList)')
+        
+        for errVal,expPos in zip(errorList,TargetExpPosList):
+            ax.annotate('error[{}]'.format(errVal),xy = (expPos,rawSig[expPos]),xytext = (expPos,rawSig[expPos]*1.3),xycoords = 'data',textcoords = 'data',arrowprops = dict(arrowstyle='->',connectionstyle = 'arc3'))
+
+        # disp error mean and std
+        self.text.set_text('Error mean,std = ({0:.3f},{1:.3f})'.format(np.mean(eva_errorList),np.std(eva_errorList)))
+
 
     def update(self):
 
