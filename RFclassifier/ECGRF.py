@@ -132,7 +132,8 @@ class ECGrf:
         
         # add neg samples
         pickneg = pickNegtiveSample()
-        negList = pickneg.getNegList4rec(recID)
+        #negList = pickneg.getNegList4rec(recID)
+        negList = pickneg.getRandomNegSamples(recID)
 
         # collect feature for negtive sample
         time_neg0 = time.time()

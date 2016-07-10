@@ -111,7 +111,7 @@ class PointBrowser(object):
         self.ax = ax
         self.ax2 = ax2
 
-        self.SaveFolder = os.path.join(curfolderpath,'QTwhiteMarkList')
+        #self.SaveFolder = os.path.join(curfolderpath,'QTwhiteMarkList')
 
 
         self.text = self.ax.text(0.05, 0.95, 'selected: none',
@@ -122,9 +122,9 @@ class PointBrowser(object):
         # QTdb
         self.QTdb = QTloader()
         #self.reclist = self.QTdb.reclist
-        self.resultlist = glob.glob(os.path.join(curfolderpath,'MultiLead2','SWT_GroupResult','*.json'))
+        self.resultlist = glob.glob(os.path.join(curfolderpath,'MultiLead4','GroupRound1','*.json'))
 
-        self.recInd = 19
+        self.recInd = 0
         self.recname = os.path.split(self.resultlist[self.recInd])[-1].split('.json')[0]
         self.sigStruct = self.QTdb.load(self.recname)
         self.rawSig = self.sigStruct['sig']

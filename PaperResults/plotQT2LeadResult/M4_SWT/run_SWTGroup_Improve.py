@@ -26,6 +26,7 @@ curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
 projhomepath = os.path.dirname(curfolderpath)
 projhomepath = os.path.dirname(projhomepath)
+projhomepath = os.path.dirname(projhomepath)
 print 'projhomepath:',projhomepath
 # configure file
 # conf is a dict containing keys
@@ -36,7 +37,6 @@ sys.path.append(projhomepath)
 # my project components
 
 from QTdata.loadQTdata import QTloader 
-from Evaluation2Leads import Evaluation2Leads
 
 class SWT_GroupResult2Leads:
     ''' Find P&T peak with SWT+db6
@@ -322,7 +322,8 @@ class SWT_GroupResult2Leads:
         res_groups = self.filter_smaller_nearby_groups(res_groups)
 
         # get T peak
-        e4list = np.array(self.cDlist[-4])+np.array(self.cDlist[-5])
+        #e4list = np.array(self.cDlist[-4])+np.array(self.cDlist[-5])
+        e4list = np.array(self.cDlist[-6])
         crosszerolist = self.get_cross_zero_list(e4list)
         for label,posgroup in res_groups:
             scorelist = []
@@ -592,88 +593,18 @@ def SwtGroupRound(round_index,load_round_folder,save_round_folder):
         # ------------------------------------------------------
         # save to Group Result
         GroupDict = dict(recname = recname,LeadResult=LeadResult)
-        with open(os.path.join(save_round_folder,'SWT_GroupRound{}'.format(round_index),recname+'.json'),'w') as fout:
+        with open(os.path.join(save_round_folder,recname+'.json'),'w') as fout:
             json.dump(GroupDict,fout,indent = 4,sort_keys = True)
 
         # debug
         #print 'record name:',recname
 
-def RunEval(RoundInd):
-    GroupSaveFolder = os.path.join(curfolderpath,'MultiLead4','SWT_GroupRound{}'.format(RoundInd))
-    resultfilelist = glob.glob(os.path.join(GroupSaveFolder,'*.json'))
-    evalinfopath = os.path.join(curfolderpath,'MultiLead4','SwtEvalInfoRound{}'.format(RoundInd))
-    os.mkdir(evalinfopath)
-
-    # print result files
-    #for ind, fp in enumerate(resultfilelist):
-        #print '[{}]'.format(ind),'fp:',fp
-
-    ErrDict = dict()
-    ErrData = dict()
-
-    for label in ['P','T','Ponset','Poffset','Toffset']:
-        ErrData[label] = dict()
-        ErrDict[label] = dict()
-        errList = []
-        FNcnt = 0
-
-        for file_ind in xrange(0,len(resultfilelist)):
-            # progress info
-            #print 'label:',label
-            #print 'file_ind',file_ind
-
-            eva= Evaluation2Leads()
-            eva.loadlabellist(resultfilelist[file_ind],label,supress_warning = True)
-            eva.evaluate(label)
-
-            # total error
-            errList.extend(eva.errList)
-            FN = eva.getFNlist()
-            FNcnt += FN
-
-            # -----------------
-            # error statistics
-
-            #ErrDict[label]['mean'] = np.mean(eva.errList)
-            #ErrDict[label]['std'] = np.std(eva.errList)
-            #ErrDict[label]['FN'] = eva.getFNlist()
-
-            # debug
-            #print '--'
-            #print 'record: {}'.format(os.path.split(resultfilelist[file_ind])[-1])
-            #print 'Error Dict:','label:',label
-            #print ErrDict[label]
-
-            # ======
-            #eva.plot_evaluation_result()
-            #pdb.set_trace()
-        ErrData[label]['errList'] = errList
-        ErrData[label]['FN'] = FNcnt
-
-        ErrDict[label]['mean'] = np.mean(errList)
-        ErrDict[label]['std'] = np.std(errList)
-        ErrDict[label]['FN'] = FNcnt
-
-    print '-'*10
-    print 'ErrDict'
-    print ErrDict
-
-    # write to json
-    with open(os.path.join(evalinfopath,'ErrData.json'),'w') as fout:
-        json.dump(ErrData,fout,indent = 4,sort_keys = True)
-        print '>>Dumped to json file: ''ErrData.json''.'
-    # error statistics
-    with open(os.path.join(evalinfopath,'ErrStat.json'),'w') as fout:
-        json.dump(ErrDict,fout,indent = 4,sort_keys = True)
-        print '>>Dumped to json file: ''ErrStat.json''.'
-
 if __name__ == '__main__':
     load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
-    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
-    for ind in xrange(56,101):
+    save_round_folder = os.path.join(curfolderpath)
+    for ind in xrange(1, 101):
       print 'Current round:', ind
-      #os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
-      #SwtGroupRound(ind,load_round_folder,save_round_folder)
-      RunEval(ind)
-      
+      current_round_folder = os.path.join(save_round_folder, 'SWT_GroupRound_T_improved{}'.format(ind))
+      os.mkdir(current_round_folder)
+      SwtGroupRound(ind,load_round_folder,current_round_folder)
     

@@ -599,9 +599,9 @@ def SwtGroupRound(round_index,load_round_folder,save_round_folder):
 
 if __name__ == '__main__':
     load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
-    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
+    save_round_folder = os.path.join(curfolderpath,'M4_SWT')
     for ind in xrange(20, 101):
       print 'Current round:', ind
-      os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
+      os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound_T_improved{}'.format(ind)))
       SwtGroupRound(ind,load_round_folder,save_round_folder)
     
