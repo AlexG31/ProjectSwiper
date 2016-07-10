@@ -50,7 +50,7 @@ possibleLabels = [
 
 class Evaluation2Leads:
     def __init__(self):
-        print '[Warning]Evaluator will convert prediction indexes to Integer.'
+        #print '[Warning]Evaluator will convert prediction indexes to Integer.'
         self.QTdb = QTloader()
         self.labellist = []
         self.expertlist = []
@@ -80,7 +80,7 @@ class Evaluation2Leads:
         self.prdMatchList = []
         self.expMatchList = []
 
-    def loadlabellist(self,filename,TargetLabel):
+    def loadlabellist(self,filename,TargetLabel,supress_warning = False):
         '''Load label list with Target Label from json file.'''
 
         with open(filename,'r') as fin:
@@ -94,7 +94,8 @@ class Evaluation2Leads:
             #print '[Warning] Multiple result data, only the 1st one is used!'
 
         self.recname = Res['recname']
-        print '>>loading recname:',self.recname
+        if supress_warning == False:
+            print '>>loading recname:',self.recname
 
         self.leadResults= Res['LeadResult']
         self.leadPosList = (self.leadResults[0][TargetLabel],self.leadResults[1][TargetLabel])
@@ -163,7 +164,7 @@ class Evaluation2Leads:
         '''Return total number of False Negtives.'''
         return self.FNcnt
     def getFPlist(self):
-        return -1
+        return min(self.FPcnt1, self.FPcnt2)
 
     def plot_evaluation_result(self):
         sigStruct = self.QTdb.load(self.recname)
@@ -211,19 +212,31 @@ class Evaluation2Leads:
             if matchInd1 == -1 and matchInd2 == -1:
                 FNcnt += 1
                 continue
-            prdpos1 = self.leadPosList[0][matchInd1]
-            prdpos2 = self.leadPosList[1][matchInd2]
-            err1 = expPos - prdpos1
-            err2 = expPos - prdpos2
-
-            # chooose the one with smaller error 
-            if abs(err1)<abs(err2):
+            elif matchInd1 == -1:
+                prdpos2 = self.leadPosList[1][matchInd2]
+                err2 = expPos - prdpos2
+                self.errList.append(4.0*err2)
+            elif matchInd2 == -1:
+                prdpos1 = self.leadPosList[0][matchInd1]
+                err1 = expPos - prdpos1
                 self.errList.append(4.0*err1)
             else:
-                self.errList.append(4.0*err2)
+                prdpos1 = self.leadPosList[0][matchInd1]
+                prdpos2 = self.leadPosList[1][matchInd2]
+                err1 = expPos - prdpos1
+                err2 = expPos - prdpos2
+
+                # chooose the one with smaller error 
+                if abs(err1)<abs(err2):
+                    self.errList.append(4.0*err1)
+                else:
+                    self.errList.append(4.0*err2)
 
         # total number of False Negtives
         self.FNcnt = FNcnt
+        self.FPcnt1 = sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[0]))
+        self.FPcnt2 = sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[1]))
+
 
         return self.errList
 
@@ -236,8 +249,9 @@ class Evaluation2Leads:
 
 
 if __name__ == '__main__':
-    resultfilelist = glob.glob(os.path.join(curfolderpath,'MultiLead2','SWT_GroupResult','*.json'))
-    evalinfopath = os.path.join(curfolderpath,'MultiLead2','EvalInfo')
+    resultfilelist = glob.glob(os.path.join(curfolderpath,'MultiLead3','SWT_GroupResult','*.json'))
+    evalinfopath = os.path.join(curfolderpath,'MultiLead3','EvalInfo')
+    
 
     # print result files
     for ind, fp in enumerate(resultfilelist):
@@ -247,8 +261,12 @@ if __name__ == '__main__':
     ErrData = dict()
 
     for label in ['P','R','T','Ponset','Poffset','Toffset','Ronset','Roffset']:
+        # ======================
+        # SWT doesn't have R results
         if 'R' in label:
             continue
+        # ======================
+
         ErrData[label] = dict()
         ErrDict[label] = dict()
         errList = []

@@ -118,7 +118,7 @@ class PointBrowser(object):
         # QTdb
         self.QTdb = QTloader()
         #self.reclist = self.QTdb.reclist
-        self.resultlist = glob.glob(os.path.join('F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound2\Round1','result_*'))
+        self.resultlist = glob.glob(os.path.join('F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4\Round1','result_*'))
 
         self.recInd = 0
         self.recname = os.path.split(self.resultlist[self.recInd])[-1][7:]
@@ -348,8 +348,6 @@ class PointBrowser(object):
                 marker = 'o'
             ax.plot(posList,map(lambda x:rawSig[x],posList),marker = marker,color = color,linestyle = 'none',markersize = 14,label = label)
         ax.legend(numpoints = 1)
-
-
 
 
 def get_QTdb_recordname(index = 1):

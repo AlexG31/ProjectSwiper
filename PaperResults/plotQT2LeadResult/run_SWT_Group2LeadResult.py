@@ -42,7 +42,7 @@ class SWT_GroupResult2Leads:
     '''
     def __init__(self,recname,reslist,leadname,MaxSWTLevel = 9):
         self.recres = reslist
-        self.LeadRes = (reslist,reslist2)
+        #self.LeadRes = (reslist,reslist2)
 
         self.recname = recname
         self.QTdb = QTloader()
@@ -515,13 +515,10 @@ class SWT_GroupResult2Leads:
         self.get_T_peaklist()
         self.get_P_peaklist()
 
-
-if __name__ == '__main__':
-    
+def SwtGroupRound(round_index,load_round_folder,save_round_folder):
     # load the results
-    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound3'
-    RoundInd = 10
-    ResultFolder = os.path.join(RoundFolder,'Round{}'.format(RoundInd))
+    #RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    ResultFolder = os.path.join(load_round_folder,'Round{}'.format(round_index))
 
     # each result file
     resfiles = glob.glob(os.path.join(ResultFolder,'result_*'))
@@ -594,8 +591,17 @@ if __name__ == '__main__':
         # ------------------------------------------------------
         # save to Group Result
         GroupDict = dict(recname = recname,LeadResult=LeadResult)
-        with open(os.path.join(curfolderpath,'MultiLead3','SWT_GroupResult',recname+'.json'),'w') as fout:
+        with open(os.path.join(save_round_folder,'SWT_GroupRound{}'.format(round_index),recname+'.json'),'w') as fout:
             json.dump(GroupDict,fout,indent = 4,sort_keys = True)
 
         # debug
-        print 'record name:',recname
+        #print 'record name:',recname
+
+if __name__ == '__main__':
+    load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
+    for ind in xrange(20, 101):
+      print 'Current round:', ind
+      os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
+      SwtGroupRound(ind,load_round_folder,save_round_folder)
+    

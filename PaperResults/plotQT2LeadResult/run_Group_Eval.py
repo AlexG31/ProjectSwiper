@@ -35,9 +35,9 @@ from Evaluation2Leads import Evaluation2Leads
 def RunGroup(RoundInd):
     #RoundInd = 3
     # load the results
-    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound2'
+    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
     ResultFolder = os.path.join(RoundFolder,'Round{}'.format(RoundInd))
-    SaveFolder = os.path.join(curfolderpath,'MultiLead2','GroupRound{}'.format(RoundInd))
+    SaveFolder = os.path.join(curfolderpath,'MultiLead4','GroupRound{}'.format(RoundInd))
     os.mkdir(SaveFolder)
 
     # each result file
@@ -66,14 +66,14 @@ def RunGroup(RoundInd):
         # debug
         print 'record name:',recname
 def RunEval(RoundInd):
-    GroupSaveFolder = os.path.join(curfolderpath,'MultiLead2','GroupRound{}'.format(RoundInd))
+    GroupSaveFolder = os.path.join(curfolderpath,'MultiLead4','GroupRound{}'.format(RoundInd))
     resultfilelist = glob.glob(os.path.join(GroupSaveFolder,'*.json'))
-    evalinfopath = os.path.join(curfolderpath,'MultiLead2','EvalInfoRound{}'.format(RoundInd))
+    evalinfopath = os.path.join(curfolderpath,'MultiLead4','EvalInfoRound{}'.format(RoundInd))
     os.mkdir(evalinfopath)
 
     # print result files
-    for ind, fp in enumerate(resultfilelist):
-        print '[{}]'.format(ind),'fp:',fp
+    #for ind, fp in enumerate(resultfilelist):
+        #print '[{}]'.format(ind),'fp:',fp
 
     ErrDict = dict()
     ErrData = dict()
@@ -83,20 +83,24 @@ def RunEval(RoundInd):
         ErrDict[label] = dict()
         errList = []
         FNcnt = 0
+        FPcnt = 0
 
         for file_ind in xrange(0,len(resultfilelist)):
             # progress info
-            print 'label:',label
-            print 'file_ind',file_ind
+            #print 'label:',label
+            #print 'file_ind',file_ind
 
             eva= Evaluation2Leads()
-            eva.loadlabellist(resultfilelist[file_ind],label)
+            eva.loadlabellist(resultfilelist[file_ind],label,supress_warning = True)
             eva.evaluate(label)
 
             # total error
             errList.extend(eva.errList)
             FN = eva.getFNlist()
             FNcnt += FN
+            # false positive
+            FP = eva.getFPlist()
+            FPcnt += FP
 
             # -----------------
             # error statistics
@@ -116,6 +120,7 @@ def RunEval(RoundInd):
             #pdb.set_trace()
         ErrData[label]['errList'] = errList
         ErrData[label]['FN'] = FNcnt
+        ErrData[label]['FP'] = FPcnt
 
         ErrDict[label]['mean'] = np.mean(errList)
         ErrDict[label]['std'] = np.std(errList)
@@ -136,7 +141,8 @@ def RunEval(RoundInd):
 
 
 if __name__ == '__main__':
-    for RoundInd in xrange(1,13):
-        RunGroup(RoundInd)
+    for RoundInd in xrange(1,101):
+        print 'Round ',RoundInd
+        #RunGroup(RoundInd)
         RunEval(RoundInd)
 

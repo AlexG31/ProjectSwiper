@@ -384,6 +384,9 @@ class SWT_GroupResult2Leads:
             #plt.plot(local_maxima_list,map(lambda x:e3list[x],local_maxima_list),'y*',markersize = 14)
             #plt.show()
 
+        plt.ion()
+        plt.figure(2)
+
         # find local maxima point within each group
         for label,posgroup in res_groups:
             scorelist = []
@@ -391,6 +394,23 @@ class SWT_GroupResult2Leads:
             if debug == True:
                 print 'Pos Group:',posgroup
                 print 'mean Group:',np.mean(posgroup)
+
+                # plot
+                minGrp = np.min(posgroup)
+                maxGrp = np.max(posgroup)
+                ExpandWidth = 50
+
+                plt.clf()
+                plt.plot(self.rawsig[minGrp-ExpandWidth:maxGrp+ExpandWidth],label = 'raw signal')
+                plt.plot(e3list[minGrp-ExpandWidth:maxGrp+ExpandWidth],label = 'e3list')
+                # plot group
+                plt.plot(np.array(posgroup)-minGrp+ExpandWidth,map(lambda x:self.rawsig[x],posgroup),marker = 'o',mfc = 'y',mec = 'r',markersize = 14,alpha = 0.4)
+
+                plt.title('label = '+label)
+                plt.legend()
+                plt.draw()
+                pdb.set_trace()
+
 
             for pos in posgroup:
                 nearest_dist = self.bw_find_nearest(pos,local_maxima_list)
@@ -414,7 +434,7 @@ class SWT_GroupResult2Leads:
             # debug
             if debug ==True:
                 print 'SWT peak pos:',self.peak_dict['P'][-1]
-                pdb.set_trace()
+                #pdb.set_trace()
         # return list of P peaks
         return self.peak_dict['P']
 
@@ -516,11 +536,9 @@ class SWT_GroupResult2Leads:
         self.get_P_peaklist()
 
 
-if __name__ == '__main__':
-    
+def run_SWT_Grouper(RoundInd):
     # load the results
-    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound3'
-    RoundInd = 10
+    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound2'
     ResultFolder = os.path.join(RoundFolder,'Round{}'.format(RoundInd))
 
     # each result file
@@ -565,7 +583,7 @@ if __name__ == '__main__':
         LeadResult.append(resDict)
         # ------------------
         # lead II result dict
-        eva = SWT_GroupResult2Leads(recname,reslist2,'sig2')
+        eva = SWT_GroupResult2Leads(recname,reslist1,'sig2')
         eva.group_result()
 
         resDict = dict()
@@ -594,8 +612,67 @@ if __name__ == '__main__':
         # ------------------------------------------------------
         # save to Group Result
         GroupDict = dict(recname = recname,LeadResult=LeadResult)
-        with open(os.path.join(curfolderpath,'MultiLead3','SWT_GroupResult',recname+'.json'),'w') as fout:
+        with open(os.path.join(curfolderpath,'MultiLead2','SWT_GroupResult',recname+'.json'),'w') as fout:
             json.dump(GroupDict,fout,indent = 4,sort_keys = True)
 
         # debug
         print 'record name:',recname
+if __name__ == '__main__':
+    
+    # load the results
+    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound2'
+    RoundInd = 1
+    ResultFolder = os.path.join(RoundFolder,'Round{}'.format(RoundInd))
+
+    # each result file
+    resfiles = glob.glob(os.path.join(ResultFolder,'result_*'))
+    for resfilepath in resfiles:
+        with open(resfilepath,'r') as fin:
+            prdRes = json.load(fin)
+        recname = prdRes[0][0]
+
+        reslist1= prdRes[0][1]
+        reslist2= prdRes[1][1]
+
+        # ----
+        # Target Record name
+        # debug
+        print 'record name:',recname
+
+        if recname != 'sele0110':
+            continue
+        # ------------------------------------------------------
+        # Group Results
+        LeadResult = []
+        # ------------------
+        # lead I result dict
+        eva = SWT_GroupResult2Leads(recname,reslist1,'sig')
+        eva.group_result()
+
+        resDict = dict()
+
+
+        # P
+        #reslist = eva.get_P_peaklist(debug = True)
+        #resDict['P'] = reslist
+        
+
+        LeadResult.append(resDict)
+        # ------------------
+        # lead II result dict
+        eva = SWT_GroupResult2Leads(recname,reslist2,'sig2')
+        eva.group_result()
+
+        resDict = dict()
+
+        # P
+        reslist = eva.get_P_peaklist(debug = True)
+        resDict['P'] = reslist
+
+        LeadResult.append(resDict)
+        # ------------------------------------------------------
+        # save to Group Result
+        GroupDict = dict(recname = recname,LeadResult=LeadResult)
+        #with open(os.path.join(curfolderpath,'MultiLead2','SWT_GroupResult',recname+'.json'),'w') as fout:
+            #json.dump(GroupDict,fout,indent = 4,sort_keys = True)
+

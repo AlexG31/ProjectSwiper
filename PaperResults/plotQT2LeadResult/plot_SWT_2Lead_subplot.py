@@ -124,7 +124,7 @@ class PointBrowser(object):
         #self.reclist = self.QTdb.reclist
         self.resultlist = glob.glob(os.path.join(curfolderpath,'MultiLead2','SWT_GroupResult','*.json'))
 
-        self.recInd = 0
+        self.recInd = 19
         self.recname = os.path.split(self.resultlist[self.recInd])[-1].split('.json')[0]
         self.sigStruct = self.QTdb.load(self.recname)
         self.rawSig = self.sigStruct['sig']
@@ -144,8 +144,83 @@ class PointBrowser(object):
         self.whiteRegionList = []
         self.totalWhiteCount = 0
 
+        self.getCoefList()
     #def load_SWT_resultlist(self):
         #self.resultlist = glob.glob(os.path.join('F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound2\Round1','result_*'))
+
+    def crop_data_for_swt(self,rawsig):
+        # crop rawsig
+        base2 = 1
+        N_data = len(rawsig)
+        if len(rawsig)<=1:
+            raise Exception('len(rawsig)={},not enough for swt!',len(rawsig))
+        crop_len = base2
+        while base2<N_data:
+            if base2*2>=N_data:
+                crop_len = base2*2
+                break
+            base2*=2
+        # pad zeros
+        if N_data< crop_len:
+            rawsig += [rawsig[-1],]*(crop_len-N_data)
+        rawsig = rawsig[0:crop_len]
+        return rawsig
+    def getCoefList(self,MaxLevel = 9):
+        self.rawSig = self.crop_data_for_swt(self.rawSig)
+        self.coeflist1 = pywt.swt(self.rawSig,'db6',MaxLevel)
+
+        self.rawSig2 = self.crop_data_for_swt(self.rawSig2)
+        self.coeflist2 = pywt.swt(self.rawSig2,'db6',MaxLevel)
+
+
+
+    def plot_e4list(self):
+        '''T wave judge WT coef.'''
+
+        # plot axes
+        ax = self.ax
+
+        cAlist,cDlist = zip(*self.coeflist1)
+        e4list = np.array(cDlist[-4])+np.array(cDlist[-5])
+
+        ax.plot(e4list,color = self.colors[15],label = 'e4list')
+        ax.legend()
+        self.fig.canvas.draw()
+
+    def plot_e3list(self):
+        '''P wave judge WT coef.'''
+        def gete3list(cDlist):
+            e3list = np.array(cDlist[-4])
+            return e3list
+
+
+        # plot axes
+        ax = self.ax
+
+        cAlist,cDlist = zip(*self.coeflist1)
+        e3list = gete3list(cDlist)
+
+        ax.plot(e3list,color = self.colors[15],label = 'e3list')
+
+        # plot expert labels
+        self.plotExpertLabels(ax,e3list)
+        ax.legend()
+
+        # plot axes
+        ax2 = self.ax2
+
+        cAlist,cDlist = zip(*self.coeflist2)
+        e3list = gete3list(cDlist)
+
+        ax2.plot(e3list,color = self.colors[15],label = 'e3list II')
+        ax2.legend()
+
+        # mark expert label position on e3list
+        self.plotExpertLabels(self.ax2,e3list)
+
+        # update canvas
+        self.fig.canvas.draw()
+
 
     def onpress(self, event):
         if event.key not in ('n', 'p',' ','x','a','d'):
@@ -267,10 +342,17 @@ class PointBrowser(object):
         # plot error statistics
         self.plotErrorList(ax,0,self.rawSig)
 
+
+        # plot SWT coefficients
+        self.plot_e3list()
+
         # update draw
         self.fig.canvas.draw()
 
-    def plotErrorList(self,ax,leadnum,rawSig,TargetLabel = 'T'):
+    def plotErrorList(self,ax,leadnum,rawSig,TargetLabel = 'P'):
+        # Text Bias Function
+        textBiasFunc = lambda x:x-0.9
+
         resultfilename = self.resultlist[self.recInd]
         label = TargetLabel
 
@@ -305,7 +387,7 @@ class PointBrowser(object):
             raise Exception('if len(errorList) != len(TargetExpPosList)')
         
         for errVal,expPos in zip(errorList,TargetExpPosList):
-            ax.annotate('error[{}]'.format(errVal),xy = (expPos,rawSig[expPos]),xytext = (expPos,rawSig[expPos]*1.3),xycoords = 'data',textcoords = 'data',arrowprops = dict(arrowstyle='->',connectionstyle = 'arc3'))
+            ax.annotate('error[{}]'.format(errVal),xy = (expPos,rawSig[expPos]),xytext = (expPos,textBiasFunc(rawSig[expPos])),xycoords = 'data',textcoords = 'data',arrowprops = dict(arrowstyle='->',connectionstyle = 'arc3,rad = -0.5'))
 
         # disp error mean and std
         self.text.set_text('Error mean,std = ({0:.3f},{1:.3f})'.format(np.mean(eva_errorList),np.std(eva_errorList)))
@@ -327,6 +409,10 @@ class PointBrowser(object):
         self.rawSig = self.sigStruct['sig']
         self.rawSig2 = self.sigStruct['sig2']
         self.expLabels = self.QTdb.getexpertlabeltuple(self.recname)
+
+        # SWT coef
+        self.getCoefList()
+
 
     def plotResultLabels(self,ax,prdInd,rawSig):
 

@@ -36,13 +36,14 @@ sys.path.append(projhomepath)
 # my project components
 
 from QTdata.loadQTdata import QTloader 
+from Evaluation2Leads import Evaluation2Leads
 
 class SWT_GroupResult2Leads:
     ''' Find P&T peak with SWT+db6
     '''
     def __init__(self,recname,reslist,leadname,MaxSWTLevel = 9):
         self.recres = reslist
-        self.LeadRes = (reslist,reslist2)
+        #self.LeadRes = (reslist,reslist2)
 
         self.recname = recname
         self.QTdb = QTloader()
@@ -515,13 +516,96 @@ class SWT_GroupResult2Leads:
         self.get_T_peaklist()
         self.get_P_peaklist()
 
+class TotalRoundEvaluation:
+    def __init__(self):
+        self.total_error_diction =  dict()
+        self.error_list_for_label = dict()
+        self.false_negtive_list = dict()
+        self.false_positive_list = dict()
+        self.sensitivity = dict()
+        self.Pplus = dict()
+        self.posible_label_list = ['P','T','Ponset','Poffset','Toffset']
+        # initialize for error_list_for_label& false_negtive_list
+        for label in self.posible_label_list:
+            self.error_list_for_label[label] = []
+            self.false_negtive_list[label] = 0
+            self.false_positive_list[label] = 0
+            self.sensitivity[label] = 0
+            self.Pplus[label] = 0
 
-if __name__ == '__main__':
-    
+    def RunEval(self,RoundInd):
+        GroupResultFolder = os.path.join(curfolderpath,'MultiLead4','SWT_GroupRound{}'.format(RoundInd))
+        resultfilelist = glob.glob(os.path.join(GroupResultFolder,'*.json'))
+
+        ## print result files
+        #for ind, fp in enumerate(resultfilelist):
+            #print '[{}]'.format(ind),'fp:',fp
+
+        ErrDict = dict()
+        ErrData = dict()
+
+        for label in self.posible_label_list:
+            ErrData[label] = dict()
+            ErrDict[label] = dict()
+            errList = []
+            FNcnt = 0
+            FPcnt = 0
+
+            for file_ind in xrange(0,len(resultfilelist)):
+                # progress info
+                #print 'label:',label
+                #print 'file_ind',file_ind
+
+                eva= Evaluation2Leads()
+                eva.loadlabellist(resultfilelist[file_ind],label, supress_warning = True)
+                eva.evaluate(label)
+
+                # total error
+                errList.extend(eva.errList)
+                FN = eva.getFNlist()
+                FP = eva.getFPlist()
+
+                FNcnt += FN
+                FPcnt += FP
+            self.error_list_for_label[label].extend(errList)
+            self.false_negtive_list[label] += FNcnt
+            self.false_positive_list[label] += FPcnt
+    def get_mean_and_std(self):
+        for label in self.posible_label_list:
+            self.total_error_diction[label] = dict()
+            self.total_error_diction[label]['mean'] = np.mean(self.error_list_for_label[label])
+            self.total_error_diction[label]['std'] = np.std(self.error_list_for_label[label])
+            # debug
+            print 'for label {}:'.format(label)
+            print 'mean = {}, std = {}'.format(self.total_error_diction[label]['mean'],self.total_error_diction[label]['std'])
+    def get_Sensitivity_and_Pplus(self):
+        # Sensitivity & P plus
+        for label in self.posible_label_list:
+            FN = self.false_negtive_list[label]
+            FP = self.false_positive_list[label]
+            TP = len(self.error_list_for_label[label])
+            self.sensitivity[label] = float(FN)/(FN+TP)
+            self.Pplus[label] = float(FP)/(FP+TP)
+        
+    def ComputeStatistics(self):
+        self.get_mean_and_std()
+        self.get_Sensitivity_and_Pplus()
+    def output_to_json(self,jsonfilename):
+        with open(jsonfilename,'w') as fout:
+            json.dump(self.total_error_diction,fout,indent = 4,sort_keys = True)
+            print 'json file save to {}.'.format(jsonfilename)
+    def display_error_statistics(self):
+        print '\n'
+        print '-'*30
+        print '[label]  [mean]   [std]   [False Negtive]'
+        for label in self.posible_label_list:
+            print label, self.total_error_diction[label]['mean'],self.total_error_diction[label]['std'], self.false_negtive_list[label]
+            print 'Sensitivity :{},\t Positive Predictivity: {}'.format(self.sensitivity[label],self.Pplus[label])
+
+def SwtGroupRound(round_index,load_round_folder,save_round_folder):
     # load the results
-    RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound3'
-    RoundInd = 10
-    ResultFolder = os.path.join(RoundFolder,'Round{}'.format(RoundInd))
+    #RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    ResultFolder = os.path.join(load_round_folder,'Round{}'.format(round_index))
 
     # each result file
     resfiles = glob.glob(os.path.join(ResultFolder,'result_*'))
@@ -594,8 +678,27 @@ if __name__ == '__main__':
         # ------------------------------------------------------
         # save to Group Result
         GroupDict = dict(recname = recname,LeadResult=LeadResult)
-        with open(os.path.join(curfolderpath,'MultiLead3','SWT_GroupResult',recname+'.json'),'w') as fout:
+        with open(os.path.join(save_round_folder,'SWT_GroupRound{}'.format(round_index),recname+'.json'),'w') as fout:
             json.dump(GroupDict,fout,indent = 4,sort_keys = True)
 
         # debug
-        print 'record name:',recname
+        #print 'record name:',recname
+
+
+if __name__ == '__main__':
+    load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
+    eva_obj = TotalRoundEvaluation()
+
+    for ind in xrange(1,75):
+      print 'Current round:', ind
+      #os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
+      #SwtGroupRound(ind,load_round_folder,save_round_folder)
+      eva_obj.RunEval(ind)
+
+    # compute error statistics
+    eva_obj.ComputeStatistics()
+    # display error statistics
+    eva_obj.display_error_statistics()
+      
+    
