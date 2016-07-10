@@ -369,8 +369,10 @@ class SWT_GroupResult2Leads:
             peak_pos = int(peak_pos)
             plt.plot(peak_pos,seg[peak_pos],'ro',markersize = 12,alpha = 0.7,label = 'Peak pos')
             # 5.plot determin line
-            seg_determin_line = e4list[seg_range[0]:seg_range[1]]
+            seg_determin_line = self.cDlist[-6][seg_range[0]:seg_range[1]]
+            seg_determin_line5 = self.cDlist[-5][seg_range[0]:seg_range[1]]
             plt.plot(seg_determin_line,'y',label = 'D6')
+            plt.plot(seg_determin_line5,'m',label = 'D5')
 
             plt.title(self.recname)
             plt.legend()
@@ -613,7 +615,7 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
 if __name__ == '__main__':
     load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
     save_round_folder = os.path.join(curfolderpath)
-    TargetRecordName = 'sel30'
+    TargetRecordName = 'sel34'
 
     for ind in xrange(1, 2):
       print 'Current round:', ind
