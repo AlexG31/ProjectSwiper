@@ -247,6 +247,7 @@ class SWT_GroupResult2Leads:
                 else:
                     peak_pos = insertPos-1
 
+            peak_pos = crosszerolist[peak_pos]
             # Find current slope length
             right_bound = N-1
             left_bound = 0
@@ -270,6 +271,59 @@ class SWT_GroupResult2Leads:
                 best_candidate = peak_pos
         return best_candidate
 
+    def get_current_upward_slope_steepness(self,pos,crosszerolist,e4list):
+        # Frequent used var.
+        N = len(crosszerolist)
+        N_e4list = len(e4list)
+
+        # Only one pos, find its left minima&right maxima.
+        prd_pos = pos
+        # find the closest cross point in the list to prd_pos
+        insertPos = bisect.bisect_left(crosszerolist,prd_pos)
+
+        peak_pos = -1
+        if insertPos>=N:
+            peak_pos = N-1
+        elif insertPos == 0:
+            peak_pos = 0
+        else:
+            if abs(prd_pos-crosszerolist[insertPos])<abs(prd_pos-crosszerolist[insertPos-1]):
+                peak_pos = insertPos
+            else:
+                peak_pos = insertPos-1
+
+        peak_pos = crosszerolist[peak_pos]
+        # Find current slope length
+        right_bound = N-1
+        left_bound = 0
+
+        # reached N-1 or local maxima
+        for cur_pos in xrange(peak_pos,N_e4list-1):
+            if e4list[cur_pos+1]-e4list[cur_pos]<=0:
+                # local maxima
+                right_bound = cur_pos
+                break
+        
+        # reached 0
+        for cur_pos in xrange(peak_pos,0,-1):
+            if e4list[cur_pos]-e4list[cur_pos-1]<=0:
+                # local minima
+                left_bound = cur_pos
+                break
+        cur_slope_len = right_bound-left_bound
+        if cur_slope_len <= 0:
+            plt.figure(2)
+            plt.plot(e4list)
+            plt.plot(crosszerolist,map(lambda x:e4list[x],crosszerolist),'ro')
+            plt.plot(peak_pos,e4list[peak_pos],'y*',markersize = 14)
+            plt.grid(True)
+            plt.show()
+            print 
+            print 'Warning: cur_slope_len <= 0!'
+            pdb.set_trace()
+        cur_slope_amp = abs(e4list[right_bound]-e4list[left_bound])
+        return float(cur_slope_amp)/cur_slope_len
+
     def get_longest_slope_index(self,candidate_list,crosszerolist,e4list):
         N = len(crosszerolist)
         max_slope_len = -1
@@ -289,6 +343,7 @@ class SWT_GroupResult2Leads:
                 else:
                     peak_pos = insertPos-1
 
+            peak_pos = crosszerolist[peak_pos]
             # Find current slope length
             right_bound = N-1
             left_bound = 0
@@ -322,32 +377,101 @@ class SWT_GroupResult2Leads:
 
         # get T peak
         #e4list = np.array(self.cDlist[-4])+np.array(self.cDlist[-5])
-        e4list = np.array(self.cDlist[-6])
-        crosszerolist = self.get_cross_zero_list(e4list)
+        D6list = np.array(self.cDlist[-6])
+        D5list = np.array(self.cDlist[-5])
+        crosszerolist = self.get_cross_zero_list(D6list)
+        D5crosszerolist = self.get_cross_zero_list(D5list)
+
+        # debug :D5crosszerolist check!
+        # e4list = D5list
+        # plt.figure(2)
+        # plt.plot(e4list)
+        # plt.plot(D5crosszerolist,map(lambda x:e4list[x],D5crosszerolist),'ro')
+        # plt.plot(155424,D5list[155424],'y*',markersize = 14)
+        # plt.grid(True)
+        # plt.show()
+        # if 155424 in D5crosszerolist:
+            # print '155424'
+        # pdb.set_trace()
 
         # for debug
         sig_struct = self.QTdb.load(self.recname)
         raw_sig = sig_struct['sig']
-
-        for label,posgroup in res_groups:
+        
+        debug_res_group_ind = 21
+        for label,posgroup in res_groups[22:]:
+            debug_res_group_ind += 1
             scorelist = []
+            D5scorelist = []
             for pos in posgroup:
                 nearest_dist = self.bw_find_nearest(pos,crosszerolist)
                 scorelist.append((nearest_dist,pos))
+                # for D5
+                D5nearest_dist = self.bw_find_nearest(pos,D5crosszerolist)
+                D5scorelist.append((D5nearest_dist,pos))
 
             # get all pos with min score
             min_score,candidate_list  = self.get_min_score_poslist(scorelist)
+            D5min_score,D5candidate_list  = self.get_min_score_poslist(D5scorelist)
 
+            D5pos,D6pos = [],[]
+            D5_swt_mark,D6_swt_mark = True,True
+            final_decision_peak = -1
+            # get D6 crosszero position
             if min_score >2:
                 # not a peak
-                self.peak_dict['T'].append(np.mean(posgroup))
+                print 
+                print 'Warning: using mean group position!'
+                D6_swt_mark = False
+                D6pos.append(np.mean(posgroup))
             elif len(candidate_list) ==1:
                 # only mean score by SWT
-                self.peak_dict['T'].append(candidate_list[0])
+                D6pos.append(candidate_list[0])
             else:
                 # multiple min score
-                longest_slope_index = self.get_longest_slope_index(candidate_list,crosszerolist,e4list)
-                self.peak_dict['T'].append(crosszerolist[longest_slope_index])
+                longest_slope_index = self.get_longest_slope_index(candidate_list,crosszerolist,D6list)
+                D6pos.append(crosszerolist[longest_slope_index])
+            # get D5 crosszero position
+            if D5min_score >2:
+                # not a peak
+                print 
+                print 'Warning: using mean group position!'
+                D5_swt_mark = False
+                D5pos.append(np.mean(posgroup))
+            elif len(D5candidate_list) ==1:
+                # only mean score by SWT
+                D5pos.append(D5candidate_list[0])
+            else:
+                # multiple min score
+                longest_slope_index = self.get_longest_slope_index(D5candidate_list,D5crosszerolist,D5list)
+                D5pos.append(D5crosszerolist[longest_slope_index])
+            # plot two positions for debug --- check!
+
+            print 'debug_res_group_ind',debug_res_group_ind
+            # Get the slope for D5list and D6list.
+            if D5_swt_mark and D6_swt_mark:
+                print 'getting D5 slope:'
+                D5slope = self.get_current_upward_slope_steepness(D5pos[-1],D5crosszerolist,D5list)
+                print 'getting D6 slope:'
+                D6slope = self.get_current_upward_slope_steepness(D6pos[-1],crosszerolist,D6list)
+                print 'D6 slope value:'
+                print D6slope
+                print 'D5 slope value:'
+                print D5slope
+
+                pdb.set_trace()
+                if D5slope < D6slope:
+                    final_decision_peak = D6pos[-1]
+                else:
+                    final_decision_peak = D5pos[-1]
+
+            elif D5_swt_mark:
+                final_decision_peak = D5pos[-1]
+            elif D6_swt_mark:
+                final_decision_peak = D6pos[-1]
+            else:
+                # Default value is D6pos
+                final_decision_peak = D6pos[-1]
 
             # debug plot
             # 1. get range
@@ -364,9 +488,18 @@ class SWT_GroupResult2Leads:
             seg_posgroup = map(lambda x:x-seg_range[0],posgroup)
             plt.plot(seg_posgroup,map(lambda x: seg[x],seg_posgroup),label = 'posgroup',marker = 'o',markersize = 4,markerfacecolor = 'g',alpha = 0.7)
             # 4.plot peak pos
-            peak_pos = self.peak_dict['T'][-1]-seg_range[0]
+            # plot D6 postion
+            peak_pos = D6pos[-1]-seg_range[0]
             peak_pos = int(peak_pos)
-            plt.plot(peak_pos,seg[peak_pos],'ro',markersize = 12,alpha = 0.7,label = 'Peak pos')
+            plt.plot(peak_pos,seg[peak_pos],'yo',markersize = 12,alpha = 0.7,label = 'D6 pos')
+            # plot D5 postion
+            peak_pos = D5pos[-1]-seg_range[0]
+            peak_pos = int(peak_pos)
+            plt.plot(peak_pos,seg[peak_pos],'mo',markersize = 12,alpha = 0.7,label = 'D5 pos')
+            # plot final decision postion
+            peak_pos = final_decision_peak - seg_range[0]
+            peak_pos = int(peak_pos)
+            plt.plot(peak_pos,seg[peak_pos],'r*',markersize = 12,alpha = 0.7,label = 'D5 pos')
             # 5.plot determin line
             seg_determin_line = self.cDlist[-6][seg_range[0]:seg_range[1]]
             seg_determin_line5 = self.cDlist[-5][seg_range[0]:seg_range[1]]
@@ -378,8 +511,11 @@ class SWT_GroupResult2Leads:
             plt.grid(True)
             plt.show()
             # debug stop
+            if D5_swt_mark and D6_swt_mark:
+                print 'D5pos:',D5pos
+                print 'D6pos:',D6pos
+                print 'final_decision_peak',final_decision_peak
             pdb.set_trace()
-
 
         # return list of T peaks
         return self.peak_dict['T']
@@ -614,7 +750,7 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
 if __name__ == '__main__':
     load_round_folder = os.path.join(curfolderpath,'Round4Raw')
     save_round_folder = os.path.join(curfolderpath)
-    TargetRecordName = 'sel34'
+    TargetRecordName = 'sele0126'
 
     for ind in xrange(1, 2):
       print 'Current round:', ind
