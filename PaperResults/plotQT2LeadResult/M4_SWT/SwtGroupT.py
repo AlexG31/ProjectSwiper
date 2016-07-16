@@ -312,15 +312,15 @@ class SWT_GroupResult2Leads:
                 break
         cur_slope_len = right_bound-left_bound
         if cur_slope_len <= 0:
-            plt.figure(2)
-            plt.plot(e4list)
-            plt.plot(crosszerolist,map(lambda x:e4list[x],crosszerolist),'ro')
-            plt.plot(peak_pos,e4list[peak_pos],'y*',markersize = 14)
-            plt.grid(True)
-            plt.show()
+            #plt.figure(2)
+            #plt.plot(e4list)
+            #plt.plot(crosszerolist,map(lambda x:e4list[x],crosszerolist),'ro')
+            #plt.plot(peak_pos,e4list[peak_pos],'y*',markersize = 14)
+            #plt.grid(True)
+            #plt.show()
             print 
             print 'Error: cur_slope_len <= 0!'
-            pdb.set_trace()
+            #pdb.set_trace()
         cur_slope_amp = abs(e4list[right_bound]-e4list[left_bound])
         return float(cur_slope_amp)/cur_slope_len
 
@@ -691,11 +691,11 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
         print 'Group Diction:',GroupDict
 
 if __name__ == '__main__':
-    load_round_folder = os.path.join(curfolderpath,'RawResult')
-    save_round_folder = os.path.join(curfolderpath,'TempResult')
+    load_round_folder = 'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    save_round_folder = os.path.join(curfolderpath,'Result')
     TargetRecordName = 'sel34'
 
-    for ind in xrange(1, 2):
+    for ind in xrange(1, 101):
       print 'Current round:', ind
       current_round_folder = os.path.join(save_round_folder, 'SWT_T{}'.format(ind))
       os.mkdir(current_round_folder)

@@ -215,11 +215,11 @@ if __name__ == '__main__':
     # clear Log file
     with open(os.path.join(curfolderpath,'Log_which_record_is_bad.txt'),'w') as fin:
         pass
-    police_obj = FindBadRecord(200, 200, 10, 10)
+    police_obj = FindBadRecord(20, 20, 20, 20)
     # target label
     police_obj.possible_label_list = ['T',]
 
-    for RoundInd in xrange(1,55):
+    for RoundInd in xrange(1,101):
         print 'processing Round :',RoundInd
         #RunGroup(RoundInd)
         #police_obj.RunEval(RoundInd)

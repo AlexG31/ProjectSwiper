@@ -534,7 +534,7 @@ class TotalRoundEvaluation:
             self.Pplus[label] = 0
 
     def RunEval(self,RoundInd):
-        GroupResultFolder = os.path.join(curfolderpath,'MultiLead4','SWT_GroupRound{}'.format(RoundInd))
+        GroupResultFolder = os.path.join(curfolderpath,'M4_SWT','Result','SWT_T{}'.format(RoundInd))
         resultfilelist = glob.glob(os.path.join(GroupResultFolder,'*.json'))
 
         ## print result files
@@ -686,11 +686,12 @@ def SwtGroupRound(round_index,load_round_folder,save_round_folder):
 
 
 if __name__ == '__main__':
-    load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
-    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
+    #load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    #save_round_folder = os.path.join(curfolderpath,'MultiLead4')
     eva_obj = TotalRoundEvaluation()
+    eva_obj.posible_label_list = ['T',]
 
-    for ind in xrange(1,75):
+    for ind in xrange(1,55):
       print 'Current round:', ind
       #os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
       #SwtGroupRound(ind,load_round_folder,save_round_folder)
