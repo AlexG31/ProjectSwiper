@@ -373,7 +373,11 @@ class SWT_GroupResult2Leads:
             # group the raw predition results if not grouped already
             self.group_result()
         res_groups = filter(lambda x:x[0]=='T',self.res_groups)
+        # for group in res_groups:
+            # print group
+            # pdb.set_trace()
         res_groups = self.filter_smaller_nearby_groups(res_groups)
+        print res_groups[0]
 
         # get T peak
         #e4list = np.array(self.cDlist[-4])+np.array(self.cDlist[-5])
@@ -400,6 +404,8 @@ class SWT_GroupResult2Leads:
         
         debug_res_group_ind = 21
         for label,posgroup in res_groups[22:]:
+            print 'posgroup=',posgroup
+
             debug_res_group_ind += 1
             scorelist = []
             D5scorelist = []
@@ -748,12 +754,12 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
         print 'Group Diction:',GroupDict
 
 if __name__ == '__main__':
-    load_round_folder = os.path.join(curfolderpath,'Round4Raw')
+    load_round_folder = os.path.join(curfolderpath,'RawResult')
     save_round_folder = os.path.join(curfolderpath)
-    TargetRecordName = 'sele0126'
+    TargetRecordName = 'sel114'
 
     for ind in xrange(1, 2):
       print 'Current round:', ind
-      current_round_folder = os.path.join(save_round_folder, 'SWT_GroupRound_T_improved{}'.format(ind))
+      current_round_folder = os.path.join(save_round_folder, 'SWT_T{}'.format(ind))
       debug_SwtGroupRound(ind,load_round_folder,current_round_folder,TargetRecordName)
     

@@ -398,9 +398,7 @@ class SWT_GroupResult2Leads:
         sig_struct = self.QTdb.load(self.recname)
         raw_sig = sig_struct['sig']
         
-        debug_res_group_ind = 21
-        for label,posgroup in res_groups[22:]:
-            debug_res_group_ind += 1
+        for label,posgroup in res_groups:
             scorelist = []
             D5scorelist = []
             for pos in posgroup:
@@ -693,13 +691,13 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
         print 'Group Diction:',GroupDict
 
 if __name__ == '__main__':
-    load_round_folder = os.path.join(curfolderpath,'Round4Raw')
+    load_round_folder = os.path.join(curfolderpath,'RawResult')
     save_round_folder = os.path.join(curfolderpath,'TempResult')
     TargetRecordName = 'sel34'
 
     for ind in xrange(1, 2):
       print 'Current round:', ind
-      current_round_folder = os.path.join(save_round_folder, 'SWT_GroupRound_T_improved{}'.format(ind))
+      current_round_folder = os.path.join(save_round_folder, 'SWT_T{}'.format(ind))
       os.mkdir(current_round_folder)
       debug_SwtGroupRound(ind,load_round_folder,current_round_folder,TargetRecordName)
     

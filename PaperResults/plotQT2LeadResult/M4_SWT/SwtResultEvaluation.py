@@ -601,9 +601,9 @@ def SwtGroupRound(round_index,load_round_folder,save_round_folder):
         #print 'record name:',recname
 
 def RunEval(RoundInd,TargetLableList = ['T',]):
-    GroupSaveFolder = os.path.join(curfolderpath,'TempResult','SWT_GroupRound_T_improved{}'.format(RoundInd))
+    GroupSaveFolder = os.path.join(curfolderpath,'TempResult','SWT_T{}'.format(RoundInd))
     resultfilelist = glob.glob(os.path.join(GroupSaveFolder,'*.json'))
-    evalinfopath = os.path.join(curfolderpath,'TempResult','EvalRound{}'.format(RoundInd))
+    evalinfopath = os.path.join(curfolderpath,'TempResult','EvalRound{}_T'.format(RoundInd))
     os.mkdir(evalinfopath)
 
     # print result files
@@ -670,8 +670,8 @@ def RunEval(RoundInd,TargetLableList = ['T',]):
         print '>>Dumped to json file: ''ErrStat.json''.'
 
 if __name__ == '__main__':
-    load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
-    save_round_folder = os.path.join(curfolderpath,'MultiLead4')
+    # load_round_folder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
+    # save_round_folder = os.path.join(curfolderpath,'MultiLead4')
     for ind in xrange(1,2):
       print 'Current round:', ind
       #os.mkdir(os.path.join(save_round_folder, 'SWT_GroupRound{}'.format(ind)))
