@@ -63,6 +63,9 @@ class QTloader:
         return ret
     def getQTrecnamelist(self):
         return self.reclist
+    def getExpert(self,recname):
+        # alias
+        return self.getexpertlabeltuple(recname)
 
     def plotrec(self,recname = 'sel103',showExpertLabel = False):
         # show rawsig&labels
