@@ -16,7 +16,7 @@ import pdb
 
 import numpy as np
 ## machine learning methods
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
 
 # project homepath
@@ -204,6 +204,12 @@ class Evaluation2Leads:
         plt.title(self.recname)
         plt.show()
 
+    def getContinousRangeList(self,recname):
+        FileFolder = os.path.join(projhomepath,'QTdata','ContinousExpertMarkRangeList','{}_continousRange.json'.format(recname))
+        with open(FileFolder,'r') as fin:
+            range_list = json.load(fin)
+        return range_list
+
     def get_errList(self):
         self.errList = []
         FNcnt = 0
@@ -234,9 +240,22 @@ class Evaluation2Leads:
 
         # total number of False Negtives
         self.FNcnt = FNcnt
-        self.FPcnt1 = sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[0]))
-        self.FPcnt2 = sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[1]))
+        # exclude FP that not in the Continous Range
+        range_list = self.getContinousRangeList(self.recname)
+        range_set = set()
+        for current_range in range_list:
+            range_set |= set(range(current_range[0],current_range[1]))
 
+        self.FPcnt1 = 0
+        # sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[0]))
+        for prdpos,match_index in zip(sorted(self.leadPosList[0]),self.prdMatchList[0]):
+            if match_index == -1 and prdpos in range_set:
+                self.FPcnt1 += 1
+        self.FPcnt2 = 0
+        # sum(map(lambda x:1 if x == -1 else 0, self.prdMatchList[1]))
+        for prdpos, match_index in zip(sorted(self.leadPosList[1]), self.prdMatchList[1]):
+            if match_index == -1 and prdpos in range_set:
+                self.FPcnt2 += 1
 
         return self.errList
 

@@ -37,28 +37,64 @@ sys.path.append(projhomepath)
 
 sys.path.append(os.path.dirname(curfolderpath))
 from QTdata.loadQTdata import QTloader 
-from classNonQRS_SWT import NonQRS_SWT
+# import and define alias
+import SWT_NoPredictQRS as NoQrsSwt
+SWT_NoPredictQRS = NoQrsSwt.SWT_NoPredictQRS
+Convert2ExpertFormat = NoQrsSwt.Convert2ExpertFormat
 
 class SWT_GroupResult2Leads:
     ''' Find P&T peak with SWT+db6
     '''
-    def __init__(self,recname,reslist,leadname,MaxSWTLevel = 9):
+    def __init__(self,recname,reslist,leadname,QRS_GroupResultFolder,MaxSWTLevel = 9):
+        # leadname must be sig: lead number 0
+        # or sig2:lead number 1
+        if leadname not in ['sig','sig2']:
+            raise Exception('self.getSWTcoeflist will rely on leadname to get the number of lead from the Group Result!')
+        # color for plot
+        tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),    
+             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),    
+             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),    
+             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),    
+             (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
+        self.colors = []
+        for color_tri in tableau20:
+            self.colors.append((color_tri[0]/255.0,color_tri[1]/255.0,color_tri[2]/255.0))
+
         self.recres = reslist
         #self.LeadRes = (reslist,reslist2)
 
         self.recname = recname
+        self.leadname = leadname
         self.QTdb = QTloader()
         self.sig_struct = self.QTdb.load(self.recname)
         self.rawsig = self.sig_struct[leadname]
 
+        # For the SWT to remove QRS regions.
+        self.QRS_GroupResultFolder = QRS_GroupResultFolder
         self.res_groups = None
         self.peak_dict = dict(T=[],P=[],Ponset = [],Poffset = [],Tonset = [],Toffset = [])
+
+        # SWT without QRS region
+        self.getSWTcoeflist()
+    def getSWTcoeflist(self,MaxLevel = 9):
         # Get SWT coef
-        swt = NonQRS_SWT()
-        swt.swt(self.recname)
+        recname = self.recname
+        GroupResultFolder = self.QRS_GroupResultFolder
+        rawsig = self.rawsig
+        with open(os.path.join(GroupResultFolder,'{}.json'.format(recname)),'r') as fin:
+            RawResultDict = json.load(fin)
+            LeadResult = RawResultDict['LeadResult']
+            if self.leadname == 'sig':
+                MarkDict = LeadResult[0]
+            elif self.leadname == 'sig2':
+                MarkDict = LeadResult[1]
+            MarkList = Convert2ExpertFormat(MarkDict)
+
+        # Display with 2 subplots.
+        swt = SWT_NoPredictQRS(rawsig,MarkList)
+        swt.swt()
         self.cDlist = swt.cDlist
         self.cAlist = swt.cAlist
-        #self.getSWTcoeflist(MaxLevel = MaxSWTLevel)
 
     def group_result(self,white_del_thres = 20,cp_del_thres = 0):
         #
@@ -156,19 +192,6 @@ class SWT_GroupResult2Leads:
             rawsig += [rawsig[-1],]*(crop_len-N_data)
         rawsig = rawsig[0:crop_len]
         return rawsig
-
-    def getSWTcoeflist(self,MaxLevel = 9):
-        # crop two leads
-        self.rawsig = self.crop_data_for_swt(self.rawsig)
-
-        print '-'*3
-        print 'len(rawsig)= ',len(self.rawsig)
-        print 'SWT maximum level =',pywt.swt_max_level(len(self.rawsig))
-        coeflist = pywt.swt(self.rawsig,'db6',MaxLevel)
-
-        cAlist,cDlist = zip(*coeflist)
-        self.cAlist = cAlist
-        self.cDlist = cDlist
 
         
     def get_downward_cross_zero_list(self,array):
@@ -655,7 +678,164 @@ class SWT_GroupResult2Leads:
             if score ==minScore:
                 poslist.append(pos)
         return (minScore,poslist)
-    def get_P_peaklist(self,debug = False):
+    def get_P_peaklist_debug(self,debug = False,extra_search_len = 10):
+        if self.res_groups is None:
+            # group the raw predition results if not grouped already
+            self.group_result()
+        res_groups = filter(lambda x:x[0]=='P',self.res_groups)
+        res_groups = self.filter_smaller_nearby_groups(res_groups)
+
+        # debug plot expert position
+        expert_label_list = self.QTdb.getexpertlabeltuple(self.recname)
+        D4list = np.array(self.cDlist[-4])
+        D5list = np.array(self.cDlist[-5])
+        crosszerolist = self.get_cross_zero_list(D4list)
+        D5crosszerolist = self.get_cross_zero_list(D5list)
+
+        # debug :D5crosszerolist check!
+        # e4list = D5list
+        # plt.figure(2)
+        # plt.plot(e4list)
+        # plt.plot(D5crosszerolist,map(lambda x:e4list[x],D5crosszerolist),'ro')
+        # plt.plot(155424,D5list[155424],'y*',markersize = 14)
+        # plt.grid(True)
+        # plt.show()
+        # if 155424 in D5crosszerolist:
+            # print '155424'
+        # pdb.set_trace()
+
+        # for debug
+        sig_struct = self.QTdb.load(self.recname)
+        raw_sig = sig_struct['sig']
+        
+        debug_res_group_ind = 0
+        for label,posgroup in res_groups:
+            debug_res_group_ind += 1
+            scorelist = []
+            D5scorelist = []
+            for pos in posgroup:
+                nearest_dist = self.bw_find_nearest(pos,crosszerolist)
+                scorelist.append((nearest_dist,pos))
+                # for D5
+                D5nearest_dist = self.bw_find_nearest(pos,D5crosszerolist)
+                D5scorelist.append((D5nearest_dist,pos))
+
+            # get all pos with min score
+            min_score,candidate_list  = self.get_min_score_poslist(scorelist)
+            D5min_score,D5candidate_list  = self.get_min_score_poslist(D5scorelist)
+
+            D5pos,D4pos = [],[]
+            D5_swt_mark,D4_swt_mark = True,True
+            final_decision_peak = -1
+            # get D4 crosszero position
+            if min_score >2:
+                # not a peak
+                print 
+                print 'Warning: using mean group position!'
+                D4_swt_mark = False
+                D4pos.append(np.mean(posgroup))
+            elif len(candidate_list) ==1:
+                # only mean score by SWT
+                D4pos.append(candidate_list[0])
+            else:
+                # multiple min score
+                longest_slope_index = self.get_longest_slope_index(candidate_list,crosszerolist,D4list)
+                D4pos.append(crosszerolist[longest_slope_index])
+            # get D5 crosszero position
+            if D5min_score >2:
+                # not a peak
+                print 
+                print 'Warning: using mean group position!'
+                D5_swt_mark = False
+                D5pos.append(np.mean(posgroup))
+            elif len(D5candidate_list) ==1:
+                # only mean score by SWT
+                D5pos.append(D5candidate_list[0])
+            else:
+                # multiple min score
+                longest_slope_index = self.get_longest_slope_index(D5candidate_list,D5crosszerolist,D5list)
+                D5pos.append(D5crosszerolist[longest_slope_index])
+            # plot two positions for debug --- check!
+
+            print 'debug_res_group_ind',debug_res_group_ind
+            # Get the slope for D5list and D4list.
+            if D5_swt_mark and D4_swt_mark:
+                print 'getting D5 slope:'
+                D5slope = self.get_current_upward_slope_steepness(D5pos[-1],D5crosszerolist,D5list)
+                print 'getting D4 slope:'
+                D4slope = self.get_current_upward_slope_steepness(D4pos[-1],crosszerolist,D4list)
+                print 'D4 slope value:'
+                print D4slope
+                print 'D5 slope value:'
+                print D5slope
+
+                # pdb.set_trace()
+                if D5slope < D4slope:
+                    final_decision_peak = D4pos[-1]
+                else:
+                    final_decision_peak = D5pos[-1]
+
+            elif D5_swt_mark:
+                final_decision_peak = D5pos[-1]
+            elif D4_swt_mark:
+                final_decision_peak = D4pos[-1]
+            else:
+                # Default value is D4pos
+                final_decision_peak = D4pos[-1]
+
+            # debug plot
+            # 1. get range
+            seg_range = [min(posgroup),max(posgroup)]
+            seg_range[0] = max(0,seg_range[0] - 100)
+            seg_range[1] = min(len(raw_sig)-1,seg_range[1] + 100)
+            # 2.plot
+            seg = raw_sig[seg_range[0]:seg_range[1]]
+            plt.ion()
+            plt.figure(1)
+            plt.clf()
+            plt.plot(seg,label = 'ECG')
+            # 3.plot group
+            seg_posgroup = map(lambda x:x-seg_range[0],posgroup)
+            plt.plot(seg_posgroup,map(lambda x: seg[x],seg_posgroup),label = 'posgroup',marker = 'o',markersize = 4,markerfacecolor = 'g',alpha = 0.7)
+            # 4.plot peak pos
+            # plot D4 postion
+            peak_pos = D4pos[-1]-seg_range[0]
+            peak_pos = int(peak_pos)
+            plt.plot(peak_pos,seg[peak_pos],'yo',markersize = 12,alpha = 0.7,label = 'D4 pos')
+            # plot D5 postion
+            peak_pos = D5pos[-1]-seg_range[0]
+            peak_pos = int(peak_pos)
+            plt.plot(peak_pos,seg[peak_pos],'mo',markersize = 12,alpha = 0.7,label = 'D5 pos')
+            # plot Expert label position
+            segment_expertlist = filter(lambda x: x[0]>=seg_range[0] and x[0]<seg_range[1],expert_label_list)
+            if len(segment_expertlist) > 0:
+                segment_expert_poslist,segment_expert_labellist = zip(*segment_expertlist)
+                plt.plot(map(lambda x:x-seg_range[0],segment_expert_poslist),map(lambda x:seg[x-seg_range[0]],segment_expert_poslist),'rd',markersize = 12,alpha = 0.7,label = 'expert label')
+            # plot final decision postion
+            peak_pos = final_decision_peak - seg_range[0]
+            peak_pos = int(peak_pos)
+            plt.plot(peak_pos,seg[peak_pos],'*',color = self.colors[1],markersize = 12,alpha = 0.7,label = 'final position')
+            # 5.plot determin line
+            seg_determin_line = self.cDlist[-4][seg_range[0]:seg_range[1]]
+            seg_determin_line5 = self.cDlist[-5][seg_range[0]:seg_range[1]]
+            plt.plot(seg_determin_line,'y',label = 'D4')
+            plt.plot(seg_determin_line5,'m',label = 'D5')
+
+            plt.title(self.recname)
+            plt.legend()
+            plt.grid(True)
+            plt.show()
+            # debug stop
+            if D5_swt_mark and D4_swt_mark:
+                print 'D5pos:',D5pos
+                print 'D4pos:',D4pos
+                print 'final_decision_peak',final_decision_peak
+            pdb.set_trace()
+
+        # return list of T peaks
+        return self.peak_dict['T']
+    def get_P_peaklist(self,debug = False,extra_search_len = 10):
+        return self.get_P_peaklist_debug(debug = debug,extra_search_len = extra_search_len)
 
         if self.res_groups is None:
             # group the raw predition results if not grouped already
@@ -663,16 +843,16 @@ class SWT_GroupResult2Leads:
         res_groups = filter(lambda x:x[0]=='P',self.res_groups)
         res_groups = self.filter_smaller_nearby_groups(res_groups)
         # get P peak list
-        #e3list = np.array(self.cDlist[-6])+np.array(self.cDlist[-5])
-        e3list = np.array(self.cDlist[-5])
+        #D5list = np.array(self.cDlist[-6])+np.array(self.cDlist[-5])
+        D5list = np.array(self.cDlist[-5])
 
         # Get raw_sig
         sig_struct = self.QTdb.load(self.recname)
         raw_sig = sig_struct['sig']
         N_rawsig = len(raw_sig)
 
-        #local_maxima_list = self.get_local_maxima_list(e3list)
-        local_maxima_list = self.get_cross_zero_list(e3list)
+        #local_maxima_list = self.get_local_maxima_list(D5list)
+        local_maxima_list = self.get_cross_zero_list(D5list)
         
         # Expert Label list
         expert_label_list = self.QTdb.getexpertlabeltuple(self.recname)
@@ -681,21 +861,26 @@ class SWT_GroupResult2Leads:
         # debug
         #if debug == True:
             #plt.figure(2)
-            #plt.plot(e3list)
-            #plt.plot(local_maxima_list,map(lambda x:e3list[x],local_maxima_list),'y*',markersize = 14)
+            #plt.plot(D5list)
+            #plt.plot(local_maxima_list,map(lambda x:D5list[x],local_maxima_list),'y*',markersize = 14)
             #plt.show()
 
         # find local maxima point within each group
         debug_ind = 0
-        for label,posgroup in res_groups:
+        print 'len(res_groups):',len(res_groups)
+        # pdb.set_trace()
+        for label,posgroup in res_groups[7:]:
             print 'debug_ind:',debug_ind
             debug_ind += 1
             scorelist = []
 
+            if len(posgroup) <= 2:
+                print 'Warning: Filtering out small posgroup.'
+                continue
             print 'Pos Group:',posgroup
             print 'mean Group:',np.mean(posgroup)
 
-            extra_search_len = 10
+            
             extra_search_left = max(0,min(posgroup)-extra_search_len)
             extra_search_right = min(N_rawsig,max(posgroup)+extra_search_len)
 
@@ -717,7 +902,7 @@ class SWT_GroupResult2Leads:
                 self.peak_dict['P'].append(candidate_list[0])
             else:
                 # multiple min score
-                best_candidate = self.get_steepest_slope_index(candidate_list,local_maxima_list,e3list)
+                best_candidate = self.get_steepest_slope_index(candidate_list,local_maxima_list,D5list)
                 self.peak_dict['P'].append(best_candidate)
 
             # debug
@@ -742,7 +927,7 @@ class SWT_GroupResult2Leads:
             # plot D6 postion
             peak_pos = self.peak_dict['P'][-1]-seg_range[0]
             peak_pos = int(peak_pos)
-            plt.plot(peak_pos,seg[peak_pos],'yo',markersize = 12,alpha = 0.7,label = 'D6 pos')
+            plt.plot(peak_pos,seg[peak_pos],'yo',markersize = 12,alpha = 0.7,label = 'Final decision postion')
             # plot D5 postion
             # peak_pos = D5pos[-1]-seg_range[0]
             # peak_pos = int(peak_pos)
@@ -873,7 +1058,7 @@ class SWT_GroupResult2Leads:
         self.get_T_peaklist()
         self.get_P_peaklist()
 
-def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRecordName):
+def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRecordName,QRS_group_result_folder):
     # load the results
     #RoundFolder = r'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4'
     ResultFolder = os.path.join(load_round_folder,'Round{}'.format(round_index))
@@ -896,25 +1081,25 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
         LeadResult = []
         # ------------------
         # lead I result dict
-        eva = SWT_GroupResult2Leads(recname,reslist1,'sig')
+        eva = SWT_GroupResult2Leads(recname,reslist1,'sig',QRS_group_result_folder)
         eva.group_result()
 
         resDict = dict()
 
         # T
-        reslist = eva.get_P_peaklist()
+        reslist = eva.get_P_peaklist(extra_search_len = 0)
         resDict['T'] = reslist
 
         LeadResult.append(resDict)
         # ------------------
         # lead II result dict
-        eva = SWT_GroupResult2Leads(recname,reslist2,'sig2')
+        eva = SWT_GroupResult2Leads(recname,reslist2,'sig2',QRS_group_result_folder)
         eva.group_result()
 
         resDict = dict()
 
         # T
-        reslist = eva.get_P_peaklist()
+        reslist = eva.get_P_peaklist(extra_search_len = 0)
         resDict['T'] = reslist
 
         LeadResult.append(resDict)
@@ -930,12 +1115,17 @@ def debug_SwtGroupRound(round_index,load_round_folder,save_round_folder,TargetRe
         print 'Group Diction:',GroupDict
 
 if __name__ == '__main__':
-    load_round_folder = os.path.join(curfolderpath,'F:\LabGit\ECG_RSWT\TestResult\paper\MultiRound4')
+    # will append 'Round{}' behind those folders
+    load_round_folder = os.path.join(curfolderpath,'RawResult')
     save_round_folder = os.path.join(curfolderpath)
-    TargetRecordName = 'sel104'
+    # for SWT to remove QRS region
+    QRS_group_result_folder = os.path.join(os.path.dirname(curfolderpath),'MultiLead4')
 
-    for ind in xrange(4, 5):
+    TargetRecordName = 'sel100'
+
+    for ind in xrange(11, 23):
       print 'Current round:', ind
       current_round_folder = os.path.join(save_round_folder, 'SWT_P{}'.format(ind))
-      debug_SwtGroupRound(ind,load_round_folder,current_round_folder,TargetRecordName)
+      cur_QRS_group_result_folder = os.path.join(QRS_group_result_folder,'GroupRound{}'.format(ind))
+      debug_SwtGroupRound(ind,load_round_folder,current_round_folder,TargetRecordName,cur_QRS_group_result_folder)
     
