@@ -1,6 +1,6 @@
 #encoding:utf-8
 """
-Do SWT without Expert Labeled QRS region.
+Do SWT without QRS region.
 Author : Gaopengfei
 Date: 2016.7.17
 """
@@ -43,24 +43,22 @@ from EvaluationSchemes.csvwriter import CSVwriter
 sys.path.append(curfolderpath)
 from Evaluation2Leads import Evaluation2Leads
 
-class NonQRS_SWT:
-    def __init__(self):
-        self.QTdb = QTloader()
-    def LoadMarkListFromJson(self,jsonfilepath):
-        # json format:
+class SWT_NoPredictQRS:
+    def __init__(self,rawsig,MarkList):
+        # Input Format:
+        # MarkList should be in the format:
+        # [(pos,label),(pos,label),...]
         # 
-        pass
-    def getNonQRSsig(self,recname,MarkList = None):
+        # rawsig is a single lead ECG signal
+        self.QTdb = QTloader()
+        self.rawsig = rawsig
+        self.MarkList = MarkList
+    def getNonQRSsig(self):
         # QRS width threshold
         QRS_width_threshold = 180
 
-        sig_struct = self.QTdb.load(recname)
-        rawsig = sig_struct['sig']
-
-        if MarkList is None:
-            expert_marklist = self.QTdb.getexpertlabeltuple(recname)
-        else:
-            expert_marklist = MarkList
+        rawsig = self.rawsig
+        expert_marklist = self.MarkList
         
         # Use QRS region to flattern the signal
         expert_marklist = filter(lambda x:'R' in x[1] and len(x[1])>1,expert_marklist)
@@ -82,8 +80,8 @@ class NonQRS_SWT:
                     print 'Warning: no matching Roffset found!'
                 else:
                     QRS_regionlist.append([pos,next_pos])
-                    print 'Adding:',pos,next_pos
-                    # flattern the signal
+                    # print 'Adding:',pos,next_pos
+                    # Flattern the signal
                     amp_start = rawsig[pos]
                     amp_end = rawsig[next_pos]
                     flat_segment = map(lambda x:amp_start+float(x)*(amp_end-amp_start)/(next_pos-pos),xrange(0,next_pos-pos))
@@ -108,9 +106,9 @@ class NonQRS_SWT:
             rawsig += [rawsig[-1],]*(crop_len-N_data)
         return rawsig
 
-    def swt(self,recname,wavelet = 'db6',MaxLevel = 9):
+    def swt(self,wavelet = 'db6',MaxLevel = 9):
         # 
-        rawsig = self.getNonQRSsig(recname)
+        rawsig = self.getNonQRSsig()
         rawsig = self.crop_data_for_swt(rawsig)
 
         coeflist = pywt.swt(rawsig,wavelet,MaxLevel)
@@ -119,11 +117,70 @@ class NonQRS_SWT:
         self.cDlist = cDlist
 
 
-if __name__ == '__main__':
+def Convert2ExpertFormat(ResultDict):
+    # Result Dict Format:
+    # {'P'=[1,2,3,...],
+    #  'T'=[2,3,5,...],
+    # }
+    # ExpertFormat:
+    # [(pos,label),(pos,label),...]
+    ExpertList = []
+    for label,poslist in ResultDict.iteritems():
+        if len(poslist) > 0:
+            ExpertList.extend(zip(poslist,[label,]*len(poslist)))
+    ExpertList.sort(key = lambda x:x[0])
+    # pos must be integers.
+    ExpertList = map(lambda x:[int(x[0]),x[1]],ExpertList)
+    return ExpertList
+def TEST_PredictionQRS():
+    recname = 'sel873'
+    GroupResultFolder = os.path.join(curfolderpath,'MultiLead4','GroupRound1')
+    QTdb = QTloader()
+    rawsig = QTdb.load(recname)
+    rawsig = rawsig['sig']
+    with open(os.path.join(GroupResultFolder,'{}.json'.format(recname)),'r') as fin:
+        RawResultDict = json.load(fin)
+        LeadResult = RawResultDict['LeadResult']
+        MarkDict = LeadResult[0]
+        MarkList = Convert2ExpertFormat(MarkDict)
+
+        # Display with 2 subplots.
+        swt = SWT_NoPredictQRS(rawsig,MarkList)
+        swt.swt()
+
+        # cDlist
+        wtlist = swt.cDlist[-4]
+
+        plt.figure(1)
+        # plot Non QRS ECG & SWT
+        plt.subplot(211)
+        plt.plot(rawsig)
+        plt.plot(wtlist)
+        plt.grid(True)
+        # plot Original ECG
+        rawsig = swt.QTdb.load(recname)
+        rawsig = rawsig['sig']
+        rawsig = swt.crop_data_for_swt(rawsig)
+        coeflist = pywt.swt(rawsig,'db6',9)
+        cAlist,cDlist = zip(*coeflist)
+        wtlist = cDlist[-4]
+        
+        
+        plt.subplot(212)
+        plt.plot(rawsig)
+        plt.plot(wtlist)
+        plt.grid(True)
+        plt.show()
+    
+def TEST_ExpertQRS():
     recname = 'sel103'
-    swt = NonQRS_SWT()
-    rawsig = swt.getNonQRSsig(recname)
-    swt.swt(recname)
+    QTdb = QTloader()
+    rawsig = QTdb.load(recname)
+    rawsig = rawsig['sig']
+    MarkList = QTdb.getExpert(recname)
+
+    swt = SWT_NoPredictQRS(rawsig,MarkList)
+    swt.swt()
 
     # cDlist
     wtlist = swt.cDlist[-4]
@@ -150,3 +207,5 @@ if __name__ == '__main__':
     plt.show()
 
 
+if __name__ == '__main__':
+    TEST_PredictionQRS()
