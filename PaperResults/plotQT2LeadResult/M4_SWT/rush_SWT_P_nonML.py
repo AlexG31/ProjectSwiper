@@ -739,8 +739,8 @@ class SWT_GroupResult2Leads:
                 D4pos.append(candidate_list[0])
             else:
                 # multiple min score
-                longest_slope_index = self.get_longest_slope_index(candidate_list,crosszerolist,D4list)
-                D4pos.append(crosszerolist[longest_slope_index])
+                best_candidate = self.get_longest_slope_index(candidate_list,crosszerolist,D4list)
+                D4pos.append(best_candidate)
             # get D5 crosszero position
             if D5min_score >2:
                 # not a peak
@@ -753,8 +753,8 @@ class SWT_GroupResult2Leads:
                 D5pos.append(D5candidate_list[0])
             else:
                 # multiple min score
-                longest_slope_index = self.get_longest_slope_index(D5candidate_list,D5crosszerolist,D5list)
-                D5pos.append(D5crosszerolist[longest_slope_index])
+                best_candidate = self.get_longest_slope_index(D5candidate_list,D5crosszerolist,D5list)
+                D5pos.append(best_candidate)
             # plot two positions for debug --- check!
 
             print 'debug_res_group_ind',debug_res_group_ind
@@ -1121,9 +1121,9 @@ if __name__ == '__main__':
     # for SWT to remove QRS region
     QRS_group_result_folder = os.path.join(os.path.dirname(curfolderpath),'MultiLead4')
 
-    TargetRecordName = 'sel100'
+    TargetRecordName = 'sel46'
 
-    for ind in xrange(11, 23):
+    for ind in xrange(2, 23):
       print 'Current round:', ind
       current_round_folder = os.path.join(save_round_folder, 'SWT_P{}'.format(ind))
       cur_QRS_group_result_folder = os.path.join(QRS_group_result_folder,'GroupRound{}'.format(ind))

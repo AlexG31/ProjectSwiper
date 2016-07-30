@@ -1,8 +1,8 @@
 #encoding:utf-8
 """
-Test CWT coefficients
+Do SWT without Expert Labeled QRS region.
 Author : Gaopengfei
-Date: 2016.6.23
+Date: 2016.7.17
 """
 import os
 import sys
@@ -46,14 +46,21 @@ from Evaluation2Leads import Evaluation2Leads
 class NonQRS_SWT:
     def __init__(self):
         self.QTdb = QTloader()
-    def getNonQRSsig(self,recname):
+    def LoadMarkListFromJson(self,jsonfilepath):
+        # json format:
+        # 
+        pass
+    def getNonQRSsig(self,recname,MarkList = None):
         # QRS width threshold
         QRS_width_threshold = 180
 
         sig_struct = self.QTdb.load(recname)
         rawsig = sig_struct['sig']
 
-        expert_marklist = self.QTdb.getexpertlabeltuple(recname)
+        if MarkList is None:
+            expert_marklist = self.QTdb.getexpertlabeltuple(recname)
+        else:
+            expert_marklist = MarkList
         
         # Use QRS region to flattern the signal
         expert_marklist = filter(lambda x:'R' in x[1] and len(x[1])>1,expert_marklist)
