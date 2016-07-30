@@ -30,7 +30,7 @@ projhomepath = os.path.dirname(projhomepath)
 
 # configure file
 # conf is a dict containing keys
-with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
+with open(os.path.join(projhomepath, 'ECGconf.json'), 'r') as fin:
     conf = json.load(fin)
 sys.path.append(projhomepath)
 #
@@ -48,10 +48,10 @@ EPS = 1e-6
 
 
 class FeatureVis:
-    def __init__(self,rfmdl,RandomPairList_Path):
+    def __init__(self, rfmdl, RandomPairList_Path):
         # get random relations
         randrel_path = RandomPairList_Path
-        with open(randrel_path,'r') as fin:
+        with open(randrel_path, 'r') as fin:
             self.randrels = json.load(fin)
 
         self.rfmdl = rfmdl
@@ -80,11 +80,11 @@ class FeatureVis:
         sum_rr = 0
         for rr in randrels:
             sum_rr += len(rr)
-        print 'len(feature importance) = {},len(random relations) = {}'.format(len(fimp),sum_rr)
+        print 'len(feature importance) = {}, len(random relations) = {}'.format(len(fimp), sum_rr)
         # ===========================
         # get a struct of importance:
         # ------------
-        # [#layer0:[((23,2),0.2# importance),((pair),#importance),()...],#layer1:[],..]
+        # [#layer0:[((23, 2), 0.2# importance), ((pair), #importance), ()...], #layer1:[], ..]
         # 
         cur_feature_ind = 0
         relation_importance = []
@@ -92,13 +92,13 @@ class FeatureVis:
             layerSZ = len(rel_layer)
             diff_arr = fimp[cur_feature_ind:cur_feature_ind+layerSZ]
             absdiff_arr = fimp[cur_feature_ind+layerSZ:cur_feature_ind+2*layerSZ]
-            imp_arr = map(lambda x:max(x[0],x[1]),zip(diff_arr,absdiff_arr))
-            relation_importance.append(zip(rel_layer,imp_arr))
+            imp_arr = map(lambda x:max(x[0], x[1]), zip(diff_arr, absdiff_arr))
+            relation_importance.append(zip(rel_layer, imp_arr))
             print 'layer len = {}'.format(len(imp_arr))
             cur_feature_ind += 2*layerSZ
 
         return relation_importance
-    def plot_dwt_pairs_arrow_partial_window_compare(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
+    def plot_dwt_pairs_arrow_partial_window_compare(self, rawsig, relation_importance, Window_Left = 1200, savefigname = None, figsize = (10, 8), figtitle = 'ECG Sample', showFigure = True):
         ## =========================================V    
         # 展示RSWT示意图
         ## =========================================V    
@@ -115,7 +115,7 @@ class FeatureVis:
         xR = xL+FixedWindowLen
         tarpos  = 1500
         # props of ARROW
-        arrowprops = dict(width = 1,headwidth = 4,facecolor='black', shrink=0)
+        arrowprops = dict(width = 1, headwidth = 4, facecolor='black', shrink=0)
         # -----------------
         # get median
         # -----------------
@@ -218,7 +218,7 @@ class FeatureVis:
         if savefigname is not None:
             Fig_main.savefig(savefigname,dpi = Fig_main.dpi)
             Fig_main.clf()
-    def get_min_Importance_threshold(self,relation_importance,top_importance_ratio = 9.0/10):
+    def get_min_Importance_threshold(self,relation_importance,top_importance_ratio = 9.5/10):
         if relation_importance == None or len(relation_importance) == 0:
             raise Exception('relation_importance is empty!')
         imp_list = []
@@ -232,7 +232,9 @@ class FeatureVis:
         imp_list.sort()
         return imp_list[midpos]
 
-    def plot_dwt_pairs_arrow_transparent(self,rawsig,relation_importance,Window_Left = 1200,savefigname = None,figsize = (10,8),figtitle = 'ECG Sample',showFigure = True):
+    def plot_dwt_pairs_arrow_transparent(self, rawsig,relation_importance,
+            Window_Left = 1200, savefigname = None, figsize = (8,6),
+            figtitle = 'ECG Sample', showFigure = True):
         ## =========================================V    
         # 展示RSWT示意图
         # Plot Arrow
@@ -243,7 +245,7 @@ class FeatureVis:
         # constants
         #================
         N = 5
-        N_subplot = N+2
+        N_subplot = N + 2
         # importance pairs lower than this threshold is not shown in the figure
         Thres_min_importance = self.get_min_Importance_threshold(relation_importance)
         figureID = 1
@@ -323,8 +325,12 @@ class FeatureVis:
                 # do not show imp lower than threshold
                 if imp<Thres_min_importance:
                     continue 
-                # importance thres
+                # Importance thres
                 alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
+                # Increase alpha for better visual effect.
+                alpha_increase_ratio = 0.95
+                alpha = alpha * alpha_increase_ratio + 1.0 - alpha_increase_ratio
+
                 #arrow_color = self.get_RGB_from_Alpha((1,0,0),alpha,(1,1,1))
                 arrow_color = (1,0,0)
                 arrowprops = dict(alpha = alpha,width = 0.15,linewidth = 0.15,headwidth = 1.5,headlength = 1.5,facecolor=arrow_color,edgecolor = arrow_color,shrink=0)
@@ -653,12 +659,12 @@ class FeatureVis:
         # save current fig
         for i in xrange(0,130,10):
             savefigname = os.path.join(curfolderpath,'range_{}.png'.format(i))
-            self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
-    def plot_fv_importance_gswt(self,savefigname,showFigure,WindowLeftBias = 0):
+            self.plot_dwt_pairs_arrow(sig['sig'],rel_imp,Window_Left = 1180+i,savefigname = savefigname,figsize = (16,12),figtitle = 'Window Start[{}]'.format(i))
+    def plot_fv_importance_gswt(self,savefigname,showFigure,WindowLeftBias = 10):
         # QT record ID
-        rID = 1
+        rID = 2
         sig = self.qt.load(self.qt_reclist[rID])
-        # get layers of list [pair,importance]
+        # Get layers of list [pair,importance]
         # ----
         # Format:
         # [[(pair,importance),...],# layer 1
@@ -669,7 +675,15 @@ class FeatureVis:
         # save current fig
         #self.plot_dwt_pairs_arrow_partial_window_compare(sig['sig'],rel_imp,Window_Left = 54100+i,savefigname = savefigname,figsize = (20,18),figtitle = 'Window Start[{}]'.format(i))
         figtitle = 'ECG from QTdb Record {}'.format(self.qt_reclist[rID])
-        self.plot_dwt_pairs_arrow_transparent(sig['sig'],rel_imp,Window_Left = 54100+WindowLeftBias,savefigname = savefigname,figsize = (20,18),figtitle = figtitle,showFigure = showFigure)
+        self.plot_dwt_pairs_arrow_transparent(
+                sig['sig'],
+                rel_imp,
+                Window_Left = 54100+WindowLeftBias,
+                savefigname = savefigname,
+                figsize = (14,14),
+                figtitle = figtitle,
+                showFigure = showFigure
+                )
 
 
     def load_sig_test(self):
@@ -792,15 +806,16 @@ class FeatureVis:
 
 
 if __name__ == '__main__':
-    mdlfilename = os.path.join(curfolderpath,'trained_model','A_5.mdl')
-    rand_relation_path = os.path.join(curfolderpath,'trained_model','A_5_randrel.json')
-    with open(mdlfilename,'r') as fin:
+    target_label = 'T'
+    mdlfilename = os.path.join(curfolderpath, 'trained_model', target_label, 'tmp.mdl')
+    rand_relation_path = os.path.join(curfolderpath, 'trained_model', target_label, 'swarmp_random_pairs.json')
+    with open(mdlfilename, 'r') as fin:
         rfmdl = pickle.load(fin)
-    fvis = FeatureVis(rfmdl,rand_relation_path)
+    fvis = FeatureVis(rfmdl, rand_relation_path)
     #fvis.plot_fv_importance_test()
+
     # if savefigname == None:do not save
-    savefigname = os.path.join(curfolderpath,'tmp.png')
+    savefigname = os.path.join(curfolderpath, 'tmp_{}.png'.format(target_label))
     #savefigname = None
-    fvis.plot_fv_importance_gswt(savefigname,False,50)
-    
+    fvis.plot_fv_importance_gswt(savefigname, False, WindowLeftBias = 60)
 
