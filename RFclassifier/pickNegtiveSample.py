@@ -43,7 +43,7 @@ from QTdata.loadQTdata import QTloader
 class pickNegtiveSample(object):
     def __init__(self):
         self.QTdb = QTloader()
-        self.whiteRegionFolder = r'F:\LabGit\ECG_RSWT\QTdata\QTwhiteMarkList'
+        self.whiteRegionFolder = os.path.join(projhomepath, 'QTdata', 'QTwhiteMarkList')
         self.MaxNegCnt = 40
         pass
     def getNegList4rec(self,recname):
