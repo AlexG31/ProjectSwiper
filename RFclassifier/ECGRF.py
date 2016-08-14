@@ -99,15 +99,15 @@ class ECGrf:
 
     # label proc & convert to feature
     @staticmethod
-    def collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = None,recID = None):
+    def collectfeaturesforsig(signal_struct,SaveTrainingSampleFolder,blankrangelist = None,recID = None):
         #
         # parameters:
         # blankrangelist : [[l,r],...]
         #
-        # collect training features from sig
+        # collect training features from ECG signal
         #
         # init
-        Extractor = extfeature.ECGfeatures(sig['sig'])
+        Extractor = extfeature.ECGfeatures(signal_struct['sig'])
         negposlist = []
         posposlist = [] # positive position list
         labellist = [] # positive label list
@@ -118,7 +118,7 @@ class ECGrf:
         # =======================================================
         # modified negposlist inside function
         # =======================================================
-        ExpertLabels = QTloader.getexpertlabeltuple(None,sigIN = sig,negposlist = negposlist)
+        ExpertLabels = QTloader.getexpertlabeltuple(None,sigIN = signal_struct,negposlist = negposlist)
         posposlist,labellist = zip(*ExpertLabels)
 
         # ===============================
@@ -166,17 +166,17 @@ class ECGrf:
         blkArea = conf['labelblankrange']
         ## debug log:
         debugLogger.dump('collecting feature for {}\n'.format(recname))
-        # load sig
+        # load signal struct
         QTloader = QTdb.QTloader()
-        sig = QTloader.load(recname)
-        if valid_signal_value(sig['sig']) == False:
+        signal_struct = QTloader.load(recname)
+        if valid_signal_value(signal_struct['sig']) == False:
             return [[],[]]
         # blank list
         blklist = None
         if recname in blkArea:
             print recname,'in blank Area list.'
             blklist = blkArea[recname]
-        tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
+        tX,ty = ECGrf.collectfeaturesforsig(signal_struct,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
         return (tX,ty)
 
     def training(self,reclist):
@@ -184,20 +184,9 @@ class ECGrf:
         trainingX = []
         trainingy = []
 
-        # Parallel
-        # Multi Process
-        #pool = Pool(self.MAX_PARA_CORE)
-        pool = Pool(2)
-
-        # train with reclist
-        # map function (recname) -> (tx,ty)
-
-        #trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # single core:
         trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
-        # close pool
-        pool.close()
-        pool.join()
+
         # organize features
         tXlist,tylist = zip(*trainingTuples)
         map(trainingX.extend,tXlist)
@@ -886,52 +875,6 @@ class debugLogger():
         fp = open(loggerpath,'w')
         fp.close()
 
-##======================
-# for multi process
-##======================
-
-def Testing_with_ref_to_bucket(Param):    
-    #
-    # for testing with multi process
-    #
-    # Params:
-    # [test_sig,bkt_range]
-    tested_signal,bkt_range = Param
-
-    # Collect features
-    samples_tobe_tested = map(extfeature.frompos_with_denoisedsig,zip([tested_signal]*len(bkt_range),bkt_range))
-    #
-    # test with RF classifier
-    #
-    # pickle load rfmdl file
-    #
-    with open(tmpmdlfilename,'rb') as fin:
-        rfmdl = pickle.load(fin)
-    res = rfmdl.predict(samples_tobe_tested)
-    return res
-
-# ======================================
-# Parallelly Collect training sample for each rec
-# ======================================
-def Parallel_CollectRecFeature(recname):
-    print 'Parallel Collect RecFeature from {}'.format(recname)
-    # load blank area list
-    blkArea = conf['labelblankrange']
-    ## debug log:
-    debugLogger.dump('collecting feature for {}\n'.format(recname))
-    # load sig
-    QTloader = QTdb.QTloader()
-    sig = QTloader.load(recname)
-    if valid_signal_value(sig['sig']) == False:
-        return [[],[]]
-    # blank list
-    blklist = None
-    if recname in blkArea:
-        print recname,'in blank Area list.'
-        blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
-    return (tX,ty)
-    
 
 if __name__ == '__main__':
     pass

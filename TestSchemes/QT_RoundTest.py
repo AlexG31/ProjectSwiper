@@ -53,15 +53,16 @@ def TestingAndSaveResult():
 def backup_configure_file(saveresultpath):
     shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
 def backupobj(obj,savefilename):
-    with open(savefilename,'w') as fout:
+    with open(savefilename,'wb') as fout:
         pickle.dump(obj,fout)
 
 def Round_Test(saveresultpath,RoundNumber = 100,TestRecord_number = 30):
     
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
-    must_train_list = conf['QT_Round_Test_Training']
-    may_testlist = list(set(QTreclist)-set(must_train_list))
+
+    # To randomly select 30 records from may_testlist
+    may_testlist = QTreclist
     N_may_test = len(may_testlist)
     
     # start test
@@ -72,8 +73,6 @@ def Round_Test(saveresultpath,RoundNumber = 100,TestRecord_number = 30):
         testlist = map(lambda x:may_testlist[x],test_ind_list)
         TestAllQTdata(round_folder,testlist)
 
-
-    
 
 
 def TestAllQTdata(saveresultpath,testinglist):
@@ -88,7 +87,6 @@ def TestAllQTdata(saveresultpath,testinglist):
 
     rf = ECGRF.ECGrf(SaveTrainingSampleFolder = saveresultpath)
     # Multi Process
-    rf.useParallelTest = True 
     rf.TestRange = 'All'
 
     # clear debug logger

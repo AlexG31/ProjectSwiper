@@ -45,9 +45,9 @@
     "LeadNumber":0,
     "RF_TreeNumber": 30, 
     "ResultFolder_Relative": [
-        "TestResult", 
-        "paper", 
-        "MultiRound5"
+        "Results", 
+        "RandomRound", 
+        "MR5"
     ], 
     "Tree_Max_Depth": 35, 
     "WTrandselfeaturenumber_apprx": 8000, 

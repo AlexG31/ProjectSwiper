@@ -11,6 +11,7 @@ import sys
 import json
 import math
 import pdb
+import pywt
 import array
 
 import matplotlib.pyplot as plt
@@ -31,28 +32,52 @@ import WTdenoise.wtfeature as wtf
 EPS = 1e-6
 
 class ECGfeatures:
-    ## Common Feature extractor for ECG classifier
-    #
-    def __init__(\
-                self,\
-                rawsig,\
-                isdenoised = True\
-            ):# default : no filtering , no denoise
+    '''Collect ECG feature with SWT.
+
+    1. Must initialise with raw ecg signal.
+    2. then the frompos() function can be used to extract feature
+        for position provided.
+    '''
+    def __init__(
+                self,
+                rawsig,
+                isdenoised = True,
+                swt_max_level = 7
+            ):
+        # Validation Check
         if not isinstance(rawsig,list) and not isinstance(rawsig,array.array):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 
-        #
-        # first denoise 
-        #
-        if isdenoised == False:
-            # no denoise:
-            # WT features only
-            raise StandardError('Feature Extractor trying to denoise!')
-            self.sig = ECGfeatures.signal_preprocessing(rawsig)
-        else:
-            self.sig = rawsig
+        # May denoise rawsig to get sig
+        self.sig = rawsig
         self.rawsig = rawsig
+
+        # Do SWT once for all.
+        #rawsig = self.crop_data_for_swt(rawsig)
+        #coeflist = pywt.swt(rawsig,wavelet,MaxLevel)
+        #cAlist,cDlist = zip(*coeflist)
+        #self.cAlist = cAlist
+        #self.cDlist = cDlist
         
+        
+    def crop_data_for_swt(self,rawsig):
+        '''Padding zeros to make the length of the signal to 2^N.'''
+        # crop rawsig
+        base2 = 1
+        N_data = len(rawsig)
+        if len(rawsig)<=1:
+            raise Exception('len(rawsig)={},not enough for swt!',len(rawsig))
+        crop_len = base2
+        while base2<N_data:
+            if base2*2>=N_data:
+                crop_len = base2*2
+                break
+            base2*=2
+        # pad zeros
+        if N_data< crop_len:
+            rawsig += [rawsig[-1],]*(crop_len-N_data)
+        return rawsig
+
     @staticmethod
     def signal_preprocessing(rawsig):
         # wavelet denoise:
@@ -61,15 +86,8 @@ class ECGfeatures:
         return sig
 
     def frompos(self,pos):
-        feature_type = conf['feature_type']
-        if feature_type == 'wavelet':
-            return self.getWTfeatureforpos(pos)
-        else:
-            raise StandardError('This is WT feature only!--frompos()')
-        # elif feature_type == 'wavelet_normal':
-            # return self.getWTfeatureforpos(pos,WithNormalPairFeature = True)
-        # else:
-            # return self.getfeatureforposition(pos,debug = 'none')
+        '''WT feature Warpper.'''
+        return self.getWTfeatureforpos(pos)
 
     def getfeatureforposition(self,x,debug = 'none'):
         x = int(x)
@@ -145,6 +163,8 @@ class ECGfeatures:
 
         return winsig
 
+    def GetWindowedMatrix(self):
+        '''Windowing the rawsignal and SWT coefficients.'''
     def getWTfeatureforpos(self,pos,WithNormalPairFeature = False):
         pos = int(pos)
         if pos<0 or pos >= len(self.rawsig):
@@ -152,8 +172,12 @@ class ECGfeatures:
         rawsig = self.rawsig
         
         # ====================================
-        # windowed signal
+        # Get Matrix:
+        # row: signal types(ECG rawsignal, SWT level1, level2...)
+        # col: signal sample points.
         winsig = self.getWindowedSignal(pos,rawsig)
+        # TODO(SWT...)
+        #windowed_matrix = self.GetWindowedMatrix()
 
         # ====================================
         # winsig:
@@ -176,14 +200,6 @@ class ECGfeatures:
         #
         wtfobj = wtf.WTfeature()
         dslist = wtfobj.getWT_Features(normwinsig)
-        # debug:======================================
-        # show len of dslist:
-        #print 'winsig len:{}'.format(len(winsig))
-        #print 'normwinsig len:{}'.format(len(normwinsig))
-        #for ds in dslist:
-            #print 'len(ds) = {}'.format(len(ds))
-        #pdb.set_trace()
-        # debug =======================================
 
         # load Random Relations
         Result_path_conf = conf['ResultFolder_Relative']
@@ -234,8 +250,8 @@ if __name__ == '__main__':
     qt = QTloader()
 
     sigStruct = qt.load('sel100')
-    ft = ECGfeatures(sigStruct['sig'])
-    ft.getWTfeatureforpos(1000)
+    #ft = ECGfeatures(sigStruct['sig'])
+    #ft.getWTfeatureforpos(1000)
 
 
 
