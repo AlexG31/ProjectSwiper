@@ -5,11 +5,12 @@ Author : Gaopengfei
 """
 import os
 import sys
-sys.stdout = open('test.txt','w')
 import json
 import glob
+import datetime
 import math
 import pickle
+import logging
 import random
 import time
 import shutil
@@ -19,8 +20,7 @@ import pdb
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
 
-# project homepath
-# 
+# Get current file path & project homepath.
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
 curfolderpath = os.path.dirname(curfolderpath)
@@ -30,9 +30,22 @@ projhomepath = curfolderpath;
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
     conf = json.load(fin)
 sys.path.append(projhomepath)
-#
+# Logging config.
+logging.basicConfig(
+        filename = os.path.join(
+            projhomepath,
+            'logs',
+            '%s.log'%datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')),
+        format = ('%(asctime)-15s[%(levelname)s]%(filename)s:%(lineno)d,'
+            ' in function:%(funcName)s\n    %(message)s'),
+        level = 10
+        )
+# Logging
+log = logging.getLogger()
+
 # my project components
 import RFclassifier.extractfeature.extractfeature as extfeature
+import RFclassifier.extractfeature.randomrelations as RandomRelation
 import QTdata.loadQTdata as QTdb
 import RFclassifier.evaluation as ecgEval
 import RFclassifier.ECGRF as ECGRF 
@@ -56,7 +69,12 @@ def backupobj(obj,savefilename):
     with open(savefilename,'wb') as fout:
         pickle.dump(obj,fout)
 
-def Round_Test(saveresultpath,RoundNumber = 100,TestRecord_number = 30):
+def Round_Test(saveresultpath,RoundNumber = 100,number_of_test_record_per_round = 30):
+    '''Randomly select records from QTdb to test.
+        Args:
+            RoundNumber: Rounds to repeatedly select records form QTdb & test.
+            number_of_test_record_per_round: Number of test records to randomly select per round.
+    '''
     
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
@@ -65,19 +83,21 @@ def Round_Test(saveresultpath,RoundNumber = 100,TestRecord_number = 30):
     may_testlist = QTreclist
     N_may_test = len(may_testlist)
     
-    # start test
+    # Start testing.
+    log.info('Start Round Testing...')
     for round_ind in xrange(1,RoundNumber+1):
+        log.info('Test round %d', round_ind)
+        return
         round_folder = os.path.join(saveresultpath,'Round{}'.format(round_ind))
         os.mkdir(round_folder)
-        test_ind_list = random.sample(xrange(0,N_may_test),TestRecord_number)
+        test_ind_list = random.sample(xrange(0,N_may_test),number_of_test_record_per_round)
         testlist = map(lambda x:may_testlist[x],test_ind_list)
         TestAllQTdata(round_folder,testlist)
 
 
 
 def TestAllQTdata(saveresultpath,testinglist):
-    # Leave Ntest out of 30 records to test
-    #
+    '''Test all records in testinglist, training on remaining records in QTdb.'''
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
     print 'Totoal QT record number:{}'.format(len(QTreclist))
@@ -118,16 +138,17 @@ if __name__ == '__main__':
     Result_path_conf = conf['ResultFolder_Relative']
     for folder in Result_path_conf:
         saveresultpath = os.path.join(saveresultpath,folder)
+    log.info('Save result path is: %s', saveresultpath)
+
     # create result folder if not exist
-    #if os.path.exists(saveresultpath) == False:
-    os.mkdir(saveresultpath)
-    # refresh random select feature json file and backup
-    ECGRF.ECGrf.RefreshRandomFeatureJsonFile(copyTo = os.path.join(saveresultpath,'rand_relations.json'))
+    if os.path.exists(saveresultpath) == False:
+        os.mkdir(saveresultpath)
+    # Refresh randomly selected features json file and backup it.
+    random_relation_file_path = os.path.join(saveresultpath,'rand_relations.json')
+    RandomRelation.refresh_project_random_relations_computeLen(copyTo = random_relation_file_path)
+    log.info('Copied random relation file to %s', random_relation_file_path)
 
     #backup configuration file
     backup_configure_file(saveresultpath)
 
     Round_Test(saveresultpath)
-
-    # back up processing debug output log
-    shutil.copy(os.path.join(projhomepath,'classification_process.log'),saveresultpath)
