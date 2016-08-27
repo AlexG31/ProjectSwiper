@@ -6,6 +6,7 @@ Author : Gaopengfei
 import os
 import sys
 import json
+import logging
 import math
 import pickle
 import random
@@ -31,6 +32,8 @@ with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
     conf = json.load(fin)
 sys.path.append(projhomepath)
 #
+log = logging.getLogger()
+
 # my project components
 import extractfeature.extractfeature as extfeature
 import extractfeature.randomrelations as RandRelation
@@ -96,9 +99,10 @@ class ECGrf:
         RandRelation.refresh_project_random_relations_computeLen(copyTo = copyTo)
 
 
-    # label proc & convert to feature
     @staticmethod
-    def collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = None,recID = None):
+    def collectfeaturesforsig(sig,
+            SaveTrainingSampleFolder,blankrangelist = None,recID = None):
+        '''Label process & convert to feature.'''
         #
         # parameters:
         # blankrangelist : [[l,r],...]
@@ -111,6 +115,7 @@ class ECGrf:
         posposlist = [] # positive position list
         labellist = [] # positive label list
         tarpos = []
+        # Including positive samples & negtive samples.
         trainingX,trainingy = [],[]
         # get Expert labels
         QTloader = QTdb.QTloader()
@@ -180,38 +185,22 @@ class ECGrf:
         return (trainingX,trainingy) 
         
     def CollectRecFeature(self,recname):
-        print 'Parallel Collect RecFeature from {}'.format(recname)
-        # load blank area list
-        blkArea = conf['labelblankrange']
-        ## debug log:
-        debugLogger.dump('collecting feature for {}\n'.format(recname))
-        # load sig
+        log.info('Collecting feature for {}', recname)
+
+        # Load signal.
         QTloader = QTdb.QTloader()
         sig = QTloader.load(recname)
         if valid_signal_value(sig['sig']) == False:
             return [[],[]]
-        # blank list
-        blklist = None
-        if recname in blkArea:
-            print recname,'in blank Area list.'
-            blklist = blkArea[recname]
-        tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
+        tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = None,recID = recname)
         return (tX,ty)
 
-    def training(self,reclist):
-        # training feature vector
-        trainingX = []
-        trainingy = []
-
-        # Parallel
+    def TrainQtRecords(self,reclist):
+        '''Warpper for model training on QTdb.'''
         # Multi Process
         #pool = Pool(self.MAX_PARA_CORE)
         pool = Pool(2)
 
-        # train with reclist
-        # map function (recname) -> (tx,ty)
-
-        #trainingTuples = timing_for(pool.map,[Parallel_CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # single core:
         trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # close pool
@@ -219,15 +208,13 @@ class ECGrf:
         pool.join()
         # organize features
         tXlist,tylist = zip(*trainingTuples)
-        map(trainingX.extend,tXlist)
-        map(trainingy.extend,tylist)
 
         # train Random Forest Classifier
         Tree_Max_Depth = conf['Tree_Max_Depth']
         RF_TreeNumber = conf['RF_TreeNumber']
         rfclassifier = RandomForestClassifier(n_estimators = RF_TreeNumber,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
-        print 'Random Forest Training Sample Size : [{} samples x {} features]'.format(len(trainingX),len(trainingX[0]))
-        timing_for(rfclassifier.fit,(trainingX,trainingy),prompt = 'Random Forest Fitting')
+        log.info('Random Forest Training Sample Size : [{} samples x {} features]',len(tXlist),len(tXlist[0]))
+        timing_for(rfclassifier.fit,(tXlist,tylist),prompt = 'Random Forest Fitting')
         # save&return classifier model
         self.mdl = rfclassifier
         return rfclassifier
@@ -248,8 +235,8 @@ class ECGrf:
             record_predict_result = self.test_with_positionlist(rfmdl,range(0,len(signal)),FeatureExtractor)
         return record_predict_result
 
-    # testing ECG record with trained mdl
     def testing(self,reclist,rfmdl = None,saveresultfolder = None):
+        '''Testing ECG record with trained model.'''
         #
         # default parameter
         #
@@ -510,7 +497,9 @@ class ECGrf:
             pickle.dump(RecResults ,fout)
             print 'saved prediction result to {}'.\
                     format(filename_saveresult)
-    def testrecords(self,saveresultfolder,reclist = ['sel103',],mdl = None,TestResultFileName = None):
+    def TestQtRecords(self,saveresultfolder,
+            reclist = ['sel103',],mdl = None,TestResultFileName = None):
+        '''Test Qt records with trainied model.'''
         # default parameter
         if mdl is None:
             mdl = self.mdl
