@@ -42,6 +42,7 @@ class ECGfeatures:
                 self,
                 rawsig,
                 isdenoised = True,
+                wavelet = 'db6',
                 swt_max_level = 7
             ):
         # Validation Check
@@ -49,15 +50,16 @@ class ECGfeatures:
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 
         # May denoise rawsig to get sig
-        self.sig = rawsig
+        self.signal_in = rawsig
         self.rawsig = rawsig
 
         # Do SWT once for all.
-        #rawsig = self.crop_data_for_swt(rawsig)
-        #coeflist = pywt.swt(rawsig,wavelet,MaxLevel)
-        #cAlist,cDlist = zip(*coeflist)
-        #self.cAlist = cAlist
-        #self.cDlist = cDlist
+        wt_level = conf['WT_LEVEL']
+        rawsig = self.crop_data_for_swt(rawsig)
+        coeflist = pywt.swt(rawsig,wavelet,wt_level)
+        cAlist,cDlist = zip(*coeflist)
+        self.cAlist = cAlist
+        self.cDlist = cDlist
         
         
     def crop_data_for_swt(self,rawsig):
@@ -73,7 +75,7 @@ class ECGfeatures:
                 crop_len = base2*2
                 break
             base2*=2
-        # pad zeros
+        # Extending this signal input with its tail element.
         if N_data< crop_len:
             rawsig += [rawsig[-1],]*(crop_len-N_data)
         return rawsig
@@ -91,7 +93,7 @@ class ECGfeatures:
 
     def getfeatureforposition(self,x,debug = 'none'):
         x = int(x)
-        if x<0 or x >= len(self.sig):
+        if x<0 or x >= len(self.signal_in):
             print 'Error:'
             print 'x = {}'.format(x)
             print 'length of sig:{}'.format(len(self.sig))
@@ -131,12 +133,14 @@ class ECGfeatures:
         
         return features
     
-    def getWindowedSignal(self,x,sig):
+    def getWindowedSignal(self,x,sig, fixed_window_length):
+        '''Get windowed signal segment centered in x.'''
+        # Padding with head or tail element when out of bound.
+
         # get windowed signal from original signal
         # padding zeros if near boundaries
-        fs = conf['fs']
-        FixedWindowLen = conf['winlen_ratio_to_fs']*fs
-        winlen_hlf = int(FixedWindowLen/2)
+        FixedWindowLen = fixed_window_length
+        winlen_hlf = int(fixed_window_length/ 2)
         # return windowed sig 
         winsig = []
         if x <winlen_hlf:
@@ -152,7 +156,7 @@ class ECGfeatures:
             right_bound -= 1
         if right_bound > len(sig):
             winsig.extend(sig[x:])
-            winsig.extend([0]*(right_bound - len(sig)))
+            winsig.extend(sig[-1]*(right_bound - len(sig)))
         else:
             winsig.extend(sig[x:right_bound])
         # debug
@@ -163,71 +167,57 @@ class ECGfeatures:
 
         return winsig
 
-    def GetWindowedMatrix(self):
+    def GetWindowedMatrix(self, position):
         '''Windowing the rawsignal and SWT coefficients.'''
+        fixed_window_length = conf['fs'] * conf['windowpairnumber_ratio_to_winlen']
+        windowed_matrix = []
+        
+        # Adding time-domain windowed signal.
+
+        windowed_matrix.append(self.getWindowedSignal(position, self.rawsig, fixed_window_length))
+        # Apply the window in each level of swt coefficients.
+        for detail_coefficients in self.cDlist:
+            windowed_matrix.append(self.getWindowedSignal(position, detail_coefficients, fixed_window_length))
+        # Adding approximation level.
+        windowed_matrix.append(self.getWindowedSignal(position, self.cAlist[-1], fixed_window_length))
+
+        return windowed_matrix
+
     def getWTfeatureforpos(self,pos,WithNormalPairFeature = False):
+        '''Get WT feature from position in ECG time-domain waveform.'''
         pos = int(pos)
-        if pos<0 or pos >= len(self.rawsig):
+        if pos<0 or pos >= len(self.signal_in):
             raise StandardError('input position posx must in range of sig indexs!')
         rawsig = self.rawsig
         
-        # ====================================
-        # Get Matrix:
-        # row: signal types(ECG rawsignal, SWT level1, level2...)
-        # col: signal sample points.
-        winsig = self.getWindowedSignal(pos,rawsig)
-        # TODO(SWT...)
-        #windowed_matrix = self.GetWindowedMatrix()
+        # Stateful... Apply window in each level of swt coefficients.
+        windowed_matrix = self.GetWindowedMatrix(pos)
 
-        # ====================================
-        # winsig:
         # normalization
-        #
-        Ampmax = max(winsig)
-        Ampmin = min(winsig)
+        windowed_ecg = windowed_matrix[0]
+        Ampmax = max(windowed_ecg)
+        Ampmin = min(windowed_ecg)
         sig_height = float(Ampmax-Ampmin)
         if sig_height <= EPS:
             sig_height = 1
-        normwinsig = [val/sig_height for val in winsig]
-        # ====================================
-        # all random
-        #
-        features = []
-        if WithNormalPairFeature == True:
-            features = self.getfeatureforposition(pos)
-        # ====================================
-        # WT features
-        #
-        wtfobj = wtf.WTfeature()
-        dslist = wtfobj.getWT_Features(normwinsig)
+        windowed_matrix = [[val/sig_height for val in signal] for signal in windowed_matrix]
 
-        # load Random Relations
+        features = []
+
+        # Load Random Relations.
         Result_path_conf = conf['ResultFolder_Relative']
         saveresultpath = projhomepath
         for folder in Result_path_conf:
             saveresultpath = os.path.join(saveresultpath,folder)
 
         WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
-        
         with open(WTrrJsonFileName,'r') as fin:
-            WTrelList = json.load(fin)
-        # debug
-        #pdb.set_trace()
-        for detailsignal,randrels in zip(dslist,WTrelList):
+            wt_pair_list = json.load(fin)
 
-            # debug:
-            #print len(WTrelList)
-            #print len(dslist)
-            #pdb.set_trace()
-            for x in randrels:
-                for xval in x:
-                    if xval<0 or xval >= len(detailsignal):
-                        print 'x = ',x
-                        pdb.set_trace()
-
-            fv = [detailsignal[x[0]] - detailsignal[x[1]] for x in randrels]
+        for signal ,pair_list in zip(windowed_matrix[1:],wt_pair_list):
+            fv = [signal[x[0]] - signal[x[1]] for x in pair_list]
             features.extend(fv)
-            fv = [abs(detailsignal[x[0]] - detailsignal[x[1]]) for x in randrels]
+            fv = [abs(signal[x[0]] - signal[x[1]]) for x in pair_list]
             features.extend(fv)
         
         return features

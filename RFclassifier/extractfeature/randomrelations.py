@@ -2,6 +2,7 @@
 import os
 import math
 import sys
+import logging
 import random
 import pickle
 import json
@@ -22,6 +23,8 @@ with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
     conf = json.load(fin)
 
 sys.path.append(projhomepath)
+
+log = logging.getLogger()
 
 # generate random relations for WT
 import WTdenoise.wtfeature as wtf
@@ -99,12 +102,17 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     # Relation list per level.(total:wt_level + 1)
     RelList = []
     total_pair_number = conf['WTrandselfeaturenumber_apprx']
-    pair_number_per_layer = total_pair_number / (wt_level + 1.0)
+
+    # Why divide by 2? the pairs diff&abs are added to feature vector,
+    # therefore there's 2-fold feature for a pair.
+    pair_number_per_layer = total_pair_number / (wt_level + 1.0) / 2.0
     pair_number_per_layer = int(pair_number_per_layer)
 
-    for level_index in xrange(0,wt_level):
+    for level_index in xrange(0, wt_level + 1):
         rel = random.sample(Window_Pair_Generator(FixedWindowLen), pair_number_per_layer)
         RelList.append(rel)
+
+    log.info('Generated random relations, %d levels, %d pairs per level.', len(RelList), pair_number_per_layer)
     with open(WTrrJsonFileName,'w') as fout:
         json.dump(RelList,fout,indent = 4)
     if copyTo is not None:

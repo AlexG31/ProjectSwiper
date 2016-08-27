@@ -1,5 +1,5 @@
 {
-    "WT_LEVEL": 7, 
+    "WT_LEVEL": 6, 
     "InvalidRecords": [
         "sel14046", 
         "sel14157", 
@@ -12,7 +12,7 @@
         "sel883", 
         "sel891"
     ], 
-    "ParallelTesting": "True", 
+    "ParallelTesting": "False", 
     "QT_Round_Test_Training": [
         "sel35", 
         "sel36", 
@@ -46,7 +46,7 @@
     "RF_TreeNumber": 30, 
     "ResultFolder_Relative": [
         "result", 
-        "run-1"
+        "run-3"
     ], 
     "Tree_Max_Depth": 35, 
     "WTrandselfeaturenumber_apprx": 8000, 

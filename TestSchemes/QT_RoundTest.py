@@ -48,28 +48,19 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import RFclassifier.extractfeature.randomrelations as RandomRelation
 import QTdata.loadQTdata as QTdb
 import RFclassifier.evaluation as ecgEval
-import RFclassifier.ECGRF as ECGRF 
-from RFclassifier.ECGRF import timing_for
+from RFclassifier.ClassificationLearner import ECGrf
+from RFclassifier.ClassificationLearner import timing_for
 from QTdata.loadQTdata import QTloader 
 from RunAndTime import RunAndTime
 
 
-def TestingAndSaveResult():
-    sel1213 = conf['sel1213']
-    time0 = time.time()
-    rf = ECGRF.ECGrf()
-    rf.training(sel1213[0:1])
-    time1 = time.time()
-    print 'Training time:',time1-time0
-    ## test
-    rf.testmdl(reclist = sel1213[0:1])
 def backup_configure_file(saveresultpath):
     shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
 def backupobj(obj,savefilename):
     with open(savefilename,'wb') as fout:
         pickle.dump(obj,fout)
 
-def Round_Test(saveresultpath,RoundNumber = 100,number_of_test_record_per_round = 30):
+def Round_Test(saveresultpath,RoundNumber = 1,number_of_test_record_per_round = 30):
     '''Randomly select records from QTdb to test.
         Args:
             RoundNumber: Rounds to repeatedly select records form QTdb & test.
@@ -104,9 +95,14 @@ def TestAllQTdata(saveresultpath,testinglist):
     # Get training record list
     traininglist = list(set(QTreclist) - set(testinglist))
 
+    # debug
+    log.warning('Using custom testing & training records.')
+    traininglist = QTreclist[0:10]
+    testinglist = QTreclist[0:10]
+
     log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(traininglist), len(testinglist))
 
-    rf_classifier = ECGRF.ECGrf(SaveTrainingSampleFolder = saveresultpath)
+    rf_classifier = ECGrf(SaveTrainingSampleFolder = saveresultpath)
     # Multi Process
     rf_classifier.TestRange = 'All'
 

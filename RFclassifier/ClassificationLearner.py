@@ -185,7 +185,7 @@ class ECGrf:
         return (trainingX,trainingy) 
         
     def CollectRecFeature(self,recname):
-        log.info('Collecting feature for {}', recname)
+        log.info('Collecting feature for %s', recname)
 
         # Load signal.
         QTloader = QTdb.QTloader()
@@ -201,6 +201,7 @@ class ECGrf:
         #pool = Pool(self.MAX_PARA_CORE)
         pool = Pool(2)
 
+        training_samples, training_labels = [], []
         # single core:
         trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
         # close pool
@@ -209,12 +210,17 @@ class ECGrf:
         # organize features
         tXlist,tylist = zip(*trainingTuples)
 
+        # tylist is a list of training_labels for each record,
+        # similar is for tXlist
+        map(training_samples.extend, tXlist)
+        map(training_labels.extend, tylist)
+
         # train Random Forest Classifier
         Tree_Max_Depth = conf['Tree_Max_Depth']
         RF_TreeNumber = conf['RF_TreeNumber']
         rfclassifier = RandomForestClassifier(n_estimators = RF_TreeNumber,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
-        log.info('Random Forest Training Sample Size : [{} samples x {} features]',len(tXlist),len(tXlist[0]))
-        timing_for(rfclassifier.fit,(tXlist,tylist),prompt = 'Random Forest Fitting')
+        log.info('Random Forest Training Sample Size : [%d samples * %d features]',len(training_samples),len(training_samples[0]))
+        timing_for(rfclassifier.fit,(training_samples,training_labels),prompt = 'Random Forest Fitting')
         # save&return classifier model
         self.mdl = rfclassifier
         return rfclassifier
@@ -237,44 +243,91 @@ class ECGrf:
 
     def testing(self,reclist,rfmdl = None,saveresultfolder = None):
         '''Testing ECG record with trained model.'''
-        #
-        # default parameter
-        #
+
+        # default parameters
         if rfmdl is None:
             rfmdl = self.mdl
+
+        # Parallel 
+        if conf['ParallelTesting'] == 'True':
+            MultiProcess = 'on'
+        else:
+            MultiProcess = 'off'
 
         # test all files in reclist
         PrdRes = []
         for recname in reclist:
+            # --------------------
+            # start test time
+            # --------------------
             time_rec0 = time.time()
+            # QT sig data
             sig = self.QTloader.load(recname)
-            FeatureExtractor = extfeature.ECGfeatures(sig['sig'])
+            # valid signal value:
+            if valid_signal_value(sig['sig']) == False:
+                continue
+            # sigle process
+            if MultiProcess == 'off':
+                log.info('Multi-process is off, using record-global feature extractor.')
+                FeatureExtractor = extfeature.ECGfeatures(sig['sig'])
+
+            # ------------------------
+            # test lead I
+            # ------------------------
             # original rawsig
             rawsig = sig['sig']
             N_signal = len(rawsig)
+
+            # denoise signal
+            #
+            if MultiProcess == 'on':
+                feature_type = conf['feature_type']
+                if feature_type == 'wavelet':
+                    denoisesig = rawsig
+                else:
+                    denoisesig = wtdenoise.denoise(rawsig)
+                    denoisesig = denoisesig.tolist()
+                    N_signal = len(denoisesig)
+            
             # init
             prRes = []
             testSamples = []
+
             #
             # get prRange:
+            # test in the same range as expert labels
+            #
+            expres = self.QTloader.getexpertlabeltuple(recname)
+            # Leave Testing Blank Regions in Head&Tail
+            WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
+            Blank_Len = WindowLen/2+1
+            prRange = range(Blank_Len,N_signal - 1-Blank_Len)
+
             if conf['QTtest'] == 'FastTest':
                 TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
-                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'r') as fin:
+                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
                     TestRegions = pickle.load(fin)
                 prRange = []
                 for region in TestRegions:
                     prRange.extend(range(region[0],region[1]+1))
             
-            debugLogger.dump('Testing samples with lenth {}:[{},{}]\n'.format(len(prRange),prRange[0],prRange[-1]))
-            #
-            # pickle dumple modle to file for multi process testing
-            #
-            record_predict_result = self.\
-                    test_with_positionlist(\
-                        rfmdl,\
-                        prRange,\
-                        FeatureExtractor\
-                    )
+            log.info('Testing sample point number is %d for this record',len(prRange))
+
+            if MultiProcess == 'on':
+                record_predict_result = self.\
+                        test_with_positionlist_multiprocess(\
+                            rfmdl,\
+                            prRange,\
+                            denoisesig,\
+                            origrawsig = rawsig
+                        )
+            elif MultiProcess == 'off':
+                record_predict_result = self.\
+                        test_with_positionlist(\
+                            rfmdl,\
+                            prRange,\
+                            FeatureExtractor\
+                        )
 
             #
             # prediction result for each record            
@@ -283,8 +336,74 @@ class ECGrf:
             
             # end testing time
             time_rec1 = time.time()
-            print 'Testing time for record {} is {:.2f} s'.format(recname,time_rec1-time_rec0)
-            debugLogger.dump('Testing time for record {} is {:.2f} s\n'.format(recname,time_rec1-time_rec0))
+            print 'Testing time for {} is {:.2f} s'.\
+                    format(recname,time_rec1-time_rec0)
+            log.info('Testing time for %s lead1 is %d seconds',recname,time_rec1-time_rec0)
+            # ------------------------
+            # test lead II
+            # ------------------------
+            # original rawsig
+            rawsig = sig['sig2']
+            N_signal = len(rawsig)
+
+            # denoise signal
+            #
+            if MultiProcess == 'on':
+                feature_type = conf['feature_type']
+                if feature_type == 'wavelet':
+                    denoisesig = rawsig
+                else:
+                    denoisesig = wtdenoise.denoise(rawsig)
+                    denoisesig = denoisesig.tolist()
+                    N_signal = len(denoisesig)
+            
+            # init
+            prRes = []
+            testSamples = []
+
+            #
+            # get prRange:
+            # test in the same range as expert labels
+            #
+            expres = self.QTloader.getexpertlabeltuple(recname)
+            # Leave Testing Blank Regions in Head&Tail
+            WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
+            Blank_Len = WindowLen/2+1
+            prRange = range(Blank_Len,N_signal - 1-Blank_Len)
+
+            if conf['QTtest'] == 'FastTest':
+                TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
+                with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
+                    TestRegions = pickle.load(fin)
+                prRange = []
+                for region in TestRegions:
+                    prRange.extend(range(region[0],region[1]+1))
+            
+            log.info('Testing sample point number is %d for this record',len(prRange))
+            if MultiProcess == 'on':
+                record_predict_result = self.\
+                        test_with_positionlist_multiprocess(\
+                            rfmdl,\
+                            prRange,\
+                            denoisesig,\
+                            origrawsig = rawsig
+                        )
+            elif MultiProcess == 'off':
+                record_predict_result = self.\
+                        test_with_positionlist(\
+                            rfmdl,\
+                            prRange,\
+                            FeatureExtractor\
+                        )
+
+            #
+            # prediction result for each record            
+            #
+            PrdRes.append(('{}_sig2'.format(recname),record_predict_result))
+            
+            # end testing time
+            time_rec1 = time.time()
+            log.info('Testing time for %s lead2 is %d seconds',recname,time_rec1-time_rec0)
 
         # save Prediction Result
         if saveresultfolder is not None:
@@ -293,13 +412,9 @@ class ECGrf:
             with open(saveresult_filename,'w') as fout:
                 # No detection
                 if PrdRes is None or len(PrdRes) == 0:
-                    warn_msg = u'本次测试没有检测到特征点。Test Records:\n{}'.format(reclist)
-                    print warn_msg
-                    debugLogger.dump(warn_msg)
-                    recres = (recname,[])
-                else:
-                    recres = PrdRes[0]
-                pickle.dump(recres ,fout)
+                    PrdRes =()
+
+                json.dump(PrdRes,fout,indent = 4,sort_keys = True)
                 print 'saved prediction result to {}'.format(saveresult_filename)
         return PrdRes
 
@@ -491,7 +606,7 @@ class ECGrf:
 
             # warning :save to default folder
             print '**Warning: save result to {}'.format(filename_saveresult)
-            debugLogger.dump('**Warning: save result to {}'.format(filename_saveresult))
+            log.info('Saving result to %s', filename_saveresult)
 
         with open(filename_saveresult,'w') as fout:
             pickle.dump(RecResults ,fout)
@@ -509,26 +624,6 @@ class ECGrf:
             RecResults = self.testing([recname,],saveresultfolder = saveresultfolder)
         
 
-# =======================
-## debug Logger
-# =======================
-class debugLogger():
-    def __init__(self):
-        pass
-    @staticmethod
-    def dump(text):
-        loggerpath = os.path.join(\
-                projhomepath,\
-                'classification_process.log')
-        with open(loggerpath,'a') as fin:
-            fin.write(text)
-    @staticmethod
-    def clear():
-        loggerpath = os.path.join(\
-                projhomepath,\
-                'classification_process.log')
-        fp = open(loggerpath,'w')
-        fp.close()
 
 # ======================================
 # Parallelly Collect training sample for each rec
