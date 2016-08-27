@@ -1,12 +1,12 @@
 {
-    "DWT_LEVEL": 5, 
+    "WT_LEVEL": 7, 
     "InvalidRecords": [
         "sel14046", 
         "sel14157", 
         "sel14172", 
         "sel15814", 
         "sel820", 
-        "sel821", 
+        "sel821",
         "sel847", 
         "sel853", 
         "sel883", 
@@ -45,9 +45,8 @@
     "LeadNumber":0,
     "RF_TreeNumber": 30, 
     "ResultFolder_Relative": [
-        "Results", 
-        "RandomRound", 
-        "MR5"
+        "result", 
+        "run-1"
     ], 
     "Tree_Max_Depth": 35, 
     "WTrandselfeaturenumber_apprx": 8000, 

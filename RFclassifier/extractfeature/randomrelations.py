@@ -64,6 +64,7 @@ class Window_Pair_Generator(object):
             #relations.append(random.sample(window,2))
     #return relations
 def AddNearbyPairs(rel,WinLen,fs = 250):
+    '''Hack method: add pairs with one point at center of the window.'''
     CenterPos = int(WinLen/2)
     LBound = CenterPos-int(fs/10)
     LBound = max(0,LBound)
@@ -86,76 +87,28 @@ def AddNearbyPairs(rel,WinLen,fs = 250):
             rel.append(new_pair)
 
 def refresh_project_random_relations_computeLen(copyTo = None):
-    print '== Refreshing WT Randomrelations=='
-    #wtfobj = wtf.WTfeature()
-    #cnlist = wtfobj.getWTcoefficient_number_in_each_level()
-    N = conf['DWT_LEVEL']
-    fs = conf['fs']
-    FixedWindowLen = conf['winlen_ratio_to_fs']*fs
-    # get cnlist(max value of random pairs in each level)
-    curWinLen = FixedWindowLen/2
-    cnlist = []
-    for i in xrange(0,N):
-        cnlist.append(curWinLen)
-        curWinLen/=2
-        if curWinLen == 0:
-            raise Exception('max value in layer {} is 0!'.format(i))
+    '''Refresh random select relations.'''
+    print 'Refreshing WT Randomrelations=='
+
+    # Level of wavelet transform.
+    wt_level = conf['WT_LEVEL']
+    sampling_frequency = conf['fs']
+    FixedWindowLen = conf['winlen_ratio_to_fs'] * sampling_frequency
+
     WTrrJsonFileName = os.path.join(curfolderpath,'WTcoefrandrel.json')
+    # Relation list per level.(total:wt_level + 1)
     RelList = []
-    #==========================================
-    # total number of used features
-    # ensure total number of random pairs== 
-    # conf['WTrandselfeaturenumber_apprx']
-    # number of pairs in each level is proportional
-    # eg. number of pairs:
-    # [500]
-    # [250]
-    # [125]..
-    #==========================================
-    Nwt = conf['WTrandselfeaturenumber_apprx']
-    Ndwt = N
-    N_current_layer = Nwt*(2**(Ndwt-1))/((2**Ndwt)-1)
-    for cnlist_ind,WinLen_this_level in enumerate(cnlist):
-        #----------
-        # WinLen: WinLen_this_level
-        # number of pairs: N_this_level
-        # No repeat pairs
-        #----------
-        #rel = gen_rand_relations(N_this_level,WinLen_this_level)
-        rel = random.sample(Window_Pair_Generator(WinLen_this_level),N_current_layer)
-        # ================
-        # Add nearby pairs
-        # fs = 250
-        # [-25,25]
-        # [-fs/10,fs/10]
-        # ================
-        AddNearbyPairs(rel,WinLen_this_level)
+    total_pair_number = conf['WTrandselfeaturenumber_apprx']
+    pair_number_per_layer = total_pair_number / (wt_level + 1.0)
+    pair_number_per_layer = int(pair_number_per_layer)
+
+    for level_index in xrange(0,wt_level):
+        rel = random.sample(Window_Pair_Generator(FixedWindowLen), pair_number_per_layer)
         RelList.append(rel)
-        if cnlist_ind == len(cnlist)-1:
-            # Approximation level pairs
-            rel = random.sample(Window_Pair_Generator(WinLen_this_level),N_current_layer)
-            AddNearbyPairs(rel,WinLen_this_level)
-            RelList.append(rel)
-        N_current_layer /=2
     with open(WTrrJsonFileName,'w') as fout:
         json.dump(RelList,fout,indent = 4)
-    #==============================================
-    #  Generate random relations for time-domain signal
-    #==============================================
-    print '== Refreshing Random Realtions =='
-    fs = conf['fs']
-    WinLen = conf['winlen_ratio_to_fs']*fs
-    N = conf['windowpairnumber_ratio_to_winlen']*WinLen
-    #rel = gen_rand_relations(N,WinLen)
-    rel = random.sample(Window_Pair_Generator(WinLen),N)
-    TimeDomainRelationFilename = os.path.join(curfolderpath,'ECGrandrel.json')
-    with open(TimeDomainRelationFilename,'w') as fout:
-        json.dump(rel,fout,indent = 4)
-    # copyTo result folder:
     if copyTo is not None:
         copyfile(WTrrJsonFileName,copyTo)
-        #copyfile(TimeDomainRelationFilename,copyTo)
-    
 
 if __name__ == '__main__':
     #print '--- Random relation Test ---'
