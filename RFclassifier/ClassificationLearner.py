@@ -304,7 +304,7 @@ class ECGrf:
             prRange = range(Blank_Len,N_signal - 1-Blank_Len)
 
             if conf['QTtest'] == 'FastTest':
-                TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
+                TestRegionFolder = os.path.join(projhomepath, 'QTdata', 'QT_TestRegions')
                 with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
                     TestRegions = pickle.load(fin)
                 prRange = []

@@ -96,9 +96,11 @@ def TestAllQTdata(saveresultpath,testinglist):
     traininglist = list(set(QTreclist) - set(testinglist))
 
     # debug
-    log.warning('Using custom testing & training records.')
     traininglist = QTreclist[0:10]
     testinglist = QTreclist[0:10]
+    log.warning('Using custom testing & training records.')
+    log.warning('Training range: 0-10')
+    log.warning('Testing range: 0-10')
 
     log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(traininglist), len(testinglist))
 
@@ -133,8 +135,12 @@ if __name__ == '__main__':
     log.info('Save result path is: %s', saveresultpath)
 
     # create result folder if not exist
-    if os.path.exists(saveresultpath) == False:
-        os.mkdir(saveresultpath)
+    if os.path.exists(saveresultpath) == True:
+        option = raw_input('Result path "{}" already exists, remove it?'.format(saveresultpath))
+        if option in ['y','Y']:
+            shutil.rmtree(saveresultpath)
+            
+    os.mkdir(saveresultpath)
     # Refresh randomly selected features json file and backup it.
     random_relation_file_path = os.path.join(saveresultpath,'rand_relations.json')
     RandomRelation.refresh_project_random_relations_computeLen(copyTo = random_relation_file_path)

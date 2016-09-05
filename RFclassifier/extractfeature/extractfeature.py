@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import math
+import logging
 import pdb
 import pywt
 import array
@@ -28,6 +29,10 @@ with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
 sys.path.append(projhomepath)
 import WTdenoise.wtdenoise as wtdenoise
 import WTdenoise.wtfeature as wtf
+
+
+# Logging
+log = logging.getLogger()
 
 EPS = 1e-6
 
@@ -52,6 +57,9 @@ class ECGfeatures:
         # May denoise rawsig to get sig
         self.signal_in = rawsig
         self.rawsig = rawsig
+
+        self.fixed_window_length = conf['fs'] * conf['winlen_ratio_to_fs']
+        log.info('Fixed window length by ECGconf.json: %d' % self.fixed_window_length)
 
         # Do SWT once for all.
         wt_level = conf['WT_LEVEL']
@@ -91,47 +99,6 @@ class ECGfeatures:
         '''WT feature Warpper.'''
         return self.getWTfeatureforpos(pos)
 
-    def getfeatureforposition(self,x,debug = 'none'):
-        x = int(x)
-        if x<0 or x >= len(self.signal_in):
-            print 'Error:'
-            print 'x = {}'.format(x)
-            print 'length of sig:{}'.format(len(self.sig))
-            raise StandardError('input position x must in range of sig indexs!')
-        denoisesig = self.sig
-
-        # Windowed signal
-        winsig = self.getWindowedSignal(x,denoisesig)
-
-        # winsig:
-        # normalization
-        #
-        Ampmax = max(winsig)
-        Ampmin = min(winsig)
-        sig_height = float(Ampmax-Ampmin)
-        if sig_height <= EPS:
-            sig_height = 1
-        normwinsig = [x/sig_height for x in winsig]
-
-        # ================================
-        # debug plot
-        # ================================
-        if debug == 'plot':
-            plt.figure(1)
-            plt.plot(normwinsig)
-            # plot center point
-            x_c = len(normwinsig)/2
-            plt.plot(x_c,normwinsig[x_c],'ro')
-            plt.show()
-
-        # extract feature
-        with open(os.path.join(curfolderpath,'ECGrandrel.json'),'r') as fin:
-            rels = json.load(fin)
-        # all random
-        features = [normwinsig[x[0]]-normwinsig[x[1]] for x in rels]
-        features.extend([abs(normwinsig[x[0]]-normwinsig[x[1]]) for x in rels])
-        
-        return features
     
     def getWindowedSignal(self,x,sig, fixed_window_length):
         '''Get windowed signal segment centered in x.'''
@@ -169,7 +136,8 @@ class ECGfeatures:
 
     def GetWindowedMatrix(self, position):
         '''Windowing the rawsignal and SWT coefficients.'''
-        fixed_window_length = conf['fs'] * conf['windowpairnumber_ratio_to_winlen']
+        fixed_window_length = self.fixed_window_length
+
         windowed_matrix = []
         
         # Adding time-domain windowed signal.
@@ -183,6 +151,21 @@ class ECGfeatures:
 
         return windowed_matrix
 
+    def debug_PlotWindowedMatrix(self,matrix,max_level = 4):
+        '''Plot matrix in figure.'''
+        
+        plt.figure()
+        plt.grid(True)
+        axes_index = 1
+        for signal in matrix:
+            if axes_index > max_level:
+                break
+            plt.subplot(max_level,1, axes_index)
+            axes_index += 1
+            plt.plot(signal)
+        plt.show()
+
+        
     def getWTfeatureforpos(self,pos,WithNormalPairFeature = False):
         '''Get WT feature from position in ECG time-domain waveform.'''
         pos = int(pos)
@@ -193,6 +176,10 @@ class ECGfeatures:
         # Stateful... Apply window in each level of swt coefficients.
         windowed_matrix = self.GetWindowedMatrix(pos)
 
+        # debug to see if the windowed matrix is correct.
+        #self.debug_PlotWindowedMatrix(windowed_matrix)
+        #pdb.set_trace()
+
         # normalization
         windowed_ecg = windowed_matrix[0]
         Ampmax = max(windowed_ecg)
@@ -200,7 +187,7 @@ class ECGfeatures:
         sig_height = float(Ampmax-Ampmin)
         if sig_height <= EPS:
             sig_height = 1
-        windowed_matrix = [[val/sig_height for val in signal] for signal in windowed_matrix]
+        #windowed_matrix = [[val/sig_height for val in signal] for signal in windowed_matrix]
 
         features = []
 
