@@ -48,7 +48,7 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import RFclassifier.extractfeature.randomrelations as RandomRelation
 import QTdata.loadQTdata as QTdb
 import RFclassifier.evaluation as ecgEval
-from RFclassifier.ClassificationLearner import ECGrf
+from RFclassifier.ParallelRfClassifier import ParallelRfClassifier as ECGrf
 from RFclassifier.ClassificationLearner import timing_for
 from QTdata.loadQTdata import QTloader 
 from RunAndTime import RunAndTime
