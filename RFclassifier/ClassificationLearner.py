@@ -74,7 +74,7 @@ def timing_for(function_handle,params,prompt = 'timing is',time_cost_output = No
     return ret
 
 # train and test
-class ECGrf:
+class ECGrf(object):
     def __init__(self,MAX_PARA_CORE = 6,SaveTrainingSampleFolder = None):
         # only test on areas with expert labels
         self.TestRange = 'Partial'# or 'All'
@@ -372,7 +372,7 @@ class ECGrf:
             prRange = range(Blank_Len,N_signal - 1-Blank_Len)
 
             if conf['QTtest'] == 'FastTest':
-                TestRegionFolder = r'F:\LabGit\ECG_RSWT\TestSchemes\QT_TestRegions'
+                TestRegionFolder = os.path.join(projhomepath, 'QTdata', 'QT_TestRegions')
                 with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
                     TestRegions = pickle.load(fin)
                 prRange = []
