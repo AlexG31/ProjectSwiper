@@ -123,7 +123,7 @@ class ECGfeatures:
             right_bound -= 1
         if right_bound > len(sig):
             winsig.extend(sig[x:])
-            winsig.extend(sig[-1]*(right_bound - len(sig)))
+            winsig.extend([sig[-1],]*(right_bound - len(sig)))
         else:
             winsig.extend(sig[x:right_bound])
         # debug
