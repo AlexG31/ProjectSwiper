@@ -48,12 +48,15 @@ class ECGfeatures:
                 rawsig,
                 isdenoised = True,
                 wavelet = 'db6',
-                swt_max_level = 7
+                swt_max_level = 7,
+                random_relation_path = None,
             ):
         # Validation Check
         if not isinstance(rawsig,list) and not isinstance(rawsig,array.array):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 
+        # Default value of random relation files.
+        self.random_relation_path_ = random_relation_path
         # May denoise rawsig to get sig
         self.signal_in = rawsig
         self.rawsig = rawsig
@@ -197,7 +200,12 @@ class ECGfeatures:
         for folder in Result_path_conf:
             saveresultpath = os.path.join(saveresultpath,folder)
 
-        WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
+        # Default value for random relations json file.
+        # For API.
+        if self.random_relation_path_ is None:
+            WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
+        else:
+            WTrrJsonFileName = os.path.join(self.random_relation_path_,'rand_relations.json')
         with open(WTrrJsonFileName,'r') as fin:
             wt_pair_list = json.load(fin)
 

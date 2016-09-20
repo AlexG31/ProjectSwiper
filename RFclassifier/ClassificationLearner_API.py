@@ -67,7 +67,8 @@ def show_drawing(folderpath = os.path.join(\
     with open(os.path.join(folderpath,'sel103.txt'),'r') as fin:
         sig = pickle.load(fin)
     # sig with 'sig','time'and 'marks'
-    ECGfv = extfeature.ECGfeatures(sig['sig'])
+    ECGfv = extfeature.ECGfeatures(sig['sig'],
+            random_relation_path = self.SaveTrainingSampleFolder)
     fv = ECGfv.frompos(3e3)
 
 def valid_signal_value(sig):
@@ -115,82 +116,6 @@ class ECGrf(object):
         # refresh random relations
         RandRelation.refresh_project_random_relations_computeLen(copyTo = copyTo)
 
-
-    @staticmethod
-    def collectfeaturesforsig(raw_signal, expert_labels,
-            blankrangelist = None,recID = None):
-        '''Label process & convert to feature.'''
-        #
-        # parameters:
-        # blankrangelist : [[l,r],...]
-        #
-        # collect training features from raw_signal
-        feature_extractor = extfeature.ECGfeatures(raw_signal)
-        negposlist = []
-        posposlist = [] # positive position list
-        labellist = [] # positive label list
-        tarpos = []
-        # Including positive samples & negtive samples.
-        trainingX,trainingy = [],[]
-        # get Expert labels
-        QTloader = QTdb.QTloader()
-        # =======================================================
-        # modified negposlist inside function
-        # =======================================================
-        posposlist,labellist = zip(*expert_labels)
-
-        # ===============================
-        # convert feature & append to X,y
-        # Using Map build in function
-        # ===============================
-        FV = map(feature_extractor.frompos,posposlist)
-        # append to trainging vector
-        trainingX.extend(FV)
-        trainingy.extend(labellist)
-        
-        # add neg samples
-        Nneg = int(len(negposlist)*conf['negsampleratio'])
-        #print 'Total number of negposlist =',len(negposlist)
-        #print '-- Number of Training samples -- '
-        #print 'Num of pos samples:',len(trainingX)
-        #print 'Num of neg samples:',Nneg
-
-        # If Number of Neg>0 then add negtive samples.
-        if len(negposlist) == 0 or Nneg <= 0:
-            print '[In function collect feature] Warning: negtive sample position list length is 0.'
-        else:
-            # collect negtive sample features
-            #
-            # leave blank for area without labels
-            #
-            negposset = set(negposlist)
-            if blankrangelist is not None:
-                blklist = []
-                for pair in blankrangelist:
-                    blklist.extend(range(pair[0],pair[1]+1))
-                blkset = set(blklist)
-                negposset -= blkset
-                
-            selnegposlist = random.sample(negposset,Nneg)
-            time_neg0 = time.time()
-            negFv = map(feature_extractor.frompos,selnegposlist)
-            trainingX.extend(negFv)
-            trainingy.extend(['white']*Nneg)
-            print '\nTime for collect negtive samples:{:.2f}s'.format(time.time() - time_neg0)
-        return (trainingX,trainingy) 
-        
-    def CollectRecFeature(self,recname):
-        log.info('Collecting feature for %s', recname)
-
-        # Load signal.
-        QTloader = QTdb.QTloader()
-        sig = QTloader.load(recname)
-        expert_labels = QTloader.getExpert(recname)
-        if valid_signal_value(sig['sig']) == False:
-            return [[],[]]
-        tX,ty = ECGrf.collectfeaturesforsig(sig['sig'],blankrangelist = None)
-        return (tX,ty)
-
     def TrainQtRecords(self,reclist):
         '''Warpper for model training on QTdb.'''
         # Multi Process
@@ -223,6 +148,7 @@ class ECGrf(object):
     
     def testing(self, raw_signal, rfmdl = None):
         '''Testing ECG record with trained model.'''
+        N_original = len(raw_signal)
         # default parameters
         if rfmdl is None:
             rfmdl = self.mdl
@@ -230,14 +156,19 @@ class ECGrf(object):
         PrdRes = []
         if valid_signal_value(raw_signal) == False:
             raise Exception('Input signal value is not valid!(may contain inf)')
-        feature_extractor = extfeature.ECGfeatures(raw_signal)
+        feature_extractor = extfeature.ECGfeatures(raw_signal,
+                random_relation_path = self.SaveTrainingSampleFolder)
         N_signal = len(raw_signal)
 
         # Testing...
-        record_predict_result = self.testing_with_extractor(rfmdl,
+        predict_result = self.testing_with_extractor(rfmdl,
                 N_signal, feature_extractor)
+        # Crop the length (SWT may pad zeros behind)
+        if N_original < len(raw_signal):
+            del raw_signal[N_original:]
+        predict_result = predict_result[0:min(len(predict_result), len(raw_signal))]
 
-        PrdRes = record_predict_result
+        PrdRes = predict_result
         return PrdRes
 
     def testing_with_extractor(self, rfmdl, signal_length, feature_extractor):
@@ -463,28 +394,30 @@ class ECGrf(object):
         
 
 
-# ======================================
-# Parallelly Collect training sample for each rec
-# ======================================
-def Parallel_CollectRecFeature(recname):
-    print 'Parallel Collect RecFeature from {}'.format(recname)
-    # load blank area list
-    blkArea = conf['labelblankrange']
-    ## debug log:
-    debugLogger.dump('collecting feature for {}\n'.format(recname))
-    # load sig
-    QTloader = QTdb.QTloader()
-    sig = QTloader.load(recname)
-    if valid_signal_value(sig['sig']) == False:
-        return [[],[]]
-    # blank list
-    blklist = None
-    if recname in blkArea:
-        print recname,'in blank Area list.'
-        blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
-    return (tX,ty)
-    
+
+def TEST1():
+    '''Test case 1.'''
+    # load signal from QTdb
+    loader = QTdb.QTloader()
+    sig_struct = loader.load('sel100')
+    sig_segment = sig_struct['sig'][200:1800]
+    # model path
+    model_path = os.path.join(
+            projhomepath, 'result', 'test-api')
+    result = Testing(sig_segment, model_path)
+
+    # length check:
+    print 'length of signal: ', len(sig_segment)
+    print 'length of result: ', len(result)
+    # plot result
+    target_label = 'Ponset'
+    plt.figure(1)
+    plt.plot(sig_segment, label = 'signal')
+    pos_list = [x[0] for x in result if x[1] == target_label]
+    amp_list = [sig_segment[x] for x in pos_list]
+    plt.plot(pos_list, amp_list,'r^', label = target_label)
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
-    Testing([2.2,]*1000)
+    TEST1()
