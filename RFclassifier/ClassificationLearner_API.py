@@ -249,7 +249,7 @@ class ECGrf(object):
         Blank_Len = WindowLen/2+1
         # Test samples position list.
         # prRange = range(Blank_Len, signal_length - 1 - Blank_Len)
-        prRange = range(0,1000)
+        prRange = range(0, signal_length)
         
         return self.test_with_positionlist(
                     rfmdl,
