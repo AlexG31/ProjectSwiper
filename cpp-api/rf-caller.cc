@@ -30,7 +30,7 @@ bool Testing(const vector<double>& raw_signal, vector<pair<int, string>>* output
     PyRun_SimpleString(str_module_path.c_str());
 
     // my own function.
-    PyObject* param_list = CreateList(vector<double>(700,2.34));
+    PyObject* param_list = CreateList(raw_signal);
 
     PyObject *pModule, *pFunc, *pValue;
     pModule = PyImport_ImportModule("RFclassifier.ClassificationLearner_API");
