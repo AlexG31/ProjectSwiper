@@ -40,6 +40,7 @@ import extractfeature.randomrelations as RandRelation
 import WTdenoise.wtdenoise as wtdenoise
 import QTdata.loadQTdata as QTdb
 from MatlabPloter.Result2Mat_Format import reslist_to_mat
+from EvaluationSchemes.ResultGrouper import ResultGrouper
 
 ## Main Scripts
 # ==========
@@ -58,9 +59,17 @@ def Testing(raw_signal, model_path):
         rf_classifier.mdl = trained_model
 
     result = rf_classifier.testing(raw_signal, trained_model)
+
+    # Group output result
+    grouped_result = []
+    grouper = ResultGrouper(result)
+    result_dict = grouper.GetResultDict()
+    for label, pos_list in result_dict.iteritems():
+        grouped_result.extend([(int(x), label, 1) for x in pos_list])
+
     with open(os.path.join(saveresultpath, 'test_result_cc'),'w') as fout:
         json.dump(result,fout,indent = 4)
-    return result
+    return grouped_result
 
 def show_drawing(folderpath = os.path.join(\
         os.path.dirname(curfilepath),'..','QTdata','QTdata_repo')):
@@ -394,13 +403,78 @@ class ECGrf(object):
         
 
 
+def ConvertLabel(label):
+    '''Convert random forest label to figure label.'''
+    if label == 'T':
+        mker = 'ro'
+    elif label == 'R':
+        mker = 'go'
+    elif label == 'P':
+        mker = 'bo'
+    elif label == 'Tonset':
+        mker = 'r<'
+    elif label == 'Toffset':
+        mker = 'r>'
+    elif label == 'Ronset':
+        mker = 'g<'
+    elif label == 'Roffset':
+        mker = 'g>'
+    elif label == 'Ponset':
+        mker = 'b<'
+    elif label == 'Poffset':
+        mker = 'b>'
+    else:# white
+        mker = 'w.'
+    return mker
+def TEST2():
+    '''Test case 2 with changegeng data.'''
+    # load signal from QTdb
+    data_path = os.path.join(projhomepath,
+            'result', 'changgeng','rawData.txt')
+    with open(data_path, 'r') as fin:
+        signal = json.load(fin)
+        # To fs=250Hz
+        sig_seg = [0,] * 2 * len(signal)
+        sig_seg[0::2] = signal
+        sig_seg[1::2] = signal
+    max_val = max(signal)
+    min_val = min(signal)
+    sig_segment = [(x - min_val) / (max_val - min_val) for x in sig_seg[0:]]
+    # plt.figure(2)
+    # plt.plot(sig_seg)
+    # plt.show()
+    # model path
+    model_path = os.path.join(
+            projhomepath, 'result', 'test-api')
+    result = Testing(sig_segment, model_path)
 
+    # length check:
+    print 'length of signal: ', len(sig_segment)
+    print 'length of result: ', len(result)
+    # plot result
+    target_label = 'R'
+    target_label_set = set()
+    map(lambda x:target_label_set.add(x[1]), result)
+    target_label_dict = dict()
+    for target_label in target_label_set:
+        pos_list = [x[0] for x in result if x[1] == target_label]
+        target_label_dict[target_label] = pos_list
+
+    plt.figure(1)
+    plt.plot(sig_segment, label = 'signal')
+    for target_label in target_label_set:
+        pos_list = target_label_dict[target_label]
+        amp_list = [sig_segment[x] for x in pos_list]
+        plt.plot(pos_list, amp_list,ConvertLabel(target_label), label = target_label)
+    plt.legend()
+    plt.show()
 def TEST1():
     '''Test case 1.'''
     # load signal from QTdb
     loader = QTdb.QTloader()
     sig_struct = loader.load('sel100')
     sig_segment = sig_struct['sig'][200:1800]
+
     # model path
     model_path = os.path.join(
             projhomepath, 'result', 'test-api')
@@ -420,4 +494,4 @@ def TEST1():
     plt.show()
 
 if __name__ == '__main__':
-    TEST1()
+    TEST2()
