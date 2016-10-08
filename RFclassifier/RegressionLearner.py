@@ -76,7 +76,7 @@ class RegressionLearner:
             self.AddNewTrainingSignal(raw_signal, expert_labels)
             # Logging
             log.info('Extracted features from %s' % record_name)
-            print 'Extracted features from %s' % record_name)
+            print 'Extracted features from %s' % record_name
 
         # Training with feature pool
         self.training()
@@ -86,29 +86,30 @@ class RegressionLearner:
         QTdb = QTloader()
         lead_result_list = []
         for record_name in reclist:
-                sig_struct = QTdb.load(record_name)
-                # Test lead1
-                raw_signal = sig_struct['sig']
-                expert_labels = QTdb.getExpert(record_name)
-                predict_position_list = self.testing(raw_signal, expert_labels)
-                test_result = zip(predict_position_list,
-                        [self.TargetLabel,]*len(predict_position_list))
-                lead_result = [record_name, test_result]
-                lead_result_list.append(lead_result)
-                # Test lead2
-                raw_signal = sig_struct['sig2']
-                expert_labels = QTdb.getExpert(record_name)
-                predict_position_list = self.testing(raw_signal, expert_labels)
-                test_result = zip(predict_position_list,
-                        [self.TargetLabel,]*len(predict_position_list))
-                lead_result = [record_name + '_sig2', test_result]
-                lead_result_list.append(lead_result)
-                # Save result.
-                with open(os.path.join(save_folder, 'result_{}'.format(record_name)), 'w')\
-                    as fout:
-                        json.dump(lead_result_list, fout, indent = 4)
+            sig_struct = QTdb.load(record_name)
+            # Test lead1
+            raw_signal = sig_struct['sig']
+            expert_labels = QTdb.getExpert(record_name)
+            predict_position_list = self.testing(raw_signal, expert_labels)
+            test_result = zip(predict_position_list,
+                    [self.TargetLabel,]*len(predict_position_list))
+            lead_result = [record_name, test_result]
+            lead_result_list.append(lead_result)
+            # Test lead2
+            raw_signal = sig_struct['sig2']
+            expert_labels = QTdb.getExpert(record_name)
+            predict_position_list = self.testing(raw_signal, expert_labels)
+            test_result = zip(predict_position_list,
+                    [self.TargetLabel,]*len(predict_position_list))
+            lead_result = [record_name + '_sig2', test_result]
+            lead_result_list.append(lead_result)
+            # Save result.
+            with open(os.path.join(save_folder, 'result_{}'.format(record_name)), 'w')\
+                as fout:
+                    json.dump(lead_result_list, fout, indent = 4)
                 
     def AddNewTrainingSignal(self,rawsig,expert_marklist):
+        '''Form regression feature pool.'''
         # Input with rawsig & marklist.
         # 1. remove QRS from rawsig
         # 2. Do SWT.
@@ -121,6 +122,9 @@ class RegressionLearner:
         #      if there's a QRS behind it
         #       Extract feature & output
         
+        # For debug
+        backup_signal = rawsig[:]
+
         # preprocess
         # expert_marklist is [(pos,label)...]
         # sort by position.
@@ -130,10 +134,10 @@ class RegressionLearner:
 
         # a) training T labels.
         # TODO
-        self.AddT2feature(rawsig,expert_marklist)
+        self.AddT2feature(rawsig,expert_marklist, debug = True, original_signal = backup_signal)
         # b) training P labels.
         # TODO
-    def AddT2feature(self,rawsig,expert_marklist):
+    def AddT2feature(self,rawsig,expert_marklist, debug = False, original_signal = None):
         # For each target_label:
         #  get QRS region before and after it.
         #  get segment signal& segment cDlist
@@ -219,22 +223,45 @@ class RegressionLearner:
                 QRS_distance_after = range(seg_len-1, -1, -1)
                 QRS_distance_ratio = map(lambda x:float(x)/seg_len,QRS_distance_before)
                 # Form current feature vector
-                current_feature_vector = self.FormFeature(cDlist_seg, QRS_distance_before, QRS_distance_after, QRS_distance_ratio, sig_seg)
+                current_feature_vector = self.FormFeature(
+                        cDlist_seg,
+                        QRS_distance_before,
+                        QRS_distance_after,
+                        QRS_distance_ratio,
+                        sig_seg, debug = debug)
                 current_output = pos - seg_range[0]
                 # Add to Training Pool
                 self.feature_pool_.append(current_feature_vector)
                 self.output_pool_.append(current_output)
+
                 # debug
-                #plt.ion()
-                #plt.figure(1)
-                #plt.clf()
-                #plt.plot(sig_seg,label = 'ECG')
-                #plt.plot(map(lambda x:x-seg_range[0],seg_range),map(lambda x:sig_seg[x-seg_range[0]],seg_range),'ro',label = 'R boundary')
-                #plt.plot(pos-seg_range[0],sig_seg[pos-seg_range[0]],'gd',label = self.TargetLabel)
-                #plt.grid(True)
-                #plt.legend()
-                #plt.show()
-                #pdb.set_trace()
+                if debug == True:
+                    # Check: 
+                    #   1. Position of T mark
+                    #   2. The segment of QRS
+                    plt.ion()
+                    plt.figure(1)
+                    plt.clf()
+
+                    # sub figure 1 (Removed QRS signal)
+                    plt.subplot(211)
+                    plt.title('segment [%d, %d]' % (seg_range[0], seg_range[1]))
+                    plt.plot(sig_seg,label = 'ECG')
+                    plt.plot(map(lambda x:x-seg_range[0],seg_range),
+                            map(lambda x:sig_seg[x-seg_range[0]],seg_range),
+                            'ro', label = 'R boundary')
+                    plt.plot(pos-seg_range[0],
+                            sig_seg[pos-seg_range[0]],
+                            'gd', label = self.TargetLabel)
+                    plt.grid(True)
+                    # subplot 2 (orignal signal)
+                    plt.subplot(212)
+                    plt.plot(original_signal[seg_range[0]:seg_range[1]+1])
+                    plt.grid(True)
+
+                    plt.legend()
+                    plt.show()
+                    pdb.set_trace()
 
                 
 
@@ -286,7 +313,10 @@ class RegressionLearner:
             
         return (cDlist_seg,QRS_distance_before, QRS_distance_after,QRS_distance_ratio, sig_seg)
             
-    def FormFeature(self,cDlist_seg,QRS_distance_before, QRS_distance_after,QRS_distance_ratio, sig_seg):
+    def FormFeature(self, cDlist_seg, QRS_distance_before,
+            QRS_distance_after, QRS_distance_ratio, sig_seg,
+            debug = False 
+            ):
         '''Form feature from the segment signal given.'''
         # Normalise the length of each input feature signal.
         cDlist_seg,QRS_distance_before, QRS_distance_after,QRS_distance_ratio, sig_seg = self.CropFeatureWindow(
@@ -302,27 +332,43 @@ class RegressionLearner:
 
         for detail_level in cDlist_seg[1:6]:
             feature_vector.extend(detail_level)
-            feature_vector.extend(map(lambda x:abs(x),detail_level))
+            feature_vector.extend(map(lambda x:abs(x), detail_level))
             # Add pair features.
-            for pair_x in xrange(0,len(detail_level)):
-                for pair_y in xrange(pair_x+1,min(pair_x + self.SWT_diff_feature_expand, len(detail_level)),self.SWT_diff_feature_expand_skip_gap):
-                    feature_vector.append(detail_level[pair_x]-detail_level[pair_y])
-                    feature_vector.append(abs(detail_level[pair_x]-detail_level[pair_y]))
+            for pair_x in xrange(0, len(detail_level)):
+                for pair_y in xrange(pair_x+1,
+                        min(pair_x + self.SWT_diff_feature_expand,
+                        len(detail_level)),
+                        self.SWT_diff_feature_expand_skip_gap):
+                    feature_vector.append(detail_level[pair_x] - detail_level[pair_y])
+                    feature_vector.append(abs(detail_level[pair_x] - detail_level[pair_y]))
         # Add distance to QRS feature.
         #feature_vector.extend(QRS_distance_after)
         feature_vector.extend(QRS_distance_ratio)
         feature_vector.extend(QRS_distance_before)
         feature_vector.extend(sig_seg)
         # debug
+        if debug == True:
+            plt.figure(2)
+            plt.clf()
+            N_subplot_level = 6
+            plt.subplot(N_subplot_level, 1, 1)
+            plt.plot(sig_seg)
+            plt.grid(True)
+
+            for di in range(1, 6):
+                plt.subplot(N_subplot_level, 1, di + 1)
+                plt.plot(cDlist_seg[di])
+                plt.grid(True)
+            
         #print type(feature_vector)
         #with open(os.path.join(projhomepath,'tmp.json'),'w') as fout:
             #json.dump(feature_vector,fout)
         #pdb.set_trace()
         return feature_vector
 
-    def check_validQRS(self,label_dict):
+    def check_validQRS(self, label_dict):
         '''Check QRS in label_dict is valid.'''
-        if all(map(lambda x:x in label_dict,self.QRSlabels)) == False:
+        if all(map(lambda x:x in label_dict, self.QRSlabels)) == False:
             print label_dict
             raise Exception('QRS not all in label_dict!')
         # if label_dict['Ronset'] > label_dict['R'] or label_dict['R'] - label_dict['Ronset'] > self.MaxQRSWidth:
@@ -443,10 +489,15 @@ class RegressionLearner:
             QRS_distance_after = range(seg_len-1, -1, -1)
             QRS_distance_ratio = map(lambda x:float(x)/seg_len,QRS_distance_before)
             # Form current feature vector
-            current_feature_vector = self.FormFeature(cDlist_seg, QRS_distance_before, QRS_distance_after, QRS_distance_ratio, sig_seg)
+            current_feature_vector = self.FormFeature(cDlist_seg,
+                    QRS_distance_before,
+                    QRS_distance_after,
+                    QRS_distance_ratio,
+                    sig_seg)
             # Prediction
             current_feature_vector = np.array(current_feature_vector)
-            predict_result = self.rfclassifier.predict(current_feature_vector.reshape(1,-1))
+            predict_result = self.rfclassifier.predict(
+                    current_feature_vector.reshape(1,-1))
             predict_result += seg_range[0]
             # convert predict result to int
             predict_result = predict_result.tolist()
@@ -510,6 +561,7 @@ class RegressionLearner:
         return rawsig
 
     def nonQRS_swt(self,rawsig,expert_marklist,wavelet = 'db6',MaxLevel = 9):
+        '''Get swt without QRS regions, modify rawsig whthin this function.'''
         # Get Swt coef for rawsig.
         rawsig = self.getNonQRSsig(rawsig,expert_marklist)
         rawsig = self.crop_data_for_swt(rawsig)

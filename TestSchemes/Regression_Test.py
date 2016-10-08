@@ -36,8 +36,9 @@ logging.basicConfig(
         filename = os.path.join(
             projhomepath,
             'logs',
-            '%s.log'%datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')),
-        format = ('%(asctime)-15s[%(levelname)s]%(filename)s:%(lineno)d,'
+            '%s.log' % datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')),
+        format = (
+            '%(asctime)-15s[%(levelname)s]%(filename)s:%(lineno)d,'
             ' in function:%(funcName)s\n    %(message)s'),
         level = 10
         )
@@ -105,7 +106,10 @@ def TestAllQTdata(save_result_path,testinglist, training_list = None):
     # log.warning('Training range: 0-10')
     # log.warning('Testing range: 0-10')
 
-    log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(training_list), len(testinglist))
+    log.info('Totoal QTdb record number:%d, training %d, testing %d',
+            len(QTreclist),
+            len(training_list),
+            len(testinglist))
 
     rf_classifier = ECGrf(SaveTrainingSampleFolder = save_result_path)
     # Multi Process
@@ -154,7 +158,7 @@ if __name__ == '__main__':
     # create result folder if not exist
     if os.path.exists(save_result_path) == True:
         option = raw_input(
-                'Result path "{}" already exists, remove it?'.format(save_result_path))
+                'Result path "{}" already exists, remove it(y/n)?'.format(save_result_path))
         if option in ['y','Y']:
             shutil.rmtree(save_result_path)
             os.mkdir(save_result_path)
