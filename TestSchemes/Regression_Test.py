@@ -1,6 +1,7 @@
 #encoding:utf-8
 """
-ECG classification Module
+Start Date: 2016.10.8
+ECG Regression Test
 Author : Gaopengfei
 """
 import os
@@ -48,20 +49,20 @@ import RFclassifier.extractfeature.extractfeature as extfeature
 import RFclassifier.extractfeature.randomrelations as RandomRelation
 import QTdata.loadQTdata as QTdb
 import RFclassifier.evaluation as ecgEval
-from RFclassifier.ParallelRfClassifier import ParallelRfClassifier as ECGrf
-# from RFclassifier.RegressionLearner import RegressionLearner as ECGrf
+# from RFclassifier.ParallelRfClassifier import ParallelRfClassifier as ECGrf
+from RFclassifier.RegressionLearner import RegressionLearner as ECGrf
 from RFclassifier.ClassificationLearner import timing_for
 from QTdata.loadQTdata import QTloader 
 from RunAndTime import RunAndTime
 
 
-def backup_configure_file(saveresultpath):
-    shutil.copy(os.path.join(projhomepath,'ECGconf.json'),saveresultpath)
+def backup_configure_file(save_result_path):
+    shutil.copy(os.path.join(projhomepath,'ECGconf.json'),save_result_path)
 def backupobj(obj,savefilename):
     with open(savefilename,'wb') as fout:
         pickle.dump(obj,fout)
 
-def Round_Test(saveresultpath,RoundNumber = 1,number_of_test_record_per_round = 30, round_start_index = 1):
+def Round_Test(save_result_path,RoundNumber = 1,number_of_test_record_per_round = 30, round_start_index = 1):
     '''Randomly select records from QTdb to test.
         Args:
             RoundNumber: Rounds to repeatedly select records form QTdb & test.
@@ -79,7 +80,7 @@ def Round_Test(saveresultpath,RoundNumber = 1,number_of_test_record_per_round = 
     log.info('Start Round Testing...')
     for round_ind in xrange(round_start_index, RoundNumber+1):
         # Generate round folder.
-        round_folder = os.path.join(saveresultpath,'round{}'.format(round_ind))
+        round_folder = os.path.join(save_result_path,'round{}'.format(round_ind))
         os.mkdir(round_folder)
         # Randomly select test records.
         test_ind_list = random.sample(xrange(0,N_may_test),number_of_test_record_per_round)
@@ -89,23 +90,24 @@ def Round_Test(saveresultpath,RoundNumber = 1,number_of_test_record_per_round = 
 
 
 
-def TestAllQTdata(saveresultpath,testinglist):
-    '''Test all records in testinglist, training on remaining records in QTdb.'''
+def TestAllQTdata(save_result_path,testinglist, training_list = None):
+    '''Test Regression Learner with QTdb.'''
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
     # Get training record list
-    traininglist = list(set(QTreclist) - set(testinglist))
+    if training_list is None:
+        training_list = list(set(QTreclist) - set(testinglist))
 
     # debug
-    # traininglist = QTreclist[0:10]
+    # training_list = QTreclist[0:10]
     # testinglist = QTreclist[0:10]
     # log.warning('Using custom testing & training records.')
     # log.warning('Training range: 0-10')
     # log.warning('Testing range: 0-10')
 
-    log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(traininglist), len(testinglist))
+    log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(training_list), len(testinglist))
 
-    rf_classifier = ECGrf(SaveTrainingSampleFolder = saveresultpath)
+    rf_classifier = ECGrf(SaveTrainingSampleFolder = save_result_path)
     # Multi Process
     rf_classifier.TestRange = 'All'
 
@@ -116,38 +118,60 @@ def TestAllQTdata(saveresultpath,testinglist):
 
     # training the rf_classifier classifier with reclist
     time_cost_output = []
-    timing_for(rf_classifier.TrainQtRecords,[traininglist,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
+    timing_for(rf_classifier.TrainQtRecords,[training_list,],prompt = 'Total Training time:',time_cost_output = time_cost_output)
     log.info('Total training time cost: %.2f seconds', time_cost_output[-1])
     # save trained mdl
-    backupobj(rf_classifier.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
+    backupobj(rf_classifier.mdl,os.path.join(save_result_path,'trained_model.mdl'))
 
     # testing
     log.info('Testing records:\n    %s',', '.join(testinglist))
-    rf_classifier.TestQtRecords(saveresultpath,reclist = testinglist)
+    rf_classifier.TestQtRecords(save_result_path,reclist = testinglist)
 
 
     
+def TEST1(save_result_path):
+    qt_loader = QTloader()
+    qt_record_list= qt_loader.getQTrecnamelist()
+
+    # testing& training set
+    training_list = qt_record_list[0:10]
+    testing_list = qt_record_list[1:11]
+
+    # Start traing & testing
+    TestAllQTdata(save_result_path, testing_list, training_list)
+
 if __name__ == '__main__':
 
-    saveresultpath = projhomepath
+    # Get save_result_path from config file.
+    save_result_path = projhomepath
     Result_path_conf = conf['ResultFolder_Relative']
     for folder in Result_path_conf:
-        saveresultpath = os.path.join(saveresultpath,folder)
-    log.info('Save result path is: %s', saveresultpath)
+        save_result_path = os.path.join(save_result_path,folder)
+
+    # logging
+    log.info('Save result to: %s', save_result_path)
 
     # create result folder if not exist
-    if os.path.exists(saveresultpath) == True:
-        option = raw_input('Result path "{}" already exists, remove it?'.format(saveresultpath))
+    if os.path.exists(save_result_path) == True:
+        option = raw_input(
+                'Result path "{}" already exists, remove it?'.format(save_result_path))
         if option in ['y','Y']:
-            shutil.rmtree(saveresultpath)
-            
-    # os.mkdir(saveresultpath)
+            shutil.rmtree(save_result_path)
+            os.mkdir(save_result_path)
+    else:
+        os.mkdir(save_result_path)
+
     # Refresh randomly selected features json file and backup it.
-    # random_relation_file_path = os.path.join(saveresultpath,'rand_relations.json')
-    # RandomRelation.refresh_project_random_relations_computeLen(copyTo = random_relation_file_path)
-    # log.info('Copied random relation file to %s', random_relation_file_path)
+    random_relation_file_path = os.path.join(save_result_path,'rand_relations.json')
+    RandomRelation.refresh_project_random_relations_computeLen(
+            copyTo = random_relation_file_path)
 
-    #backup configuration file
-    # backup_configure_file(saveresultpath)
+    # logging
+    log.info('Copied random relation file to %s', random_relation_file_path)
 
-    Round_Test(saveresultpath, RoundNumber = 100, round_start_index = 46)
+    # Backup configuration file.
+    backup_configure_file(save_result_path)
+
+    # Customized testing
+    TEST1(save_result_path)
+    # Round_Test(save_result_path, RoundNumber = 2, round_start_index = 1)

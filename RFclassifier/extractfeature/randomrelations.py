@@ -116,6 +116,7 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     with open(WTrrJsonFileName,'w') as fout:
         json.dump(RelList,fout,indent = 4)
     if copyTo is not None:
+        log.info('Copying %s to %s' %(WTrrJsonFileName, copyTo))
         copyfile(WTrrJsonFileName,copyTo)
 
 if __name__ == '__main__':
