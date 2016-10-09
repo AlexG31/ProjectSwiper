@@ -328,7 +328,14 @@ class PointBrowser(object):
                 marker = 'o'
             else:
                 marker = '.'
-            ax.plot(posList,map(lambda x:rawSig[x],posList),marker = marker,color = color,linestyle = 'none',markersize = 6,label = 'Pred[{}]'.format(label),alpha = 0.8)
+            ax.plot(posList,
+                    map(lambda x:rawSig[x],posList),
+                    marker = marker,
+                    color = color,
+                    linestyle = 'none',
+                    markersize = 6,
+                    label = 'Pred[{}]'.format(label),
+                    alpha = 0.8)
         ax.legend(numpoints = 1)
 
     def plotExpertLabels(self,ax,rawSig):

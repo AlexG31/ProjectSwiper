@@ -117,7 +117,11 @@ class PointBrowser(object):
         # QTdb
         self.QTdb = QTloader()
         #self.reclist = self.QTdb.reclist
-        self.resultlist = glob.glob(os.path.join(projhomepath,'result','run-3','Round1','result_*'))
+        self.resultlist = glob.glob(os.path.join(projhomepath,
+            'result',
+            'regression-test',
+            'result_*'))
+
         print 'len result list:', len(self.resultlist)
 
         self.recInd = 0

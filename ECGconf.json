@@ -6,7 +6,7 @@
     "RF_TreeNumber": 30, 
     "ResultFolder_Relative": [
         "result", 
-        "run-5"
+        "regression-test"
     ], 
     "Tree_Max_Depth": 35, 
     "WTrandselfeaturenumber_apprx": 8000, 
@@ -16,5 +16,6 @@
     "negsampleratio": 0.005, 
     "training_excludedist": 10, 
     "windowpairnumber_ratio_to_winlen": 20, 
-    "winlen_ratio_to_fs": 4
+    "winlen_ratio_to_fs": 4,
+    "regression_swt_feature": "amplitude"
 }
