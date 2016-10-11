@@ -1,9 +1,15 @@
 #encoding:utf-8
 """
+Date: 2016.10.10
 ECG Grouping Evaluation module
 Author : Gaopengfei
 
 This file find the bad performance record, print its round number and record name.
+
+1. This file tries to group the results as single outputs around the ground truth position.
+   * Must make sure 'EvaluationSchemes/results/{result_name}/group-result' folder exists in
+     the Round Folder
+2. This file computes the intra-record standard deviation with police object.
 """
 import os
 import sys
@@ -12,6 +18,7 @@ import glob
 import bisect
 import math
 import pickle
+import shutil
 import random
 import time
 import importlib
@@ -41,12 +48,16 @@ def GroupingRawResults(RoundInd, round_folder, output_round_folder):
     '''Grouping the raw detection result of random forest.'''
     # load the results
     RoundFolder = round_folder
-    ResultFolder = os.path.join(RoundFolder,'round{}'.format(RoundInd))
-    SaveFolder = os.path.join(output_round_folder,'round{}'.format(RoundInd))
-    os.mkdir(SaveFolder)
+    raw_result_folder = os.path.join(RoundFolder,'round{}'.format(RoundInd))
+    output_round_folder = os.path.join(output_round_folder,'round{}'.format(RoundInd))
+
+    # Remove existing folder
+    if os.path.exists(output_round_folder) == True:
+        shutil.rmtree(output_round_folder)
+    os.mkdir(output_round_folder)
 
     # each result file
-    resfiles = glob.glob(os.path.join(ResultFolder,'result_*'))
+    resfiles = glob.glob(os.path.join(raw_result_folder, 'result_*'))
     for resfilepath in resfiles:
         with open(resfilepath,'r') as fin:
             prdRes = json.load(fin)
@@ -64,7 +75,7 @@ def GroupingRawResults(RoundInd, round_folder, output_round_folder):
         GroupDict = dict(recname = recname,LeadResult=resDict)
 
         # save to Round folder 
-        jsonfilepath = os.path.join(SaveFolder,recname+'.json')
+        jsonfilepath = os.path.join(output_round_folder,recname+'.json')
         with open(jsonfilepath,'w') as fout:
             json.dump(GroupDict,fout,indent = 4,sort_keys = True)
     print 'Finished grouping for round %d' % RoundInd
@@ -265,37 +276,55 @@ class FindBadRecord:
                         np.nanmean(self.statistics_list_for_label[label]['std'])))
                 BreakLine(fout)
 
-
-if __name__ == '__main__':
+def ConverterFactory(converter_name):
+    '''Return converter according to converter name.'''
     # Import Converters
-    # SimpleConverter && ListResultConverter
     ListResultConverterModule = importlib.import_module(
             'EvaluationSchemes.result-converters.list-result-converter')
     ListResultConverter = ListResultConverterModule.ListResultConverter
     SimpleConverterModule = importlib.import_module(
             'EvaluationSchemes.result-converters.original-converter')
     SimpleConverter = SimpleConverterModule.OriginalConverter
+    # Converter function handle
+    if converter_name == 'simple-converter':
+        result_converter = SimpleConverter.convert
 
+    return result_converter
+def ResetFolder(folder_name):
+    # Remove existing folder
+    if os.path.exists(folder_name) == True:
+        shutil.rmtree(folder_name)
+    os.mkdir(folder_name)
+
+if __name__ == '__main__':
+
+    # Name of the experiment
+    experiment_name = 'swt-paper-2'
+    total_round_number = 30
+
+    # Get converter
+    result_converter = ConverterFactory('simple-converter')
     # Set folder path.
-    prediction_result_folder = os.path.join(projhomepath, 'EvaluationSchemes',
-            'results', 'run-6', 'group-result')
-    result_converter = SimpleConverter.convert
-
+    prediction_result_folder = os.path.join(projhomepath, 'result',
+            experiment_name)
     evaluation_result_path = os.path.join(projhomepath,'EvaluationSchemes',
-            'results', 'run-6')
+            'results', experiment_name)
 
-    total_round_number = 100
     # Grouping given result.
     should_group_result = raw_input('Grouping given result folder:{}?'.format(
         prediction_result_folder))
     if should_group_result in ['y', 'Y']:
         print 'Grouping...'
+        # Remove existing folders
+        ResetFolder(evaluation_result_path)
         new_group_result_folder = os.path.join(evaluation_result_path,'group-result')
+        ResetFolder(new_group_result_folder)
+
         for ind in xrange(1,total_round_number + 1):
             GroupingRawResults(ind, prediction_result_folder,
                     new_group_result_folder)
         prediction_result_folder = new_group_result_folder
-        result_converter = SimpleConverter.convert
+        result_converter = ConverterFactory('simple-converter')
 
     # clear Log file
     with open(os.path.join(evaluation_result_path,
