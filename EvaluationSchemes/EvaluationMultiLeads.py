@@ -52,7 +52,6 @@ possibleLabels = [
 class EvaluationMultiLeads:
     '''Evaluation of raw detection result by random forest.'''
     def __init__(self, result_converter = None):
-        #print '[Warning]Evaluator will convert prediction indexes to Integer.'
         self.QTdb = QTloader()
         self.labellist = []
         self.expertlist = []
@@ -235,10 +234,12 @@ class EvaluationMultiLeads:
         return range_list
 
     def get_errList(self):
+        '''Choose the minimum error between the two leads, output is in ms.'''
         self.errList = []
         FNcnt = 0
-        # plot match line
-        for expPos,matchInd1,matchInd2 in zip(self.expertlist,self.expMatchList[0],self.expMatchList[1]):
+        # Plot match line
+        for expPos,matchInd1,matchInd2 in zip(
+                self.expertlist,self.expMatchList[0],self.expMatchList[1]):
             if matchInd1 == -1 and matchInd2 == -1:
                 FNcnt += 1
                 continue
@@ -262,21 +263,19 @@ class EvaluationMultiLeads:
                 else:
                     self.errList.append(4.0*err2)
 
-        # total number of False Negtives
+        # Total number of False Negtives
         self.FNcnt = FNcnt
-        # exclude FP that not in the Continous Range
+        # Exclude FP that not in the Continous Range
         range_list = self.getContinousRangeList(self.recname)
         range_set = set()
         for current_range in range_list:
             range_set |= set(range(current_range[0],current_range[1]))
 
         self.FPcnt1 = 0
-        # sum(map(lambda x:1 if x == -1 else 0,self.prdMatchList[0]))
         for prdpos,match_index in zip(sorted(self.leadPosList[0]),self.prdMatchList[0]):
             if match_index == -1 and prdpos in range_set:
                 self.FPcnt1 += 1
         self.FPcnt2 = 0
-        # sum(map(lambda x:1 if x == -1 else 0, self.prdMatchList[1]))
         for prdpos, match_index in zip(sorted(self.leadPosList[1]), self.prdMatchList[1]):
             if match_index == -1 and prdpos in range_set:
                 self.FPcnt2 += 1
@@ -358,11 +357,11 @@ if __name__ == '__main__':
     print ErrDict
 
     # write to json
-    with open(os.path.join(evalinfopath,'ErrData.json'),'w') as fout:
+    with open(os.path.join(evalinfopath,'ErrData.json'), 'w') as fout:
         json.dump(ErrData,fout,indent = 4,sort_keys = True)
         print '>>Dumped to json file: ''ErrData.json''.'
     # error statistics
-    with open(os.path.join(evalinfopath,'ErrStat.json'),'w') as fout:
+    with open(os.path.join(evalinfopath,'ErrStat.json'), 'w') as fout:
         json.dump(ErrDict,fout,indent = 4,sort_keys = True)
         print '>>Dumped to json file: ''ErrStat.json''.'
 

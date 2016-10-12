@@ -1,5 +1,7 @@
 #encoding:utf-8
 """
+Legacy code for RSSPD
+
 ECG Evaluation Module
 Author : Gaopengfei
 """

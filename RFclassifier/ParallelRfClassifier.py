@@ -51,10 +51,12 @@ from RFclassifier.ClassificationLearner import ECGrf
 # ==========
 EPS = 1e-6
 
-# train and test
 class ParallelRfClassifier(ECGrf):
+    '''Like the ClassificationLearner, but in parallel.'''
     def __init__(self, MAX_PARA_CORE = 6, SaveTrainingSampleFolder = None):
-        super(ParallelRfClassifier,self).__init__(MAX_PARA_CORE = 6, SaveTrainingSampleFolder = None)
+        super(ParallelRfClassifier,self).__init__(
+                MAX_PARA_CORE = 6,
+                SaveTrainingSampleFolder = None)
     def testing_with_extractor(self, rfmdl, signal_length, feature_extractor):
         ''' Testing a feature vector from feature_extractor in test_range.'''
 
@@ -62,8 +64,6 @@ class ParallelRfClassifier(ECGrf):
         # to avoid feature insufficiency.
         WindowLen = conf['winlen_ratio_to_fs']*conf['fs']
         Blank_Len = WindowLen/2+1
-        # Test samples position list.
-        prRange = range(Blank_Len, N_signal - 1 - Blank_Len)
 
         if conf['QTtest'] == 'FastTest':
             # Only test regions with expert labels for comparing detection result.
@@ -74,16 +74,22 @@ class ParallelRfClassifier(ECGrf):
                 TestRegions = pickle.load(fin)
             for region in TestRegions:
                 prRange.extend(range(region[0],region[1]+1))
+        else:
+            # Default: full range test
+            prRange = range(Blank_Len, N_signal - 1 - Blank_Len)
         
         return self.test_with_positionlist(
                     rfmdl,
                     prRange,
-                    feature_extractor 
-                )
-    def testing(self,reclist,rfmdl = None,saveresultfolder = None):
+                    feature_extractor)
+    def testing(
+            self,
+            reclist,
+            rfmdl = None,
+            saveresultfolder = None):
         '''Testing ECG record with trained model.'''
 
-        # default parameters
+        # Default parameters
         if rfmdl is None:
             rfmdl = self.mdl
 
@@ -93,7 +99,7 @@ class ParallelRfClassifier(ECGrf):
         else:
             MultiProcess = 'off'
 
-        # test all files in reclist
+        # Test all files in reclist
         PrdRes = []
         for recname in reclist:
             # --------------------
@@ -115,12 +121,12 @@ class ParallelRfClassifier(ECGrf):
 
             # Testing...
             time_rec0 = time.time()
-            record_predict_result = self.testing_with_extractor(rfmdl,
-                    N_signal, feature_extractor)
+            record_predict_result = self.testing_with_extractor(
+                    rfmdl,
+                    N_signal,
+                    feature_extractor)
             # Logging testing time.
             time_rec1 = time.time()
-            print 'Testing time for {} is {:.2f} s'.\
-                    format(recname,time_rec1-time_rec0)
             log.info('Testing time for %s lead1 is %d seconds',recname,time_rec1-time_rec0)
 
             PrdRes.append((recname,record_predict_result))
@@ -139,8 +145,6 @@ class ParallelRfClassifier(ECGrf):
                     N_signal, feature_extractor)
             # Logging testing time.
             time_rec1 = time.time()
-            print 'Testing time for {} is {:.2f} s'.\
-                    format(recname,time_rec1-time_rec0)
             log.info('Testing time for %s lead1 is %d seconds',recname,time_rec1-time_rec0)
 
             PrdRes.append(('{}_sig2'.format(recname),record_predict_result))

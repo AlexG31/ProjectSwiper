@@ -1,5 +1,6 @@
 #encoding:utf-8
 """
+Plot R-R histograms.
 ECG Medical Evaluation Module
 Author : Gaopengfei
 """

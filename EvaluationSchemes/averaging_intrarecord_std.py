@@ -7,9 +7,10 @@ Author : Gaopengfei
 This file find the bad performance record, print its round number and record name.
 
 1. This file tries to group the results as single outputs around the ground truth position.
-   * Must make sure 'EvaluationSchemes/results/{result_name}/group-result' folder exists in
-     the Round Folder
 2. This file computes the intra-record standard deviation with police object.
+3. This file output stats in ms.
+4. This file keep the smallest error between two leads.
+
 """
 import os
 import sys
@@ -81,7 +82,14 @@ def GroupingRawResults(RoundInd, round_folder, output_round_folder):
     print 'Finished grouping for round %d' % RoundInd
 
 class FindBadRecord:
-    def __init__(self,mean_threshold,std_threshold,FN_threshold,FP_threshold,possible_label_list = None, result_converter = None):
+    def __init__(
+            self,
+            mean_threshold,
+            std_threshold,
+            FN_threshold,
+            FP_threshold,
+            possible_label_list = None,
+            result_converter = None):
         if possible_label_list is None:
             self.possible_label_list = ['P','T','Ponset','Poffset','Toffset']
         else:
@@ -101,7 +109,7 @@ class FindBadRecord:
 
         # result converter
         self.result_converter_ = result_converter
-        # initialize for error_list_for_label& false_negtive_list
+
         # statistics for each record.
         self.statistics_list_for_label = dict()
         for label in self.possible_label_list:
@@ -113,12 +121,14 @@ class FindBadRecord:
             self.statistics_list_for_label[label] = dict(mean = [], std = [])
 
     def RunEval(self,RoundInd,GroupResultFolder):
+        '''Evaluate result.'''
         resultfilelist = glob.glob(os.path.join(GroupResultFolder,'*.json'))
 
         ErrDict = dict()
         ErrData = dict()
 
         for label in self.possible_label_list:
+            # Target label to calculate stats from.
             ErrData[label] = dict()
             ErrDict[label] = dict()
             errList = []
@@ -126,13 +136,10 @@ class FindBadRecord:
             FPcnt = 0
 
             for file_ind in xrange(0,len(resultfilelist)):
-                # progress info
-                # print 'label:',label
-                # print 'evaluation: file_ind',file_ind
-                
-
+                # Process all the *grouped* results.
+                result_file_name = resultfilelist[file_ind]
                 eva= EvaluationMultiLeads(self.result_converter_)
-                eva.loadlabellist(resultfilelist[file_ind],label, supress_warning = True)
+                eva.loadlabellist(result_file_name,label, supress_warning = True)
                 eva.evaluate(label)
 
                 # total error
@@ -208,17 +215,23 @@ class FindBadRecord:
             #pdb.set_trace()
 
     def get_mean_and_std(self):
+        '''
+        The error value for all the records for given label is collected into a list.
+        mean: mean(list)
+        std: std(list)
+        Results are saved in total_error_diction.
+        '''
         for label in self.possible_label_list:
             self.total_error_diction[label] = dict()
             if len(self.error_list_for_label[label]) == 0:
                 self.total_error_diction[label]['mean'] = -1
                 self.total_error_diction[label]['std'] = -1
             else:
-                self.total_error_diction[label]['mean'] = np.mean(self.error_list_for_label[label])
-                self.total_error_diction[label]['std'] = np.std(self.error_list_for_label[label])
-            # debug
-            print 'for label {}:'.format(label)
-            print 'mean = {}, std = {}'.format(self.total_error_diction[label]['mean'],self.total_error_diction[label]['std'])
+                self.total_error_diction[label]['mean'] = np.mean(
+                        self.error_list_for_label[label])
+                self.total_error_diction[label]['std'] = np.std(
+                        self.error_list_for_label[label])
+
     def get_Sensitivity_and_Pplus(self):
         # Sensitivity & P plus
         for label in self.possible_label_list:
@@ -241,6 +254,7 @@ class FindBadRecord:
             json.dump(self.total_error_diction,fout,indent = 4,sort_keys = True)
             print 'json file save to {}.'.format(jsonfilename)
     def display_error_statistics(self):
+        '''Display error stats to stdout.'''
         print '\n'
         print '-'*30
         print '[label]  [mean]   [std]   [False Negtive]'
@@ -254,7 +268,7 @@ class FindBadRecord:
                     np.nanmean(self.statistics_list_for_label[label]['mean']),
                     np.nanmean(self.statistics_list_for_label[label]['std']))
     def dump_statistics_to_file(self, log_file_name):
-        '''Dump statistics data to txt file.'''
+        '''Like display_error_statistics(), dump statistics data to txt file.'''
         def BreakLine(fout):
             fout.write('\n')
         with open(log_file_name, 'w') as fout:
@@ -299,8 +313,10 @@ def ResetFolder(folder_name):
 if __name__ == '__main__':
 
     # Name of the experiment
-    experiment_name = 'swt-paper-2'
+    experiment_name = 'swt-paper-3'
     total_round_number = 30
+    # Labels to extract statistics from.
+    possible_label_list = ['T','P','Toffset','Ponset','Poffset','Ronset','R','Roffset']
 
     # Get converter
     result_converter = ConverterFactory('simple-converter')
@@ -327,12 +343,11 @@ if __name__ == '__main__':
         result_converter = ConverterFactory('simple-converter')
 
     # clear Log file
-    with open(os.path.join(evaluation_result_path,
-        'Log_which_record_is_bad.txt'),'w') as fin:
-        pass
+    log_file_path = os.path.join(evaluation_result_path, 'Log_which_record_is_bad.txt')
+    if os.path.exists(log_file_path) == True:
+        shutil.rmtree(log_file_path)
 
-    possible_label_list = ['T','P','Toffset','Ponset','Poffset','Ronset','R','Roffset']
-
+    # Construct Police object
     police_obj = FindBadRecord(10, 13, 20, 20,
             possible_label_list = possible_label_list,
             result_converter = result_converter)
@@ -341,7 +356,7 @@ if __name__ == '__main__':
         print 'processing Round :',RoundInd
         GroupResultFolder = os.path.join(prediction_result_folder,
                 'round{}'.format(RoundInd))
-        police_obj.RunEval(RoundInd,GroupResultFolder)
+        police_obj.RunEval(RoundInd, GroupResultFolder)
     # compute error statistics
     police_obj.ComputeStatistics()
     # display error statistics
