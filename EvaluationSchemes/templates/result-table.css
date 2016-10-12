@@ -1,0 +1,28 @@
+tr {
+    border-width: thin;
+    border-style: solid;
+}
+td {
+    border-width: thin;
+    border-style: solid;
+    width: 5em;
+    text-align: center;
+}
+
+th {
+    background-color: lightgrey;
+}
+
+td.metric {
+    width: 9em;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+h1 {
+    color: black;
+    font-width: bold;
+    border-width: thick;
+}

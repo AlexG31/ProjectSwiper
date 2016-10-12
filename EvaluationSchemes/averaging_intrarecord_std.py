@@ -16,6 +16,7 @@ import os
 import sys
 import json
 import glob
+import string
 import bisect
 import math
 import pickle
@@ -267,6 +268,53 @@ class FindBadRecord:
             print 'mean = {}, std = {}'.format(
                     np.nanmean(self.statistics_list_for_label[label]['mean']),
                     np.nanmean(self.statistics_list_for_label[label]['std']))
+    def dump_statistics_to_HTML(self, html_file_name):
+        '''Like display_error_statistics(), dump statistics data to txt file.'''
+        # 1. Read html template to string
+        html_template_path = os.path.join(
+                projhomepath,
+                'EvaluationSchemes',
+                'templates',
+                'result-table.html')
+        html_template_str_list = []
+        with open(html_template_path, 'r') as fin:
+            for line in fin:
+                html_template_str_list.append(line)
+            html_template_str = ''.join(html_template_str_list)
+
+        html_template = string.Template(html_template_str)
+        
+        css_file_path = os.path.join(
+                projhomepath,
+                'EvaluationSchemes',
+                'templates',
+                'result-table.css')
+        data_dict = dict(css_file_path=css_file_path)
+        # Fill in data, save in dict
+        for label in self.possible_label_list:
+            if label in ['P', 'R', 'T']:
+                html_label = label + 'peak'
+            else:
+                html_label = label
+            # Get mean & std
+            label_mean = np.nanmean(self.statistics_list_for_label[label]['mean'])
+            label_std = np.nanmean(self.statistics_list_for_label[label]['std'])
+            data_dict.update({html_label+'_error': '%.1f & %.1f' % (label_mean, label_std)})
+            # Get Se
+            label_Se = self.sensitivity[label]
+            data_dict.update({html_label+'_se': '%.3f' % label_Se})
+
+            # Get Pp
+            label_Pp = self.Pplus[label]
+            data_dict.update({html_label+'_pp': '%.3f' % label_Pp})
+
+
+        # Fill in the data
+        html_data = html_template.substitute(data_dict)
+            
+        with open(html_file_name, 'w') as fout:
+            fout.write(html_data)
+
     def dump_statistics_to_file(self, log_file_name):
         '''Like display_error_statistics(), dump statistics data to txt file.'''
         def BreakLine(fout):
@@ -313,7 +361,7 @@ def ResetFolder(folder_name):
 if __name__ == '__main__':
 
     # Name of the experiment
-    experiment_name = 'swt-paper-3'
+    experiment_name = 'swt-paper-4'
     total_round_number = 30
     # Labels to extract statistics from.
     possible_label_list = ['T','P','Toffset','Ponset','Poffset','Ronset','R','Roffset']
@@ -331,6 +379,7 @@ if __name__ == '__main__':
         prediction_result_folder))
     if should_group_result in ['y', 'Y']:
         print 'Grouping...'
+
         # Remove existing folders
         ResetFolder(evaluation_result_path)
         new_group_result_folder = os.path.join(evaluation_result_path,'group-result')
@@ -361,4 +410,6 @@ if __name__ == '__main__':
     police_obj.ComputeStatistics()
     # display error statistics
     police_obj.display_error_statistics()
-    police_obj.dump_statistics_to_file(os.path.join(evaluation_result_path, 'evaluation-statistics.txt'))
+    police_obj.dump_statistics_to_HTML(os.path.join(
+        evaluation_result_path, 
+        'evaluation-statistics.html'))

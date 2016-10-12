@@ -190,7 +190,8 @@ class ECGfeatures:
         sig_height = float(Ampmax-Ampmin)
         if sig_height <= EPS:
             sig_height = 1
-        #windowed_matrix = [[val/sig_height for val in signal] for signal in windowed_matrix]
+        windowed_matrix = [[(val-Ampmin)/sig_height for val in signal]
+                for signal in windowed_matrix]
 
         features = []
 
