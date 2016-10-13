@@ -2,6 +2,7 @@ tr {
     border-width: thin;
     border-style: solid;
 }
+
 td {
     border-width: thin;
     border-style: solid;
@@ -25,4 +26,12 @@ h1 {
     color: black;
     font-width: bold;
     border-width: thick;
+}
+
+td:hover {
+	background-color: yellow;
+}
+
+tr:hover {
+	background-color: #a1a1a1;
 }
