@@ -145,12 +145,18 @@ class ECGfeatures:
         
         # Adding time-domain windowed signal.
 
-        windowed_matrix.append(self.getWindowedSignal(position, self.rawsig, fixed_window_length))
+        windowed_matrix.append(self.getWindowedSignal(position,
+            self.rawsig,
+            fixed_window_length))
         # Apply the window in each level of swt coefficients.
         for detail_coefficients in self.cDlist:
-            windowed_matrix.append(self.getWindowedSignal(position, detail_coefficients, fixed_window_length))
+            windowed_matrix.append(self.getWindowedSignal(position,
+                detail_coefficients,
+                fixed_window_length))
         # Adding approximation level.
-        windowed_matrix.append(self.getWindowedSignal(position, self.cAlist[-1], fixed_window_length))
+        windowed_matrix.append(self.getWindowedSignal(position,
+            self.cAlist[-1],
+            fixed_window_length))
 
         return windowed_matrix
 
@@ -173,7 +179,7 @@ class ECGfeatures:
         '''Get WT feature from position in ECG time-domain waveform.'''
         pos = int(pos)
         if pos<0 or pos >= len(self.signal_in):
-            raise StandardError('input position posx must in range of sig indexs!')
+            raise StandardError('Input position posx must in range of sig indexs!')
         rawsig = self.rawsig
         
         # Stateful... Apply window in each level of swt coefficients.
@@ -201,8 +207,8 @@ class ECGfeatures:
         for folder in Result_path_conf:
             saveresultpath = os.path.join(saveresultpath,folder)
 
-        # Default value for random relations json file.
-        # For API.
+        # Specify random relations json file.
+        # For cpp API.
         if self.random_relation_path_ is None:
             WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
         else:
@@ -210,7 +216,7 @@ class ECGfeatures:
         with open(WTrrJsonFileName,'r') as fin:
             wt_pair_list = json.load(fin)
 
-        for signal ,pair_list in zip(windowed_matrix[1:],wt_pair_list):
+        for signal, pair_list in zip(windowed_matrix[1:],wt_pair_list):
             fv = [signal[x[0]] - signal[x[1]] for x in pair_list]
             features.extend(fv)
             fv = [abs(signal[x[0]] - signal[x[1]]) for x in pair_list]

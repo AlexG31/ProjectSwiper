@@ -1,21 +1,21 @@
 {
-    "WT_LEVEL": 6, 
+    "WT_LEVEL": 6,
     "ParallelTesting": "False", 
     "QTtest": "FastTest", 
     "LeadNumber":0,
-    "RF_TreeNumber": 30, 
+    "RF_TreeNumber": 35, 
     "ResultFolder_Relative": [
         "result", 
-        "regression-test"
+        "swt-paper-test"
     ], 
-    "Tree_Max_Depth": 35, 
-    "WTrandselfeaturenumber_apprx": 8000, 
+    "Tree_Max_Depth": 40, 
+    "WTrandselfeaturenumber_apprx": 3000, 
     "Wavelet_type": "gswt", 
     "feature_type": "wavelet", 
     "fs": 250, 
     "negsampleratio": 0.005, 
     "training_excludedist": 10, 
     "windowpairnumber_ratio_to_winlen": 20, 
-    "winlen_ratio_to_fs": 4,
+    "winlen_ratio_to_fs": 2,
     "regression_swt_feature": "amplitude"
 }

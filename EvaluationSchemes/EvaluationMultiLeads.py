@@ -83,7 +83,7 @@ class EvaluationMultiLeads:
         self.prdMatchList = []
         self.expMatchList = []
 
-    def loadlabellist(self,filename,TargetLabel,supress_warning = False):
+    def loadlabellist(self,filename, TargetLabel, supress_warning = False):
         '''Load label list with Target Label from json file.
         
             Result should have format:
@@ -119,7 +119,13 @@ class EvaluationMultiLeads:
             print '>>loading recname:',self.recname
 
         self.leadResults= Res['LeadResult']
-        self.leadPosList = (self.leadResults[0][TargetLabel],self.leadResults[1][TargetLabel])
+
+        # Special case for empty dict
+        if TargetLabel not in self.leadResults[0]:
+            self.leadPosList = ([], [])
+        else:
+            self.leadPosList = (self.leadResults[0][TargetLabel],
+                    self.leadResults[1][TargetLabel])
 
         # convert values to int
         #self.labellist = map(lambda x:int(x),self.labellist)

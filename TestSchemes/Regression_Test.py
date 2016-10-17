@@ -63,11 +63,18 @@ def backupobj(obj,savefilename):
     with open(savefilename,'wb') as fout:
         pickle.dump(obj,fout)
 
-def Round_Test(save_result_path,RoundNumber = 1,number_of_test_record_per_round = 30, round_start_index = 1):
+
+def Round_Test(
+        saveresultpath,
+        RoundNumber = 1,
+        number_of_test_record_per_round = 30,
+        round_start_index = 1,
+        target_label = 'T'):
     '''Randomly select records from QTdb to test.
         Args:
             RoundNumber: Rounds to repeatedly select records form QTdb & test.
-            number_of_test_record_per_round: Number of test records to randomly select per round.
+            number_of_test_record_per_round: Number of test records to randomly
+            select per round.
     '''
     
     qt_loader = QTloader()
@@ -75,23 +82,51 @@ def Round_Test(save_result_path,RoundNumber = 1,number_of_test_record_per_round 
 
     # To randomly select 30 records from may_testlist
     may_testlist = QTreclist
+    # Remove records that must be in the training set
+    must_train_list = [
+        "sel35", 
+        "sel36", 
+        "sel31", 
+        "sel38", 
+        "sel39", 
+        "sel820", 
+        "sel51", 
+        "sele0104", 
+        "sele0107", 
+        "sel223", 
+        "sele0607", 
+        "sel102", 
+        "sele0409", 
+        "sel41", 
+        "sel40", 
+        "sel43", 
+        "sel42", 
+        "sel45", 
+        "sel48", 
+        "sele0133", 
+        "sele0116", 
+        "sel14172", 
+        "sele0111", 
+        "sel213", 
+        "sel14157", 
+        "sel301"
+            ]
+    may_testlist = list(set(may_testlist) - set(must_train_list))
     N_may_test = len(may_testlist)
     
     # Start testing.
     log.info('Start Round Testing...')
     for round_ind in xrange(round_start_index, RoundNumber+1):
         # Generate round folder.
-        round_folder = os.path.join(save_result_path,'round{}'.format(round_ind))
+        round_folder = os.path.join(saveresultpath,'round{}'.format(round_ind))
         os.mkdir(round_folder)
         # Randomly select test records.
         test_ind_list = random.sample(xrange(0,N_may_test),number_of_test_record_per_round)
         testlist = map(lambda x:may_testlist[x],test_ind_list)
         # Run the test warpper.
-        TestAllQTdata(round_folder,testlist)
+        TestAllQTdata(round_folder,testlist,target_label = target_label)
 
-
-
-def TestAllQTdata(save_result_path,testinglist, training_list = None):
+def TestAllQTdata(save_result_path, testinglist, training_list = None, target_label = 'T'):
     '''Test Regression Learner with QTdb.'''
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
@@ -111,7 +146,9 @@ def TestAllQTdata(save_result_path,testinglist, training_list = None):
             len(training_list),
             len(testinglist))
 
-    rf_classifier = ECGrf(SaveTrainingSampleFolder = save_result_path)
+    rf_classifier = ECGrf(
+            TargetLabel = target_label,
+            SaveTrainingSampleFolder = save_result_path)
     # Multi Process
     rf_classifier.TestRange = 'All'
 
@@ -133,26 +170,30 @@ def TestAllQTdata(save_result_path,testinglist, training_list = None):
 
 
     
-def TEST1(save_result_path):
+def TEST1(save_result_path, target_label = 'T'):
     qt_loader = QTloader()
     qt_record_list= qt_loader.getQTrecnamelist()
 
     # testing& training set
-    training_list = qt_record_list[0:10]
-    testing_list = qt_record_list[1:11]
+    training_list = qt_record_list[0:4]
+    testing_list = qt_record_list[41:50]
 
     # Start traing & testing
-    TestAllQTdata(save_result_path, testing_list, training_list)
+    TestAllQTdata(save_result_path, testing_list, training_list, target_label = target_label)
 
 if __name__ == '__main__':
 
     # Get save_result_path from config file.
-    save_result_path = projhomepath
-    Result_path_conf = conf['ResultFolder_Relative']
-    for folder in Result_path_conf:
-        save_result_path = os.path.join(save_result_path,folder)
+    save_result_path = os.path.join(projhomepath,
+            'result',
+            'regression-test4')
+    target_label = 'T'
+    number_of_rounds = 100
 
     # logging
+    logging.basicConfig(
+        filename = os.path.join(save_result_path, 'log.txt'))
+    log = logging.getLogger()
     log.info('Save result to: %s', save_result_path)
 
     # create result folder if not exist
@@ -177,5 +218,8 @@ if __name__ == '__main__':
     backup_configure_file(save_result_path)
 
     # Customized testing
-    TEST1(save_result_path)
-    # Round_Test(save_result_path, RoundNumber = 2, round_start_index = 1)
+    # TEST1(save_result_path, target_label = target_label)
+    Round_Test(save_result_path,
+            RoundNumber = number_of_rounds,
+            round_start_index = 1,
+            target_label = target_label)

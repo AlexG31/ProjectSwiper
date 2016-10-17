@@ -452,19 +452,18 @@ class ECGrf(object):
             samples_tobe_tested = map(featureextractor.frompos,poslist[index_L:index_R])
             # predict
             #
+            # Benchmark info
+            time_predict = time.time()
+
             res = rfmdl.predict(samples_tobe_tested)
             mean_proba = rfmdl.predict_proba(samples_tobe_tested)
             label_proba_vec = map(lambda x:x[1][dict_class2index[x[0]]],zip(res,mean_proba))
-            # debug
-            #print 'probability shape:',mean_proba.shape
-            #print 'array of classes:',rfmdl.classes_
-            ### sample to make sure
-            #n_debug = 30
-            #print 'predict label & its proba:',zip(res,label_proba_vec)[0:n_debug]
-            #pdb.set_trace()
             PrdRes.extend(res.tolist())
             PrdProba.extend(label_proba_vec)
             
+            # Logging
+            log.debug('Time cost for predict a sample: %f',
+                    (time.time() - time_predict)/ len(samples_tobe_tested))
             
         if len(PrdRes) != len(poslist):
             print 'len(prd Results) = ',len(PrdRes),'Len(poslist) = ',len(poslist)

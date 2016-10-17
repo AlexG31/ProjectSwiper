@@ -51,7 +51,7 @@ EPS = 1e-6
 tmpmdlfilename = os.path.join(projhomepath,'tmpmdl.txt')
 
 class RegressionLearner:
-    def __init__(self,TargetLabel = 'T', SaveTrainingSampleFolder = None):
+    def __init__(self,TargetLabel = 'Toffset', SaveTrainingSampleFolder = None):
         # Feature&output for learner.
         self.TargetLabel = TargetLabel
         self.feature_pool_ = []
@@ -72,6 +72,7 @@ class RegressionLearner:
         '''API for QTdb: training model with given record_list.'''
         QTdb = QTloader()
 
+        training_count = 1
         # Extracting feature from each record.
         for record_name in record_list:
             sig_struct = QTdb.load(record_name)
@@ -80,7 +81,8 @@ class RegressionLearner:
             self.AddNewTrainingSignal(raw_signal, expert_labels)
             # Logging
             log.info('Extracted features from %s' % record_name)
-            print 'Extracted features from %s' % record_name
+            print '.' * training_count, '(%d/%d)' % (training_count, len(record_list))
+            training_count += 1
 
         # Training with feature pool
         self.training()
@@ -88,10 +90,14 @@ class RegressionLearner:
     def TestQtRecords(self,save_folder, reclist = []):
         '''API for QTdb: testing given record_list.'''
         QTdb = QTloader()
+
+        print 'Testing:'
+        testing_count = 1
         for record_name in reclist:
             # Logging
             log.info('Testing record %s' % record_name)
-            print 'Testing record %s' % record_name
+            print '.' * testing_count, '(%d/%d)' % (testing_count, len(reclist))
+            testing_count += 1
 
             sig_struct = QTdb.load(record_name)
             expert_labels = QTdb.getExpert(record_name)
@@ -180,7 +186,14 @@ class RegressionLearner:
         return segment_range
 
     def CropSignal(self, signal, segment_range, FixedLength):
-        '''Crop input signal into fixed length, padding zeros if needed.'''
+        '''
+        Copy signal segment according to RR distance, padding zeros if segment exceeds the
+        signnal boundaries.
+        NOTE:
+            This function copies the data to a new list, rather than using the original
+            pointer.
+            This function crop the segment if it exceeds FixedLength.
+        '''
         cropped_signal = list()
         left, right = segment_range[0:2]
         if left < 0:
@@ -238,7 +251,7 @@ class RegressionLearner:
         r_pos_list = map(lambda x:x[0], r_labels)
 
         for r_pos in r_pos_list:
-            # Get signal segment.
+            # Get signal segment (segment between R-R).
             segment_range = self.GetRRSegment(r_pos_list, r_pos)
             target_pos = self.GetNextLabelPosition(
                     self.TargetLabel,
@@ -248,7 +261,7 @@ class RegressionLearner:
             # Skip if missing.
             if target_pos is None:
                 continue
-            # Segment is from Q_before to S_after.
+            # Extend segment
             segment_range[0] -= self.QRS_segment_expand_length
             segment_range[1] += self.QRS_segment_expand_length
             # Target label position
@@ -330,7 +343,7 @@ class RegressionLearner:
         Fill the missing QRS mark(s).
 
         Example:
-        if next Q & S exists but R missing:
+        If next Q & S exists but R missing:
         next QRS: --> boundary_function(Q_pos, S_pos)
         next QRS: -->               min(Q_pos, S_pos)
         next QRS: -->               max(Q_pos, S_pos)
@@ -361,28 +374,45 @@ class RegressionLearner:
             QRS_distance_after,
             QRS_distance_ratio,
             sig_seg):
-        '''Crop the length of each feature signal to self.MaxHeartBeatWidth.'''
-        # All signal segment should have the same length.
-        N_current = len(QRS_distance_ratio)
-        if N_current < self.MaxHeartBeatWidth:
-            # Stuffing polyfoam behind.
-            QRS_distance_after.extend([0,]*(self.MaxHeartBeatWidth - N_current))
-            QRS_distance_before.extend(range(QRS_distance_before[-1]+1, self.MaxHeartBeatWidth))
-            QRS_distance_ratio.extend([1,]*(self.MaxHeartBeatWidth - N_current))
-            sig_seg.extend([sig_seg[-1],] * (self.MaxHeartBeatWidth - N_current))
-            for ind in xrange(0,len(cDlist_seg)):
-                cDlist_seg[ind].extend([cDlist_seg[ind][-1],]*(self.MaxHeartBeatWidth - N_current))
-        elif N_current > self.MaxHeartBeatWidth:
-            # cutoff the after part
-            log.warning('Heart Beat Segment is too long, cutting off the tail part!')
-            QRS_distance_after = QRS_distance_after[0:self.MaxHeartBeatWidth]
-            QRS_distance_before = QRS_distance_before[0:self.MaxHeartBeatWidth]
-            QRS_distance_ratio= QRS_distance_ratio[0:self.MaxHeartBeatWidth]
-            sig_seg = sig_seg[0:self.MaxHeartBeatWidth]
-            for ind in xrange(0,len(cDlist_seg)):
-                cDlist_seg[ind] = cDlist_seg[ind][0:self.MaxHeartBeatWidth]
+        '''Make sure the input signals have equal length of self.FixedSignalLength.'''
+
+        def CropEcgWaveForm(signal_segment, fixed_length):
+            '''Crop gc function for ECG waveform, detail signal.'''
+            N_current = len(signal_segment)
+            if N_current < fixed_length:
+                # Stuffing polyfoam behind.
+                # log.warning('Heart Beat Segment is too short, stuffing constants behind!')
+                signal_segment.extend([signal_segment[-1],] * (fixed_length - N_current))
+            elif N_current > fixed_length:
+                # Cutoff from behind
+                # log.warning('Heart Beat Segment is too long, cutting off the tail part!')
+                signal_segment = signal_segment[0:fixed_length]
+            return signal_segment
+        def NormalizeAmplitude(signal_segment):
+            '''Normalize signal amplitude.'''
+            amplitude_max = max(signal_segment)
+            amplitude_min = min(signal_segment)
+            if abs(amplitude_max - amplitude_min) < 1e-6:
+                # Amplitude difference is too small!
+                log.warning('Amplitude difference of signal segment is too small!')
+                return signal_segment
+            signal_segment = [(val - amplitude_min)/(amplitude_max - amplitude_min)
+                    for val in signal_segment]
+            return signal_segment
             
-        return (cDlist_seg,QRS_distance_before, QRS_distance_after,QRS_distance_ratio, sig_seg)
+        fixed_length = self.FixedSignalLength
+        sig_seg = CropEcgWaveForm(sig_seg, fixed_length)
+        sig_seg = NormalizeAmplitude(sig_seg)
+        for detail_signal_segment in cDlist_seg:
+            # Modifies the detail_signal_segment.
+            detail_signal_segment = CropEcgWaveForm(detail_signal_segment, fixed_length)
+            detail_signal_segment = NormalizeAmplitude(detail_signal_segment)
+            
+        return (cDlist_seg,
+                QRS_distance_before,
+                QRS_distance_after,
+                QRS_distance_ratio,
+                sig_seg)
             
     def FormFeature(
                 self,
@@ -394,7 +424,7 @@ class RegressionLearner:
                 debug = False 
             ):
         '''Form feature from the segment signal given.'''
-        # Normalise the length of each input feature signal.
+        # Normalize the length of each input feature signal.
         (
             cDlist_seg,
             QRS_distance_before,
@@ -410,11 +440,9 @@ class RegressionLearner:
         feature_vector = []
 
         # Logging
-        log.info('Only extracting features from SWT level 2 to 6.')
+        # log.info('Only extracting features from SWT level 2 to 6.')
 
         if conf['regression_swt_feature'] == 'difference':
-            # Logging
-            log.info('Extending features from swt difference.')
             for detail_level in cDlist_seg[1:6]:
                 feature_vector.extend(detail_level)
                 feature_vector.extend(map(lambda x:abs(x), detail_level))
@@ -429,8 +457,6 @@ class RegressionLearner:
                         feature_vector.append(
                                 abs(detail_level[pair_x] - detail_level[pair_y]))
         elif conf['regression_swt_feature'] == 'amplitude':
-            # Logging
-            log.info('Extending features from swt amplitude.')
             for detail_level in cDlist_seg[1:6]:
                 feature_vector.extend(detail_level)
         # Add distance to QRS feature.
@@ -505,8 +531,16 @@ class RegressionLearner:
         r_labels = filter(lambda x: x[1] == 'R', expert_labels)
         r_pos_list = map(lambda x:x[0], r_labels)
 
+        # Benchmark information
+        number_of_beats_tested = len(r_pos_list)
+        testing_time_cost = time.time()
+        
+        # Collect sample features into buckets
+        feature_buckets = []
+        result_bias_list = []
 
         for r_pos in r_pos_list:
+
             # Get signal segment.
             segment_range = self.GetRRSegment(r_pos_list, r_pos)
             # Segment is from Q_before to S_after.
@@ -541,21 +575,30 @@ class RegressionLearner:
                     sig_seg)
 
 
-            # Logging
-            log.info("Testing feature vector length %d" % len(current_feature_vector))
+            # Collect samples
+            feature_buckets.append(current_feature_vector)
+            result_bias_list.append(segment_range[0])
 
-            # Convert to np.array for testing API.
-            current_feature_vector = np.array(current_feature_vector)
-            # Call regression learner's predict API.
-            predict_result = self.rfclassifier.predict(
-                    current_feature_vector.reshape(1,-1))
-            # Add range left to convert current index to global index.
-            predict_result += segment_range[0]
 
-            # convert predict result to int
-            predict_result = predict_result.tolist()
-            predict_result = predict_result[0]
-            output_prediction_list.append(predict_result)
+        # Filter empty samples
+        feature_buckets = filter(lambda x: len(x) > 0, feature_buckets)
+        # Bucket testing
+        if len(feature_buckets) > 0:
+            predict_results = self.rfclassifier.predict(feature_buckets)
+            predict_results += np.array(result_bias_list)
+            # Return result as Python list
+            output_prediction_list = predict_results.tolist()
+        
+
+        # Output time cost info to log
+        testing_time_cost = time.time() - testing_time_cost
+
+        if testing_time_cost == 0:
+            # Avoid division by 0
+            testing_time_cost = 1
+        average_time_cost = float(number_of_beats_tested) / float(testing_time_cost)
+        log.info('Testing speed: %f beats per second.' % average_time_cost)
+
         return output_prediction_list
 
 
@@ -603,7 +646,7 @@ class RegressionLearner:
         base2 = 1
         N_data = len(rawsig)
         if len(rawsig)<=1:
-            raise Exception('len(rawsig)={},not enough for swt!',len(rawsig))
+            raise Exception('len(rawsig)={}, too short for swt!',len(rawsig))
         crop_len = base2
         while base2<N_data:
             if base2*2>=N_data:

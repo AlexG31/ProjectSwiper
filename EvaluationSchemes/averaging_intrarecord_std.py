@@ -6,6 +6,7 @@ Date: 2016.10.10
 ECG Grouping Evaluation module
 Author : Gaopengfei
 
+This file acts like a evaluation module for RSWT testing results.
 This file find the bad performance record, print its round number and record name.
 
 1. This file tries to group the results as single outputs around the ground truth position.
@@ -65,8 +66,8 @@ if __name__ == '__main__':
 
     # Name of the experiment
 
-    experiment_name = 'swt-paper-4'
-    total_round_number = 55
+    experiment_name = 'swt-paper-7'
+    total_round_number = 100
     result_filename_pattern = '*.json'
 
     # Labels to extract statistics from.

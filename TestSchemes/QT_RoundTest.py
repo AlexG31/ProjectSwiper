@@ -67,7 +67,8 @@ def Round_Test(
     '''Randomly select records from QTdb to test.
         Args:
             RoundNumber: Rounds to repeatedly select records form QTdb & test.
-            number_of_test_record_per_round: Number of test records to randomly select per round.
+            number_of_test_record_per_round: Number of test records to randomly
+            select per round.
     '''
     
     qt_loader = QTloader()
@@ -111,13 +112,13 @@ def Round_Test(
     log.info('Start Round Testing...')
     for round_ind in xrange(round_start_index, RoundNumber+1):
         # Generate round folder.
-        round_folder = os.path.join(saveresultpath,'round{}'.format(round_ind))
+        round_folder = os.path.join(saveresultpath, 'round{}'.format(round_ind))
         os.mkdir(round_folder)
         # Randomly select test records.
         test_ind_list = random.sample(xrange(0,N_may_test),number_of_test_record_per_round)
-        testlist = map(lambda x:may_testlist[x],test_ind_list)
+        testlist = map(lambda x:may_testlist[x], test_ind_list)
         # Run the test warpper.
-        TestAllQTdata(round_folder,testlist)
+        TestAllQTdata(round_folder, testlist)
 
 def TestAllQTdata(saveresultpath,testinglist):
     '''Test all records in testinglist, training on remaining records in QTdb.'''
@@ -133,18 +134,15 @@ def TestAllQTdata(saveresultpath,testinglist):
     # log.warning('Training range: 0-10')
     # log.warning('Testing range: 0-10')
 
-    log.info('Totoal QTdb record number:%d, training %d, testing %d', len(QTreclist), len(traininglist), len(testinglist))
+    log.info('Totoal QTdb record number:%d, training %d, testing %d',
+            len(QTreclist), len(traininglist), len(testinglist))
 
     rf_classifier = ECGrf(SaveTrainingSampleFolder = saveresultpath)
     # Multi Process
     rf_classifier.TestRange = 'All'
 
     # Training
-    # ====================
-    log.info('Start training...')
-    print 'training...'
 
-    # training the rf_classifier classifier with reclist
     time_cost_output = []
     timing_for(rf_classifier.TrainQtRecords,
             [traininglist,],
@@ -160,6 +158,10 @@ def TestAllQTdata(saveresultpath,testinglist):
 
     
 if __name__ == '__main__':
+
+    # Debug
+    number_of_test_record_per_round = 30
+
     saveresultpath = projhomepath
     Result_path_conf = conf['ResultFolder_Relative']
     for folder in Result_path_conf:
@@ -183,4 +185,7 @@ if __name__ == '__main__':
     #backup configuration file
     backup_configure_file(saveresultpath)
 
-    Round_Test(saveresultpath, RoundNumber = 100, round_start_index = 1)
+    Round_Test(saveresultpath,
+            number_of_test_record_per_round = number_of_test_record_per_round,
+            RoundNumber = 100,
+            round_start_index = 1)
