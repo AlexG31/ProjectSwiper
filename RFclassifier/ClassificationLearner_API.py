@@ -19,7 +19,7 @@ import numpy as np
 ## machine learning methods
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
-
+import scipy.signal
 # project homepath
 # 
 curfilepath =  os.path.realpath(__file__)
@@ -46,8 +46,19 @@ from EvaluationSchemes.ResultGrouper import ResultGrouper
 # ==========
 EPS = 1e-6
 
-def Testing(raw_signal, model_path):
+def SignalResampling(raw_signal, sampling_frequency, adapt_frequency = 250.0):
+    '''Resample signal'''
+    
+    N = len(raw_signal)
+    M = 1 + adapt_frequency * (N - 1) / sampling_frequency
+    M = int(M) + 1
+    return scipy.signal.resample(raw_signal, M, window = ('hamming')).tolist()
+    
+def Testing(raw_signal, model_path, sampling_frequency = 250.0):
     '''Testing API.'''
+    # Sampling frequency adapting
+    raw_signal = SignalResampling(raw_signal, sampling_frequency)
+
     saveresultpath = model_path
     rf_classifier = ECGrf(SaveTrainingSampleFolder = saveresultpath)
     # Multi Process
@@ -473,18 +484,18 @@ def TEST1():
     # load signal from QTdb
     loader = QTdb.QTloader()
     sig_struct = loader.load('sel100')
-    sig_segment = sig_struct['sig'][200:1800]
+    sig_segment = sig_struct['sig'][100:1800]
 
     # model path
     model_path = os.path.join(
-            projhomepath, 'result', 'test-api')
+            projhomepath, 'result', 'swt-paper-8')
     result = Testing(sig_segment, model_path)
 
     # length check:
     print 'length of signal: ', len(sig_segment)
     print 'length of result: ', len(result)
     # plot result
-    target_label = 'Ponset'
+    target_label = 'P'
     plt.figure(1)
     plt.plot(sig_segment, label = 'signal')
     pos_list = [x[0] for x in result if x[1] == target_label]
@@ -494,4 +505,4 @@ def TEST1():
     plt.show()
 
 if __name__ == '__main__':
-    TEST2()
+    TEST1()
