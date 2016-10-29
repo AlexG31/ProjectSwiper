@@ -228,6 +228,7 @@ class FeatureVisualizationSwt:
             max_amp = np.max(cDamp)
 
             rel_layer = mean_rel_layer - (mean_rel_layer - rel_layer) * 1e3
+            rel_layer -= np.min(rel_layer)
             rel_layer[rel_layer > max_amp] = max_amp
 
             stem_marker, stem_line, stem_base = plt.stem(rel_layer)
@@ -355,11 +356,11 @@ def VisualizeModel(target_label = 'T', WindowLeftBias = 140, show_figure = False
     '''Visualize model.'''
     # target_label = 'P'
     mdlfilename = os.path.join(curfolderpath,
-            'trained_model',
-            'regression',
+            'regression_models',
+            target_label,
             'trained_model.mdl')
     rand_relation_path = os.path.join(curfolderpath,
-            'trained_model',
+            'regression_models',
             'rand_relations.json')
 
     with open(mdlfilename, 'rb') as fin:
@@ -374,6 +375,6 @@ def VisualizeModel(target_label = 'T', WindowLeftBias = 140, show_figure = False
 
 if __name__ == '__main__':
     show_figure = True
-    VisualizeModel('T', 50, show_figure = show_figure)
-    # VisualizeModel('P', 50, show_figure = show_figure)
+    VisualizeModel('P', 140, show_figure = show_figure)
+    # VisualizeModel('T', 50, show_figure = show_figure)
     # VisualizeModel('R', 50, show_figure = show_figure)
