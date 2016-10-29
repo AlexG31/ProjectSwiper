@@ -178,9 +178,7 @@ if __name__ == '__main__':
         os.mkdir(saveresultpath)
     # Refresh randomly selected features json file and backup it.
     random_relation_file_path = os.path.join(saveresultpath, 'rand_relations.json')
-    RandomRelation.refresh_project_random_relations_computeLen(
-            copyTo = random_relation_file_path)
-    log.info('Copied random relation file to %s', random_relation_file_path)
+    RandomRelation.RefreshRswtPairs(random_relation_file_path)
 
     #backup configuration file
     backup_configure_file(saveresultpath)

@@ -75,7 +75,10 @@ def timing_for(function_handle,params,prompt = 'timing is',time_cost_output = No
 
 # train and test
 class ECGrf(object):
-    def __init__(self,MAX_PARA_CORE = 6,SaveTrainingSampleFolder = None):
+    def __init__(self,MAX_PARA_CORE = 6,
+            SaveTrainingSampleFolder = None,
+            allowed_label_list = None,
+            random_relation_path = None):
         # only test on areas with expert labels
         self.TestRange = 'Partial'# or 'All'
         # Parallel
@@ -93,6 +96,15 @@ class ECGrf(object):
             self.SaveTrainingSampleFolder = ResultFolder
         else:
             self.SaveTrainingSampleFolder = SaveTrainingSampleFolder
+
+        # Allowed positive labels
+        if allowed_label_list is None:
+            allowed_label_list = ['T', 'Tonset', 'Toffset',
+                    'R', 'Ronset', 'Roffset',
+                    'P', 'Ponset', 'Poffset']
+        self.allowed_label_list = allowed_label_list
+        self.random_relation_path = random_relation_path
+
     @ staticmethod
     def RefreshRandomFeatureJsonFile(copyTo = None):
         # refresh random relations
@@ -101,7 +113,11 @@ class ECGrf(object):
 
     @staticmethod
     def collectfeaturesforsig(sig,
-            SaveTrainingSampleFolder,blankrangelist = None,recID = None):
+            SaveTrainingSampleFolder,
+            blankrangelist = None,
+            recID = None,
+            allowed_label_list = None,
+            random_relation_path = None):
         '''Label process & convert to feature.'''
         #
         # parameters:
@@ -110,7 +126,8 @@ class ECGrf(object):
         # collect training features from sig
         #
         # init
-        Extractor = extfeature.ECGfeatures(sig['sig'])
+        Extractor = extfeature.ECGfeatures(sig['sig'],
+                random_relation_path = random_relation_path)
         negposlist = []
         posposlist = [] # positive position list
         labellist = [] # positive label list
@@ -123,23 +140,25 @@ class ECGrf(object):
         # modified negposlist inside function
         # =======================================================
         ExpertLabels = QTloader.getexpertlabeltuple(None,sigIN = sig,negposlist = negposlist)
-        posposlist,labellist = zip(*ExpertLabels)
+
+        # Filtering according to allowed labels
+        if allowed_label_list is not None:
+            allowed_expert_labels = filter(lambda x: x[1] in allowed_label_list, ExpertLabels)
+        if len(allowed_expert_labels) == 0:
+            return ([], [])
+        posposlist, labellist = zip(*allowed_expert_labels)
 
         # ===============================
         # convert feature & append to X,y
         # Using Map build in function
         # ===============================
-        FV = map(Extractor.frompos,posposlist)
+        FV = map(Extractor.frompos, posposlist)
         # append to trainging vector
         trainingX.extend(FV)
         trainingy.extend(labellist)
         
         # add neg samples
         Nneg = int(len(negposlist)*conf['negsampleratio'])
-        #print 'Total number of negposlist =',len(negposlist)
-        #print '-- Number of Training samples -- '
-        #print 'Num of pos samples:',len(trainingX)
-        #print 'Num of neg samples:',Nneg
 
         # if Number of Neg>0 then add negtive samples
         if len(negposlist) == 0 or Nneg<=0:
@@ -191,9 +210,14 @@ class ECGrf(object):
         QTloader = QTdb.QTloader()
         sig = QTloader.load(recname)
         if valid_signal_value(sig['sig']) == False:
-            return [[],[]]
-        tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,blankrangelist = None,recID = recname)
-        return (tX,ty)
+            return [[], []]
+        tX, ty = ECGrf.collectfeaturesforsig(sig,
+                SaveTrainingSampleFolder = self.SaveTrainingSampleFolder,
+                blankrangelist = None,
+                recID = recname,
+                allowed_label_list = self.allowed_label_list,
+                random_relation_path = self.random_relation_path)
+        return (tX, ty)
 
     def TrainQtRecords(self,reclist):
         '''Warpper for model training on QTdb.'''
@@ -202,13 +226,15 @@ class ECGrf(object):
         pool = Pool(2)
 
         training_samples, training_labels = [], []
-        # single core:
-        trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
+        # Single core:
+        trainingTuples = timing_for(map,
+                [self.CollectRecFeature,reclist],
+                prompt = 'All records collect feature time')
         # close pool
         pool.close()
         pool.join()
         # organize features
-        tXlist,tylist = zip(*trainingTuples)
+        tXlist, tylist = zip(*trainingTuples)
 
         # tylist is a list of training_labels for each record,
         # similar is for tXlist
@@ -218,10 +244,18 @@ class ECGrf(object):
         # train Random Forest Classifier
         Tree_Max_Depth = conf['Tree_Max_Depth']
         RF_TreeNumber = conf['RF_TreeNumber']
-        rfclassifier = RandomForestClassifier(n_estimators = RF_TreeNumber,max_depth = Tree_Max_Depth,n_jobs =4,warm_start = False)
-        log.info('Random Forest Training Sample Size : [%d samples * %d features]',len(training_samples),len(training_samples[0]))
-        timing_for(rfclassifier.fit,(training_samples,training_labels),prompt = 'Random Forest Fitting')
-        # save&return classifier model
+        rfclassifier = RandomForestClassifier(n_estimators = RF_TreeNumber,
+                max_depth = Tree_Max_Depth,
+                n_jobs =4,
+                warm_start = False)
+        log.info('Random Forest Training Sample Size : [%d samples * %d features]',
+                len(training_samples),
+                len(training_samples[0]))
+        timing_for(rfclassifier.fit,
+                (training_samples,
+                    training_labels),
+                prompt = 'Random Forest Fitting')
+        # Save & return classifier model
         self.mdl = rfclassifier
         return rfclassifier
     
@@ -231,17 +265,20 @@ class ECGrf(object):
             rfmdl = self.mdl
         # Extracting Feature
         if MultiProcess == 'off':
-            FeatureExtractor = extfeature.ECGfeatures(signal)
+            FeatureExtractor = extfeature.ECGfeatures(signal,
+                    random_relation_path = self.random_relation_path)
         else:
             raise StandardError('MultiProcess on is not defined yet!')
         # testing
         if MultiProcess == 'on':
             raise StandardError('MultiProcess on is not defined yet!')
         elif MultiProcess == 'off':
-            record_predict_result = self.test_with_positionlist(rfmdl,range(0,len(signal)),FeatureExtractor)
+            record_predict_result = self.test_with_positionlist(rfmdl,
+                    range(0, len(signal)),
+                    FeatureExtractor)
         return record_predict_result
 
-    def testing(self,reclist,rfmdl = None,saveresultfolder = None):
+    def testing(self, reclist, rfmdl = None, saveresultfolder = None):
         '''Testing ECG record with trained model.'''
 
         # default parameters
@@ -269,7 +306,8 @@ class ECGrf(object):
             # sigle process
             if MultiProcess == 'off':
                 log.info('Multi-process is off, using record-global feature extractor.')
-                FeatureExtractor = extfeature.ECGfeatures(sig['sig'])
+                FeatureExtractor = extfeature.ECGfeatures(sig['sig'],
+                        random_relation_path = self.random_relation_path)
 
             # ------------------------
             # test lead I
@@ -623,28 +661,6 @@ class ECGrf(object):
             RecResults = self.testing([recname,],saveresultfolder = saveresultfolder)
         
 
-
-# ======================================
-# Parallelly Collect training sample for each rec
-# ======================================
-def Parallel_CollectRecFeature(recname):
-    print 'Parallel Collect RecFeature from {}'.format(recname)
-    # load blank area list
-    blkArea = conf['labelblankrange']
-    ## debug log:
-    debugLogger.dump('collecting feature for {}\n'.format(recname))
-    # load sig
-    QTloader = QTdb.QTloader()
-    sig = QTloader.load(recname)
-    if valid_signal_value(sig['sig']) == False:
-        return [[],[]]
-    # blank list
-    blklist = None
-    if recname in blkArea:
-        print recname,'in blank Area list.'
-        blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
-    return (tX,ty)
     
 
 if __name__ == '__main__':

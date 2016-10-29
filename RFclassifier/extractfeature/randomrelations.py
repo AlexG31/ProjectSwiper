@@ -98,13 +98,12 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     sampling_frequency = conf['fs']
     FixedWindowLen = conf['winlen_ratio_to_fs'] * sampling_frequency
 
-    WTrrJsonFileName = os.path.join(curfolderpath,'WTcoefrandrel.json')
+    WTrrJsonFileName = os.path.join('/tmp','WTcoefrandrel.json')
     # Relation list per level.(total:wt_level + 1)
     RelList = []
     total_pair_number = conf['WTrandselfeaturenumber_apprx']
 
-    # Why divide by 2? the pairs diff&abs are added to feature vector,
-    # therefore there's 2-fold feature for a pair.
+    # Why divide by 2? The pairs' both diff&abs are added to feature vector,
     pair_number_per_layer = total_pair_number / (wt_level + 1.0) / 2.0
     pair_number_per_layer = int(pair_number_per_layer)
 
@@ -118,6 +117,45 @@ def refresh_project_random_relations_computeLen(copyTo = None):
     if copyTo is not None:
         log.info('Copying %s to %s' %(WTrrJsonFileName, copyTo))
         copyfile(WTrrJsonFileName,copyTo)
+
+def RefreshRswtPairs(result_file_name):
+    '''Refresh randomly selected pairs.'''
+    print 'Refreshing RSWT Pairs...'
+
+    # Level of wavelet transform.
+    wt_level = conf['WT_LEVEL']
+    sampling_frequency = conf['fs']
+    fixed_window_length = conf['winlen_ratio_to_fs'] * sampling_frequency
+
+    # Relation list per level.(total:wt_level + 1)
+    RelList = []
+    total_pair_number = conf['WTrandselfeaturenumber_apprx']
+
+    totally_random_pair_number = conf['totally_random_pair_number']
+
+    # Why divide by 2? The pairs' both diff&abs are added to feature vector,
+    pair_number_per_layer = total_pair_number / (wt_level - 1.0) / 2.0
+    pair_number_per_layer = int(pair_number_per_layer)
+
+    totally_random_pair_number_per_layer = int(
+            totally_random_pair_number / (wt_level - 1) / 2.0)
+
+    for level_index in xrange(0, wt_level - 1):
+        # Random Generated Pairs
+        rel = []
+        rel = random.sample(Window_Pair_Generator(fixed_window_length),
+                totally_random_pair_number_per_layer)
+        # Fixed difference with center point
+        if pair_number_per_layer > fixed_window_length:
+            pair_number_per_layer = fixed_window_length
+        other_x_list = random.sample(xrange(fixed_window_length), pair_number_per_layer)
+        center_x = fixed_window_length / 2
+        rel.extend([(x, center_x) for x in other_x_list])
+        RelList.append(rel)
+
+    log.info('Generated random relations, %d levels, %d pairs per level.', len(RelList), pair_number_per_layer)
+    with open(result_file_name, 'w') as fout:
+        json.dump(RelList, fout, indent = 4)
 
 if __name__ == '__main__':
     #print '--- Random relation Test ---'

@@ -48,11 +48,10 @@ class ECGfeatures:
                 rawsig,
                 isdenoised = True,
                 wavelet = 'db6',
-                swt_max_level = 7,
                 random_relation_path = None,
             ):
         # Validation Check
-        if not isinstance(rawsig,list) and not isinstance(rawsig,array.array):
+        if not isinstance(rawsig, list) and not isinstance(rawsig, array.array):
             raise StandardError('Input rawsig is not a list type![WTdenoise]')
 
         # Default value of random relation files.
@@ -67,19 +66,19 @@ class ECGfeatures:
         # Do SWT once for all.
         wt_level = conf['WT_LEVEL']
         rawsig = self.crop_data_for_swt(rawsig)
-        coeflist = pywt.swt(rawsig,wavelet,wt_level)
-        cAlist,cDlist = zip(*coeflist)
-        self.cAlist = cAlist
-        self.cDlist = cDlist
+        coeflist = pywt.swt(rawsig, wavelet, wt_level)
+        cAlist, cDlist = zip(*coeflist)
+        self.cAlist = cAlist[::-1]
+        self.cDlist = cDlist[::-1]
         
         
-    def crop_data_for_swt(self,rawsig):
+    def crop_data_for_swt(self, rawsig):
         '''Padding zeros to make the length of the signal to 2^N.'''
         # crop rawsig
         base2 = 1
         N_data = len(rawsig)
         if len(rawsig)<=1:
-            raise Exception('len(rawsig)={},not enough for swt!',len(rawsig))
+            raise Exception('len(rawsig)={}, not enough for swt!', len(rawsig))
         crop_len = base2
         while base2<N_data:
             if base2*2>=N_data:
@@ -144,19 +143,18 @@ class ECGfeatures:
         windowed_matrix = []
         
         # Adding time-domain windowed signal.
-
         windowed_matrix.append(self.getWindowedSignal(position,
             self.rawsig,
             fixed_window_length))
         # Apply the window in each level of swt coefficients.
-        for detail_coefficients in self.cDlist:
+        for detail_coefficients in self.cDlist[1:]:
             windowed_matrix.append(self.getWindowedSignal(position,
                 detail_coefficients,
                 fixed_window_length))
         # Adding approximation level.
-        windowed_matrix.append(self.getWindowedSignal(position,
-            self.cAlist[-1],
-            fixed_window_length))
+        # windowed_matrix.append(self.getWindowedSignal(position,
+            # self.cAlist[0],
+            # fixed_window_length))
 
         return windowed_matrix
 
@@ -175,7 +173,7 @@ class ECGfeatures:
         plt.show()
 
         
-    def getWTfeatureforpos(self,pos,WithNormalPairFeature = False):
+    def getWTfeatureforpos(self, pos):
         '''Get WT feature from position in ECG time-domain waveform.'''
         pos = int(pos)
         if pos<0 or pos >= len(self.signal_in):
@@ -184,10 +182,6 @@ class ECGfeatures:
         
         # Stateful... Apply window in each level of swt coefficients.
         windowed_matrix = self.GetWindowedMatrix(pos)
-
-        # debug to see if the windowed matrix is correct.
-        #self.debug_PlotWindowedMatrix(windowed_matrix)
-        #pdb.set_trace()
 
         # normalization
         windowed_ecg = windowed_matrix[0]
@@ -212,8 +206,9 @@ class ECGfeatures:
         if self.random_relation_path_ is None:
             WTrrJsonFileName = os.path.join(saveresultpath,'rand_relations.json')
         else:
-            WTrrJsonFileName = os.path.join(self.random_relation_path_,'rand_relations.json')
-        with open(WTrrJsonFileName,'r') as fin:
+            WTrrJsonFileName = os.path.join(self.random_relation_path_,
+                    'rand_relations.json')
+        with open(WTrrJsonFileName, 'r') as fin:
             wt_pair_list = json.load(fin)
 
         for signal, pair_list in zip(windowed_matrix[1:],wt_pair_list):
@@ -227,9 +222,8 @@ class ECGfeatures:
 
 ## for multiProcess
 def frompos_with_denoisedsig(Params):
-    # 
     # map function should have only 1 Param
-    # ,so I wrapped them into one
+    # ,so I combined them.
     #
     denoisedsig,pos = Params
     fvExtractor = ECGfeatures(denoisedsig,isdenoised = True)
@@ -242,8 +236,17 @@ if __name__ == '__main__':
     qt = QTloader()
 
     sigStruct = qt.load('sel100')
-    #ft = ECGfeatures(sigStruct['sig'])
-    #ft.getWTfeatureforpos(1000)
+    # What's cAlist[-1]?
+    feature_extractor = ECGfeatures(sigStruct['sig'])
+    windowed_matrix = feature_extractor.GetWindowedMatrix(9000)
+    # plot swt coefficients
+    plt.figure(1)
+    for ind in xrange(1,len(feature_extractor.cAlist)):
+        plt.subplot(7,1,ind)
+        plt.plot(feature_extractor.cAlist[ind])
+        plt.title('App level %d' % ind)
+
+    plt.show()
 
 
 
