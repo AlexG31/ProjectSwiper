@@ -8,11 +8,13 @@
 /* Include files */
 #include <math.h>
 #include <vector>
+#include <complex>
 
+using std::complex;
 using std::vector;
 
 /* Function Declarations */
-extern void Qshift(vector<double>& HL,vector<vector<double>>*);
+extern void Qshift(vector<double>& HL, vector<vector<complex<double>>>*);
 
 
 #endif
