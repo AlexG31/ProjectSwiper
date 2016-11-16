@@ -55,7 +55,17 @@ def SignalResampling(raw_signal, sampling_frequency, adapt_frequency = 250.0):
     return scipy.signal.resample(raw_signal, M, window = ('hamming')).tolist()
     
 def Testing(raw_signal, model_path, sampling_frequency = 250.0, adapt_frequency = 250.0):
-    '''Testing API.'''
+    '''
+    Testing API.
+    Inputs: 
+        raw_signal: list of signal amplitudes.
+        model_path: file path of random relation file and trained model file.
+        sampling_frequency: sampling frequency of input signal.
+        adapt_frequency: the trained model's default sampling frequency.
+    Output:
+        List of form [[pos, label], [pos, label] ...], where pos is the index 
+        of detected sample point, label is one of P, Ponset, Poffset, T ...
+    '''
     # Sampling frequency adapting
     raw_signal = SignalResampling(raw_signal, sampling_frequency, adapt_frequency)
     print 'signal length:', len(raw_signal)
