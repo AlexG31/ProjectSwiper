@@ -12,11 +12,10 @@ endif()
 cmake_minimum_required(VERSION 3.5)
 
 LINK_DIRECTORIES(/usr/lib/x86_64-linux-gnu)
-LINK_DIRECTORIES(/home/alex/LabGit/ProjectSwiper/other_tasks/call_simple_function)
 
-add_library(dwt ./wavelet2d.cc ./wavelet_udfs.cc ./DTCWT.cc ./Qshift.cc)
+add_library(dwt wavelib/src/shared/wavedec_api.cc ./wavelet2d.cc ./wavelet_udfs.cc ./DTCWT.cc ./Qshift.cc)
 
-add_library(kpd abs.cc call_simple_function.cc call_simple_function_data.cc call_simple_function_emxAPI.cc call_simple_function_emxutil.cc call_simple_function_initialize.cc call_simple_function_terminate.cc eml_rand.cc eml_rand_mcg16807_stateful.cc eml_rand_mt19937ar_stateful.cc eml_rand_shr3cong_stateful.cc eml_sort.cc floor.cc gaussian_function.cc KPD.cc mean.cc power.cc QRS_detection.cc rand.cc rdivide.cc rtGetInf.cc rtGetNaN.cc rt_nonfinite.cc simple_function.cc sum.cc T_detection.cc)
+add_library(KPD_pt call_simple_function/QRS_detection.cc call_simple_function/rdivide.cc call_simple_function/call_simple_function_emxutil.cc call_simple_function/mean.cc call_simple_function/power.cc call_simple_function/call_simple_function_emxAPI.cc call_simple_function/gaussian_function.cc call_simple_function/call_simple_function_terminate.cc call_simple_function/rtGetInf.cc call_simple_function/abs.cc call_simple_function/rt_nonfinite.cc call_simple_function/eml_sort.cc call_simple_function/rtGetNaN.cc call_simple_function/call_simple_function_initialize.cc call_simple_function/T_detection.cc call_simple_function/floor.cc call_simple_function/call_simple_function.cc call_simple_function/sum.cc)
 
 add_executable(wt_run wavelet-test.cc)
 add_executable(wt_detect wt_detect.cc)
@@ -25,5 +24,6 @@ target_link_libraries(wt_run dwt)
 target_link_libraries(wt_run fftw3)
 
 target_link_libraries(wt_detect dwt)
-target_link_libraries(wt_detect kpd)
+target_link_libraries(wt_detect KPD_pt)
+target_link_libraries(wt_detect m)
 target_link_libraries(wt_detect fftw3)

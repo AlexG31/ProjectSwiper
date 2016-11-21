@@ -2,13 +2,14 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <complex>
 #include <assert.h>
 
 #include "DTCWT.h"
 #include "Qshift.h"
-#include "wavelet_udfs.h"
+#include "wavelib/src/shared/wavedec_api.h"
 
 using std::vector;
 using std::complex;
@@ -17,13 +18,29 @@ typedef complex<double> ComplexDouble;
 
 // debug
 template <typename T> 
-void PrintVec(vector<T>& vec) {
+static void PrintVec(vector<T>& vec) {
     cout << "[";
     for (const auto& val: vec) {
         cout << val << ", ";
     }
     cout << "]" << endl;
 }
+
+// Output data to txt file
+template <typename T>
+static void OutputData(vector<T>& vec) {
+    fstream fs("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/tmp.out",
+            fstream::out);
+
+    int len = vec.size();
+    fs << len << endl;
+    for (int i = 0; i < len; ++i) {
+        fs << vec[i] << endl;
+    }
+
+    fs.close();
+}
+
 
 // Convert complex vector to real value vector.
 void KeepItReal(vector<ComplexDouble>& complex_filter,
@@ -55,6 +72,7 @@ inline vector<vector<double>> zeros(int h, int w) {
     vector<vector<double>> ret(h, vector<double>(w, 0));
     return ret;
 }
+
 
 // Matlab slice = operator
 // [Usage]: This function copys elements in range [lb, rb] into vector a
@@ -98,7 +116,9 @@ void Get_S_rec(vector<vector<double>>& Sa_rec,
 void DTCWT(vector<double>& Signal,
             int DecLevel,
             vector<int>& Wavelet_Remain, 
-            vector<vector<double>>* s_rec) {
+            vector<vector<double>> filter_bank,
+            vector<vector<double>>* s_rec
+            ) {
 
     int len_Wavelet_Remain = Wavelet_Remain.size();
 
@@ -120,42 +140,69 @@ void DTCWT(vector<double>& Signal,
     KeepItReal(H_filters[6], &H10b);
     KeepItReal(H_filters[7], &H11b);
     
-    vector<double> Lp1_D{0,0.0378284555072640,-0.0238494650195568,-0.110624404418437,0.377402855612831,0.852698679008894,0.377402855612831,-0.110624404418437,-0.0238494650195568,0.0378284555072640};
-    vector<double> Hp1_D{0,-0.0645388826286971,0.0406894176091641,0.418092273221617,-0.788485616405583,0.418092273221617,0.0406894176091641,-0.0645388826286971,0,0};
-    vector<double> Lp1_R{0,-0.0645388826286971,-0.0406894176091641,0.418092273221617,0.788485616405583,0.418092273221617,-0.0406894176091641,-0.0645388826286971,0,0};
-    vector<double> Hp1_R{-0.0238494650195568,0.110624404418437,0.377402855612831,-0.852698679008894,0.377402855612831,0.110624404418437,-0.0238494650195568,-0.0378284555072640};
+    // debug
+    //cout << "H00a" << endl;
+    ////PrintVec(H_filters[0]);
+    //PrintVec(H00a);
+    //cout << " H01a" << endl;
+    ////PrintVec(H_filters[1]);
+    //PrintVec(H01a);
+    //cout << " H10a" << endl;
+    //PrintVec(H10a);
+    //cout << " H11a" << endl;
+    //PrintVec(H11a);
+    //cout << " H00b" << endl;
+    //PrintVec(H00b);
+    //cout << " H01b" << endl;
+    //PrintVec(H01b);
+    //cout << " H10b" << endl;
+    //PrintVec(H10b);
+    //cout << " H11b" << endl;
+    //PrintVec(H11b);
 
-    vector<vector<double>> filter_bank{Lp1_D, Hp1_D, Lp1_R, Hp1_R};
+    vector<double> sig_segment;
+    sig_segment.assign(Signal.begin(), Signal.begin() + 4320);
     // Wavedec
-    vector<double> C1, flag;
+    vector<double> C1;
     vector<int> L1;
-    wavedec_udf(Signal, 1, filter_bank, C1, flag, L1);
+
+    vector<double> backup_sig = Signal;
+    wavedec(Signal, 1, filter_bank, &C1, &L1);
+    
+    // Signal Check
+    for (int i = 0; i < backup_sig.size(); ++i)
+        if (backup_sig[i] != Signal[i]) {
+            cout << endl;
+            cout << "Signal changed!" << endl;
+            break;
+        }
+
 
     vector<double> Ca1;
     vector<int> La1;
     vector<vector<double>> filter_bank_a1{H00a, H01a, {}, {}};
-    wavedec_udf(Signal, Wavelet_Remain[len_Wavelet_Remain - 1],filter_bank_a1, Ca1, flag, La1);
+    wavedec(Signal, Wavelet_Remain[len_Wavelet_Remain - 1],
+            filter_bank_a1, &Ca1, &La1);
+
 
     vector<double> Cb1;
     vector<int> Lb1;
     vector<vector<double>> filter_bank_b1{H00b, H01b, {}, {}};
-    wavedec_udf(Signal, Wavelet_Remain[len_Wavelet_Remain - 1],filter_bank_b1, Cb1, flag, Lb1);
+    wavedec(Signal, Wavelet_Remain[len_Wavelet_Remain - 1],
+            filter_bank_b1, &Cb1, &Lb1);
     
+
     // Ones
     vector<int> La1_sum(La1.size(), 1);
-
     int len_La1 = La1.size();
-
+    
     // Let ii < La1.size() since La1[end] is len(signal)
     for (int ii = 2; ii <= La1.size(); ++ii) {
         La1_sum[ToCIndex(ii)] = sum(La1, ToCIndex(1), ToCIndex(ii-1));
     }
 
-    //cout << "La1" << endl;
-    //PrintVec(La1);
-    //cout << "La1_sum" << endl;
-    //PrintVec(La1_sum);
 
+    // Sa_rec & Sb_rec init
     vector<vector<double>> Sa_rec = zeros(Wavelet_Remain.size() + 1, Signal.size());
     vector<vector<double>> Sb_rec = zeros(Wavelet_Remain.size() + 1, Signal.size());
 
@@ -167,10 +214,10 @@ void DTCWT(vector<double>& Signal,
         auto St = len_La1 - Wavelet_Remain[ToCIndex(jj)];
         auto Sp = len_La1 - Wavelet_Remain[ToCIndex(jj)] + 1;
 
-        //cout << "St = " << St
-             //<< ", "
-             //<< "Sp = " << Sp
-             //<< endl;
+        cout << "St = " << St
+             << ", "
+             << "Sp = " << Sp
+             << endl;
         //cout << "Copying to :"
              //<< La1_sum[ToCIndex(St)]
              //<< ", "
@@ -203,7 +250,16 @@ void DTCWT(vector<double>& Signal,
                  //<< endl;
         //}
 
-        waverec_udf_noflag(C_tmp, La1, filter_bank_ra1, Sa_rec[ToCIndex(jj)]);
+        waverec(C_tmp, La1, filter_bank_ra1, &Sa_rec[ToCIndex(jj)]);
+        
+        //if (jj == 4) {
+            //cout << "output data: toCindex = " << ToCIndex(jj) << endl;
+            //OutputData(Sa_rec[ToCIndex(jj)]);
+            ////cout << "La1 : " << endl;
+            ////PrintVec(La1);
+            //return;
+        //}
+        //
         //Sa_rec(jj,:) = waverec(C_tmp,La1,H10a,H11a);
         
         C_tmp = vector<double>(La1_sum[len_La1_sum - 1], 0);
@@ -225,8 +281,16 @@ void DTCWT(vector<double>& Signal,
 
         // waverec
         vector<vector<double>> filter_bank_rb1{{}, {}, H10b, H11b};
-        waverec_udf_noflag(C_tmp, La1, filter_bank_ra1, Sb_rec[ToCIndex(jj)]);
+        waverec(C_tmp, La1, filter_bank_rb1, &Sb_rec[ToCIndex(jj)]);
         //Sb_rec(jj,:)=waverec(C_tmp,La1,H10b,H11b);
+        //if (jj == 1) {
+            //cout << "output data: toCindex = " << ToCIndex(jj) << endl;
+            ////OutputData(C_tmp);
+            ////OutputData(Sb_rec[ToCIndex(jj)]);
+            //cout << "La1 : " << endl;
+            //PrintVec(La1);
+            //return;
+        //}
     }
 
     auto C_tmp = vector<double>(La1_sum[len_La1_sum - 1], 0);
@@ -244,7 +308,7 @@ void DTCWT(vector<double>& Signal,
     int remain_index = Wavelet_Remain.size() + 1;
     // waverec
     vector<vector<double>> filter_bank_ra1{{}, {}, H10a, H11a};
-    waverec_udf_noflag(C_tmp, La1, filter_bank_ra1, Sa_rec[ToCIndex(remain_index)]);
+    waverec(C_tmp, La1, filter_bank_ra1, &Sa_rec[ToCIndex(remain_index)]);
 
     C_tmp = vector<double>(La1_sum[len_La1_sum - 1], 0);
     vector_copy<double>(
@@ -256,7 +320,7 @@ void DTCWT(vector<double>& Signal,
             ToCIndex(La1_sum[1])
             );
     vector<vector<double>> filter_bank_rb1{{}, {}, H10b, H11b};
-    waverec_udf_noflag(C_tmp, La1, filter_bank_ra1, Sa_rec[ToCIndex(remain_index)]);
+    waverec(C_tmp, La1, filter_bank_rb1, &Sa_rec[ToCIndex(remain_index)]);
     //Sb_rec(jj+1,:)=waverec(C_tmp,La1,H10b,H11b);
     //S_rec=(Sa_rec+Sb_rec)./2;
 

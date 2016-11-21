@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/shared/wavedec_api.h
+wavelet2d.h
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/shared/wavelet2d.h
+
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/shared/wavelet2d.h
+vector
+-
+complex
+-
+
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/test/wavelet1d_test.cc
+../shared/wavelet2d.h
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/shared/wavelet2d.h
+../shared/wavedec_api.h
+/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/shared/wavedec_api.h
+iostream
+-
+fstream
+-
+vector
+-
+

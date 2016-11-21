@@ -6,7 +6,7 @@
 #define __QSHIFT_H__
 
 /* Include files */
-#include <math.h>
+#include <cmath>
 #include <vector>
 #include <complex>
 

@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <utility>
 
-#include "simple_function.h"
+#include "call_simple_function.h"
 #include "call_simple_function_emxutil.h"
 
 using std::vector;
@@ -15,11 +15,15 @@ using std::pair;
 using std::cout;
 using std::endl;
 
+//extern void call_simple_function(const double s_rec[6500000], double sig_len,
+  //double fs, emxArray_real_T *y_out);
+
 void KPD(const vector<vector<double>>& s_rec,
         int sig_len,
         double fs,
         vector<pair<char, int>>* y_out) {
     
+    cout << "ok KPD" << endl;
     printf("Input info:\n  s_rec.size() = %d, sig_len = %d, fs = %f\n",
             s_rec.size(), sig_len, fs);
 
@@ -28,44 +32,43 @@ void KPD(const vector<vector<double>>& s_rec,
     double L_sig = int((sig_len - fs)/(fs*10.0)); 
 
     // simple_function inputs.
-    emxArray_real_T* s_rec_in;
-    emxInit_real_T(&s_rec_in, 2);
-
+    double s_rec_in[6500000];
     int n_dim = s_rec.size();
     int n_sig = s_rec[0].size();
     int total_size = n_dim * n_sig + 1000;
 
-    s_rec_in->data = new double[total_size]();
-    s_rec_in->size[0] = n_dim;
-    s_rec_in->size[1] = n_sig;
-
-    s_rec_in->allocatedSize = total_size;
-    s_rec_in->canFreeData = true;
-
     for (int i = 0; i < n_dim; ++i) {
-        for (int j = 0; j < n_sig; ++j) {
-            s_rec_in->data[i + s_rec_in->size[0] * j] = s_rec[i][j];
+        for (int j = 0; j < 650000; ++j) {
+            double val = 0;
+            if (j < s_rec[i].size()) val = s_rec[i][j];
+            s_rec_in[i + j * 10] = val;
         }
     }
 
-    emxArray_struct0_T* ret;
-    emxInit_struct0_T(&ret, 2);
+    //emxArray_struct0_T* ret;
+    //emxInit_struct0_T(&ret, 2);
+    emxArray_real_T *ret;
+    emxInit_real_T(&ret, 2);
 
-    simple_function(s_rec_in, L_sig, fs, ret);
+    call_simple_function(s_rec_in, 6500000, fs, ret);
     cout << "After Simple Function " << endl;
     
     y_out->clear();
     int total_ret_size = 1;
     total_ret_size = ret->size[0] * ret->size[1];
 
-    for (int i = 0; i < total_ret_size; ++i) {
-        y_out->push_back(
-                make_pair(ret->data[i].label, round(ret->data[i].val)));
+    cout << "KPD ret.num_dimensions = " << ret->numDimensions << endl;
+    for (int i = 0; i < ret->numDimensions; ++i) {
+        cout << ret->size[i] << endl;
     }
 
+    //for (int i = 0; i < total_ret_size; ++i) {
+        //y_out->push_back(
+                //make_pair(ret->data[i].label, round(ret->data[i].val)));
+    //}
+
     // Free mem.
-    emxFree_real_T(&s_rec_in);
-    emxFree_struct0_T(&ret);
+    emxFree_real_T(&ret);
 
     return;
 }

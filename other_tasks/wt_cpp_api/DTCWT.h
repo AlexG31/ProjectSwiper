@@ -6,7 +6,7 @@
 #define __DTCWT_H__
 
 /* Include files */
-#include <math.h>
+#include <cmath>
 #include <vector>
 
 using std::vector;
@@ -15,7 +15,9 @@ using std::vector;
 extern void DTCWT(vector<double>& Signal,
             int DecLevel,
             vector<int>&, 
-            vector<vector<double>>*);
+            vector<vector<double>> filter_bank,
+            vector<vector<double>>*
+            );
 
 
 #endif
