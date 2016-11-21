@@ -13,7 +13,6 @@
 #include "call_simple_function/call_simple_function_emxutil.h"
 #include "call_simple_function/call_simple_function_types.h"
 #include "call_simple_function/call_simple_function.h"
-//#include "KPD.h"
 
 using namespace std;
 
@@ -49,7 +48,8 @@ static void OutputCoefToFile(const string& file_name, vector<T>& coef) {
 // debug function
 void OutputS_rec(vector<vector<double>>& s_rec) {
     int len_s_rec = s_rec.size();
-    string file_name_prefix = "/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/s_rec/";
+    string file_name_prefix = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
+                              "wt_cpp_api/s_rec/";
 
     for (int i = 0; i < len_s_rec; ++i) {
         OutputCoefToFile(file_name_prefix + "s_rec" + to_string(i) + ".txt",
@@ -77,11 +77,12 @@ void FormatKpdInput(vector<vector<double>>& s_rec_vec,
     return;
 }
 
+// The testing API
 void Testing(vector<double>& signal_in, double fs,
         vector<pair<char, int>>* result_out) {
     
-    vector<double> coef, flag;
-    vector<int> L;
+    auto start_time = time(NULL);
+    cout << "start_time = " << start_time << endl;
 
     vector<double> Lp1_D{0,0.0378284555072640,-0.0238494650195568,
         -0.110624404418437,0.377402855612831,0.852698679008894,
@@ -106,34 +107,24 @@ void Testing(vector<double>& signal_in, double fs,
         Wavelet_Remain.push_back(i);
     }
 
-    auto start_time = time(NULL);
-    cout << "start_time = " << start_time << endl;
-
-    vector<vector<double>> s_rec;
     // Cut signal segment
+    vector<vector<double>> s_rec;
     vector<double> sig_segment(signal_in.begin(), signal_in.end());
     DTCWT(sig_segment, 9, Wavelet_Remain, filter_bank, &s_rec);
-
-    // debug output
-    OutputS_rec(s_rec);
+    //return;
 
     cout << "DTCWT time cost:"
          << time(NULL) - start_time 
          << "secs"
          << endl;
-
     start_time = time(NULL);
-    //
+
     // Detection result
-    cout << "s_rec.size() = " 
-         << s_rec.size()
-         << ", "
-         << s_rec[0].size() << endl;
+    vector<pair<char, int>> ret;
     unique_ptr<double[]> s_rec_in(new double[6500000]());
     FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
+    
     emxArray_real_T *y_out;
-
-
     emxInit_real_T(&y_out, 2);
     call_simple_function(s_rec_in.get(),
             650000,
@@ -141,35 +132,13 @@ void Testing(vector<double>& signal_in, double fs,
             y_out,
             result_out);
 
-    cout << "KPD time:"
+    cout << "simple function time:"
          << time(NULL) - start_time 
          << "secs"
          << endl;
-
-    cout << "y_out numDim = " << y_out->numDimensions << endl;
-    for (int i = 0; i < y_out->numDimensions; ++i) {
-        cout << "size"
-             << i
-             << " = "
-             << y_out->size[i]
-             << endl;
-    }
-
-
-    cout << "Result.size() = " << result_out->size() << endl;
-
-    for (const auto& item: *result_out) {
-        cout << "Result: "
-             << item.first
-             << "   -> "
-             << item.second
-             << endl;
-    }
-
-    return ;
 }
 
-// Testing function For Testing api
+// [Debug] Testing function For Testing api
 void Testing() {
     
     string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
@@ -269,9 +238,35 @@ void Testing() {
     return ;
 }
 
+static void TEST1() {
+    // Read ECG signal from file.
+    vector<double> sig;
+    string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
+            "wt_cpp_api/ecg-samples/mit-100.txt";
+
+    cout << "Testing() input file name:" 
+         << file_name
+         << endl;
+    ReadSignalFromFile(file_name, &sig);
+
+    // Output vector;
+    vector<pair<char, int>> detect_result;
+    Testing(sig, 360.0, &detect_result); 
+    cout << "=======================" << endl;
+    cout << "Result.size() = " << detect_result.size() << endl;
+
+    for (const auto& item: detect_result) {
+        cout << "Result: "
+             << item.first
+             << "   -> "
+             << item.second
+             << endl;
+    }
+}
+
 int main() {
 
-    Testing();
+    TEST1();
 
     return 0;
 }

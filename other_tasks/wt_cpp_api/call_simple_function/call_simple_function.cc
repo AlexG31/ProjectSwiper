@@ -318,7 +318,7 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     }
 
     // Skip jj
-    cout << "jj = " << jj << endl;
+    //cout << "jj = " << jj << endl;
     jj++;
     //if (jj > 1) break;
     continue;

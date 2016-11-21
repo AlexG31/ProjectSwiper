@@ -418,13 +418,13 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
     }
 
 
-    cout << "=====Statistics of my TP function=====" << endl;
-    cout << "size of T results: "
-         << T_Location_cur.size() 
-         << endl;
-    cout << "size of P results: "
-         << P_Location_cur.size()
-         << endl;
+    //cout << "=====Statistics of my TP function=====" << endl;
+    //cout << "size of T results: "
+         //<< T_Location_cur.size() 
+         //<< endl;
+    //cout << "size of P results: "
+         //<< P_Location_cur.size()
+         //<< endl;
 
     return;
 }
