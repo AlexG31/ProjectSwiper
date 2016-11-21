@@ -119,7 +119,8 @@ class PointBrowser(object):
         #self.reclist = self.QTdb.reclist
         self.resultlist = glob.glob(os.path.join(projhomepath,
             'result',
-            'regression-test',
+            'swt-paper-7',
+            'round68',
             'result_*'))
 
         print 'len result list:', len(self.resultlist)

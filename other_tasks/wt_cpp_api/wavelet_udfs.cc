@@ -26,6 +26,8 @@ void* idwt1_udf(vector<vector<double>>& filter_bank,
 
 
 // Function Implementation
+// Inputs:
+//  J: DWT level
 void* wavedec_udf(
         vector<double> &sig,
         int J,

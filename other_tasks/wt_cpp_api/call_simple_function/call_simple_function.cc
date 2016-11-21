@@ -39,10 +39,14 @@ void ShowData(emxArray_real_T* result, string name = "data") {
     }
 }
 
+// Get T_detector from 10 levels of s_rec
+void GetT_detector10(const double s_rec[6500000], int jj_matlab,
+          double fs, emxArray_real_T *T_detector);
+
+
 /* Function Definitions */
 
 /*
- * s_rec = rand(wt_level, sig_len);
  * Arguments    : const double s_rec[6500000]
  *                double sig_len
  *                double fs
@@ -139,6 +143,9 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   emxInit_real_T(&b_P_Location_raw, 2);
   emxInit_real_T(&c_T_Location_raw, 2);
   emxInit_real_T(&c_P_Location_raw, 2);
+
+
+  // jj from 0 to L_sig - 1
   while (jj <= (int)L_sig - 1) {
     x_start = 1.0 + ((1.0 + (double)jj) - 1.0) * fs * 10.0;
     x_stop = (((1.0 + (double)jj) - 1.0) * fs * 10.0 + fs * 10.0) + L_overlap;
@@ -199,33 +206,35 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     T_detector->size[0] = 1;
     T_detector->size[1] = sz[1];
     emxEnsureCapacity((emxArray__common *)T_detector, iy, (int)sizeof(double));
-    if (i1 - i0 == 0) {
-      i0 = T_detector->size[0] * T_detector->size[1];
-      T_detector->size[0] = 1;
-      emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
-      i0 = T_detector->size[0] * T_detector->size[1];
-      T_detector->size[1] = sz[1];
-      emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
-      loop_ub = sz[1];
-      for (i0 = 0; i0 < loop_ub; i0++) {
-        T_detector->data[i0] = 0.0;
-      }
-    } else {
-      ix = -1;
-      iy = -1;
-      for (loop_ub = 1; loop_ub <= i1 - i0; loop_ub++) {
-        ixstart = ix + 1;
-        ix++;
-        x_stop = s_rec[(ixstart % 5 + 10 * ((i0 + ixstart / 5) - 1)) + 3];
-        for (ixstart = 0; ixstart < 4; ixstart++) {
-          ix++;
-          x_stop += s_rec[(ix % 5 + 10 * ((i0 + ix / 5) - 1)) + 3];
-        }
+    
+    GetT_detector10(s_rec, jj + 1, fs, T_detector);
+    //if (i1 - i0 == 0) {
+      //i0 = T_detector->size[0] * T_detector->size[1];
+      //T_detector->size[0] = 1;
+      //emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
+      //i0 = T_detector->size[0] * T_detector->size[1];
+      //T_detector->size[1] = sz[1];
+      //emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
+      //loop_ub = sz[1];
+      //for (i0 = 0; i0 < loop_ub; i0++) {
+        //T_detector->data[i0] = 0.0;
+      //}
+    //} else {
+      //ix = -1;
+      //iy = -1;
+      //for (loop_ub = 1; loop_ub <= i1 - i0; loop_ub++) {
+        //ixstart = ix + 1;
+        //ix++;
+        //x_stop = s_rec[(ixstart % 5 + 10 * ((i0 + ixstart / 5) - 1)) + 3];
+        //for (ixstart = 0; ixstart < 4; ixstart++) {
+          //ix++;
+          //x_stop += s_rec[(ix % 5 + 10 * ((i0 + ix / 5) - 1)) + 3];
+        //}
 
-        iy++;
-        T_detector->data[iy] = x_stop;
-      }
-    }
+        //iy++;
+        //T_detector->data[iy] = x_stop;
+      //}
+    //}
 
     /*   QRS complex detection algorithm */
     i0 = b_QRS_detector->size[0] * b_QRS_detector->size[1];
@@ -237,7 +246,6 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
       b_QRS_detector->data[i0] = QRS_detector->data[i0];
     }
 
-    cout << "call_function. " << endl;
     QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
 
     // Add to output vector.
@@ -248,7 +256,7 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
         result_out->push_back(make_pair('R', val + x_start));
     }
 
-    cout << "x_QRS->size = "
+    cout << "x_QRS->allocatedSize = "
          << x_QRS->allocatedSize
          << endl;
     cout << "x_QRS->numDimensions = "
@@ -269,8 +277,6 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
              << endl;
     }
 
-    cout << "After QRS" << endl;
-
     /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
     i0 = QRS_detector->size[0] * QRS_detector->size[1];
     QRS_detector->size[0] = 1;
@@ -282,9 +288,7 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     }
 
     /*   T and P wave detection        */
-    cout << "Before T" << endl;
     T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
-    cout << "After T" << endl;
 
     // Add to output vector.
     //auto T_cap = T_Location_cur->allocatedSize;
@@ -302,7 +306,7 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     // Skip jj
     cout << "jj = " << jj << endl;
     jj++;
-    if (jj > 0) break;
+    //if (jj > 1) break;
     continue;
 
     if (abs((double)jj) < eps) {
@@ -653,8 +657,34 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   emxFree_real_T(&QRS_Location);
 }
 
+// Get T_detector from 10 levels of s_rec
+void GetT_detector10(const double s_rec[6500000], int jj_matlab,
+          double fs, emxArray_real_T *T_detector) {
+
+    double L_overlap = 2.0 * fs;
+
+    int x_start = round(1.0+(jj_matlab -1)*fs*10) - 1;
+    int x_stop = round((jj_matlab -1.0)*fs*10 + fs*10 + L_overlap) - 1;
+
+    T_detector->size[1] = x_stop - x_start + 1;
+    T_detector->size[0] = 1;
+    emxEnsureCapacity((emxArray__common *)T_detector, 0, (int)sizeof(double));
+
+    // Add levels 4:8(matlab indexes)
+    for (int i = x_start; i <= x_stop; ++i) {
+        int index_base = i * 10;
+        T_detector->data[i] = s_rec[3 + index_base];
+        T_detector->data[i] += s_rec[4 + index_base];
+        T_detector->data[i] += s_rec[5 + index_base];
+        T_detector->data[i] += s_rec[6 + index_base];
+        T_detector->data[i] += s_rec[7 + index_base];
+    }
+    return;
+}
+
 /*
  * File trailer for call_simple_function.c
  *
  * [EOF]
  */
+

@@ -66,8 +66,8 @@ if __name__ == '__main__':
 
     # Name of the experiment
 
-    experiment_name = 'swt-paper-7'
-    total_round_number = 100
+    experiment_name = 'swt-paper-8'
+    total_round_number = 76
     result_filename_pattern = '*.json'
 
     # Labels to extract statistics from.

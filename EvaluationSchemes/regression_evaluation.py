@@ -369,10 +369,10 @@ if __name__ == '__main__':
 
     # Name of the experiment
     experiment_name = 'regression-test'
-    total_round_number = 1
+    total_round_number = 33
     result_filename_pattern = 'result_*'
     # Labels to extract statistics from.
-    possible_label_list = ['Toffset',]
+    possible_label_list = ['P',]
 
     # Get converter
     result_converter = ConverterFactory('list-result-converter').convert

@@ -29,6 +29,7 @@ print 'projhomepath:',projhomepath
 with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
     conf = json.load(fin)
 sys.path.append(projhomepath)
+
 #
 # my project components
 import RFclassifier.extractfeature.extractfeature as extfeature
@@ -464,7 +465,7 @@ if __name__ == '__main__':
     # show evaluation statistics
     # ==========================
 
-    PlotErrorHist()
+    # PlotErrorHist()
     #targetresultfilename = os.path.join(RFfolder,'hand125.out')
     #PlotrawPredictionLabels(targetresultfilename)
 

@@ -76,6 +76,9 @@ void OutputData(double* buffer, int len) {
 
     fs << len << endl;
     for (int i = 0; i < len; ++i) {
+        fs << fixed;
+        //fs << setprecision(17);
+        fs.precision(17);
         fs << buffer[i] << endl;
     }
 
@@ -88,8 +91,7 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
 {
     NormalizeT_detector(T_detector);
     // debug
-    //OutputData(T_detector->data, T_detector->size[0] * T_detector->size[1]);
-    //return;
+    OutputData(T_detector->data, T_detector->size[0] * T_detector->size[1]);
 
     int t_detect_win = floor(fs * 150 / 1000);
     
@@ -106,22 +108,18 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
     
     int t_win_mf = mode(T_detector);
 
-    cout << "lqrs = " << lqrs << endl;
-    cout << "t_win_mf = " << t_win_mf << endl;
-
     for (int mm = 1; mm <= lqrs - 1; ++mm) {
         // debug
-        cout << "mm = " << mm << endl;
         
         // [Matlab]T_detector_win_ori = T_detector(x_QRS(mm) : x_QRS(mm+1));
         int x_QRS_left = x_QRS->data[mm - 1];
         int x_QRS_right = x_QRS->data[mm];
         // debug
-        cout << "x_QRS_left = "
-             << x_QRS_left
-             << ", x_QRS_right = "
-             << x_QRS_right
-             << endl;
+        //cout << "x_QRS_left = "
+             //<< x_QRS_left
+             //<< ", x_QRS_right = "
+             //<< x_QRS_right
+             //<< endl;
 
         int segment_length = x_QRS_right - x_QRS_left + 1;
         unique_ptr<double[]> T_detector_win_ori(new double[segment_length]);
@@ -132,7 +130,6 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
         int lttmp = segment_length;
         
         // debug 
-        cout << "lttmp = " << lttmp << endl;
 
         unique_ptr<double[]> Win_Gaussian(
                 gaussian_function(lttmp, fs/5, min(fs/4, floor(lttmp/2.0)))) ;
@@ -147,29 +144,21 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             //return;
         //}
 
-        // debug
-        cout << "t_win_ave..." << endl;
-
         double t_win_ave = mean(T_detector_win.get(), segment_length);
         
         // [Matlab] X_max = [];  Y_max = [];  X_min = [];  Y_min = [];
         vector<int> x_max_vector, x_min_vector;
         vector<double> y_max_vector, y_min_vector;
 
-        cout << "lttmp = " << lttmp << endl;
-        cout << "t_detect_win = " << t_detect_win << endl;
-        //OutputData(T_detector_win.get(), segment_length);
-        //return;
-
         // % Calculated the location of T
         if (lttmp > 2 * t_detect_win) {
 
             // debug
-            cout << "kk from "
-                 << 1 + t_detect_win
-                 << " to "
-                 << lttmp - t_detect_win
-                 << endl;
+            //cout << "kk from "
+                 //<< 1 + t_detect_win
+                 //<< " to "
+                 //<< lttmp - t_detect_win
+                 //<< endl;
 
             for (int kk = 1 + t_detect_win; kk <= lttmp - t_detect_win; ++kk) {
                 // debug
@@ -230,8 +219,6 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
         int x_t_p = -1;
         int x_t_n = -1;
 
-        cout << "y_max_vector.empty() == false?" << endl;
-
         if (y_max_vector.empty() == false) {
             auto X_maxmax_iter = max_element(y_max_vector.begin(),
                     y_max_vector.end());
@@ -240,18 +227,10 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             x_t_p = x_max_vector[X_maxmax];
             is_empty_x_t_p = false;
             x_T = x_t_p;
-            ++max_T_count;
 
-            // Debug
-            cout << "Y_max :" << endl;
-            for (auto& val: y_max_vector) {
-                cout << val << ", ";
-            }
-            cout << endl;
+            ++max_T_count;
         }
         
-        // debug
-        //cout << "y_min_vector.empty() == false?" << endl;
         //% Location of negtive T
         if (y_min_vector.empty() == false) {
             auto X_minmin_iter = min_element(y_min_vector.begin(),
@@ -264,20 +243,13 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             is_empty_x_t_n = false;
 
             if (max_T_count == 0 || x_T < x_t_n) x_T = x_t_n;
+
             ++max_T_count;
 
-            // Debug
-            cout << "Y_min :" << endl;
-            for (auto& val: y_min_vector) {
-                cout << val << ", ";
-            }
-            cout << endl;
         }
         
-        // debug
-        cout << "x_T = " << x_T << endl;
 
-        int p_detect_win = floor(60 / 1000 * fs);
+        int p_detect_win = floor(60.0 / 1000 * fs);
 
         // Default value when x_T is empty
         int p_detect_stat = lttmp - 5 * p_detect_win;
@@ -286,7 +258,6 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             Win_Gaussian.reset(gaussian_function(
                     lttmp, fs/10, max(lttmp - fs/3.6, floor(2.0*lttmp/3))));
         } else {
-            
             Win_Gaussian.reset(
                     gaussian_function(lttmp, fs/10,
                         x_T + floor((lttmp - x_T) / 2))) ;
@@ -301,25 +272,29 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
         // [Matlab] Win_Gaussian = gaussian_function( 1: lttmp,
         //      [fs/10 x_T+floor((lttmp-x_T)/2)]) ;
         
-        //cout << "Before P_detector_win " << endl;
-
         unique_ptr<double[]> P_detector_win(new double[lttmp]());
         for (int i = 0; i < lttmp; ++i) {
             P_detector_win[i] = T_detector_win_ori[i] * Win_Gaussian[i];
         }
         
+        // debug
+        //OutputData(P_detector_win.get(), lttmp);
+        //return;
+
         int p_detect_stop = lttmp - p_detect_win;
 
         //% Adjust of P wave detecting area according to the form of the next QRS
         //% T_detector_win(end) indicates wheahter the next R peak is positive or
         //% negtive
-        if (T_detector_win[segment_length - 1] < 0) {
+
+        if (T_detector_win[segment_length - 1] + eps < 0) {
             p_detect_stat = max( p_detect_stat - 4 * p_detect_win, 0) ;
             p_detect_stop = max( p_detect_stop - 2 * p_detect_win, 0) ;
         }
         
         //% P wave detection
         vector<int>p_X_max;
+
         if (p_detect_stop > p_detect_stat && p_detect_stat > 3 * p_detect_win) {
             
             for (int kk = p_detect_stat; kk <= p_detect_stop; ++kk) {
@@ -353,7 +328,18 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
                 
                 double t_local_std = std_error(p_det_local.get(), p_det_local_len);
                 
-                if (x_max  == p_detect_win+1 && y_max > t_win_mf + eps) {
+                //if (kk == 237) {
+                    //cout << "kk = " << kk << endl;
+                    //cout << "x_max = " << x_max << endl;
+                    //cout << "p_detect_win = " << p_detect_win
+                         //<< endl;
+                    //cout << "y_max = "
+                         //<< y_max << endl;
+                    //cout << "t_win_mf = " << t_win_mf << endl;
+                    //return ;
+                //}
+                if (x_max  == p_detect_win + 1 &&
+                        y_max > t_win_mf + eps) {
                     
                     p_X_max.push_back(kk);
                     
@@ -365,8 +351,7 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             //p_X_max=[];
         //}
 
-        //debug
-        cout << "p_X_max.empty() == false?" << endl;
+        // debug
 
         if (p_X_max.empty() == false) {
             int p_X_max_len = p_X_max.size();
@@ -375,19 +360,18 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
             P_position_cur_tmp.push_back(
                                x_QRS->data[mm - 1] + p_X_max[p_X_max_len - 1]);
             
+            // NOTE: This vector contains C indexes
             P_Location_cur.push_back(cur_p_position + x_start);
         }
 
         if (is_empty_x_t_p == false) {
             
-            //debug
-            cout << "is_empty_x_t_p.empty() == false" << endl;
             //T_position_pos = [ T_position_pos x_QRS(mm) + x_t_p ];
             int cur_tp_position = x_QRS->data[mm - 1] + x_t_p;
             T_position_pos.push_back(cur_tp_position);
             
-            //T_Location_cur = T_position_pos+x_start;
-            T_Location_cur.push_back(cur_tp_position + x_start);
+            // NOTE: This vector contains C indexes
+            T_Location_cur.push_back(cur_tp_position + x_start - 1);
             
             if (is_empty_x_t_p == false && x_t_p + eps < -0.7 * x_t_n) {
                 
@@ -399,21 +383,14 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
         }
         else {
             
-            //debug
-            cout << "ELSE is_empty_x_t_n.empty() == true" << endl;
-            cout << "is_empty_x_t_n = " << is_empty_x_t_n << endl;
             if (false == is_empty_x_t_n) {
                 
-                cout << "=== false" << endl;
                 int cur_tn_position = x_QRS->data[mm - 1] + x_t_n;
-                cout << "=== push" << endl;
                 T_position_neg.push_back(cur_tn_position);
                 //T_position_neg =[ T_position_neg x_QRS(mm) + x_t_n ];
                 
-                cout << "=== T_Location_cur" << endl;
-                //T_Location_cur = T_position_neg+x_start;
-                T_Location_cur.push_back(cur_tn_position + x_start);
-                cout << "=== false ned" << endl;
+                // NOTE: This vector contains C indexes
+                T_Location_cur.push_back(cur_tn_position + x_start - 1);
                 
             }
         }

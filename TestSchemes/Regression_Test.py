@@ -126,7 +126,10 @@ def Round_Test(
         # Run the test warpper.
         TestAllQTdata(round_folder,testlist,target_label = target_label)
 
-def TestAllQTdata(save_result_path, testinglist, training_list = None, target_label = 'T'):
+def TestAllQTdata(save_result_path,
+        testinglist,
+        training_list = None,
+        target_label = 'T'):
     '''Test Regression Learner with QTdb.'''
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
@@ -135,11 +138,11 @@ def TestAllQTdata(save_result_path, testinglist, training_list = None, target_la
         training_list = list(set(QTreclist) - set(testinglist))
 
     # debug
-    # training_list = QTreclist[0:10]
-    # testinglist = QTreclist[0:10]
+    # training_list = training_list[0:2]
+    # # testinglist = QTreclist[0:10]
     # log.warning('Using custom testing & training records.')
     # log.warning('Training range: 0-10')
-    # log.warning('Testing range: 0-10')
+    # log.warning('Testing range: ~30')
 
     log.info('Totoal QTdb record number:%d, training %d, testing %d',
             len(QTreclist),
@@ -147,7 +150,7 @@ def TestAllQTdata(save_result_path, testinglist, training_list = None, target_la
             len(testinglist))
 
     rf_classifier = ECGrf(
-            TargetLabel = target_label,
+            target_label = target_label,
             SaveTrainingSampleFolder = save_result_path)
     # Multi Process
     rf_classifier.TestRange = 'All'
@@ -186,8 +189,8 @@ if __name__ == '__main__':
     # Get save_result_path from config file.
     save_result_path = os.path.join(projhomepath,
             'result',
-            'regression-test4')
-    target_label = 'T'
+            'regression-test')
+    target_label = 'P'
     number_of_rounds = 100
 
     # logging
@@ -199,7 +202,8 @@ if __name__ == '__main__':
     # create result folder if not exist
     if os.path.exists(save_result_path) == True:
         option = raw_input(
-                'Result path "{}" already exists, remove it(y/n)?'.format(save_result_path))
+                'Result path "{}" already exists, remove it(y/n)?'.format(
+                    save_result_path))
         if option in ['y','Y']:
             shutil.rmtree(save_result_path)
             os.mkdir(save_result_path)

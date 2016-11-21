@@ -77,7 +77,7 @@ class GroupResult2Leads:
         #----------------------
         # [pos,label] in recres
         #----------------------
-        for pos,label in recres:
+        for pos, label, confidence in recres:
             if prev_label is not None:
                 if label != prev_label:
                     frecres.append((prev_label,posGroup))

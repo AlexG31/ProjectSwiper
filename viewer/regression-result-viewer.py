@@ -120,6 +120,7 @@ class PointBrowser(object):
         self.resultlist = glob.glob(os.path.join(projhomepath,
             'result',
             'regression-test',
+            'round1',
             'result_*'))
 
         print 'len result list:', len(self.resultlist)

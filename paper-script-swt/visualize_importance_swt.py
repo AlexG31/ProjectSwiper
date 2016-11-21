@@ -136,7 +136,8 @@ class FeatureVisualizationSwt:
             figtitle = 'ECG Sample',
             showFigure = True,
             wavelet = 'db6',
-            swt_level = 6):
+            swt_level = 6,
+            window_length_limit = 350):
         ## =========================================
         # 展示RSWT示意图
         # Plot Arrow
@@ -148,7 +149,7 @@ class FeatureVisualizationSwt:
         N_subplot = 7
         # Importance pairs lower than this threshold is not shown in the figure.
         Thres_min_importance = self.get_min_Importance_threshold(relation_importance,
-                top_importance_ratio = 0.95)
+                top_importance_ratio = 0.96)
         fs = conf['fs']
         FixedWindowLen = conf['winlen_ratio_to_fs']*fs
         print 'Fixed Window Length:{}'.format(FixedWindowLen)
@@ -186,21 +187,24 @@ class FeatureVisualizationSwt:
         # plot raw ECG
         plt.subplot(N_subplot / 2,2,1)
         # Get handle for annote arrow
-        # hide axis
-        #frame = plt.gca()
-        #frame.axes.get_xaxis().set_visible(False)
-        #frame.axes.get_yaxis().set_visible(False)
-        plt.plot(pltxLim,sigAmp)
+        
+        plt.plot(sigAmp)
         # plot reference point
         plt.plot(tarpos,rawsig[tarpos],'ro')
         plt.title(figtitle)
-        plt.xlim(pltxLim[0],pltxLim[-1])
+
+        window_center = len(sigAmp) / 2
+        window_limit_left = int(window_center - window_length_limit / 2)
+        window_limit_right = int(window_center + window_length_limit / 2)
+        plt.xlim(window_limit_left, window_limit_right)
+
+        plt.grid(True)
 
         # debug
-        plt.figure(3)
-        plt.plot(self.cDlist[0])
-        plt.title("Detail level 0")
-        plt.grid(True)
+        # plt.figure(3)
+        # plt.plot(self.cDlist[0])
+        # plt.title("Detail level 0")
+        # plt.grid(True)
 
         plt.figure(1)
 
@@ -234,7 +238,7 @@ class FeatureVisualizationSwt:
                 # Importance thres
                 alpha = (imp-Thres_min_importance)/(IMP_MAX-Thres_min_importance)
                 # Increase alpha for better visual effect.
-                alpha_increase_ratio = 0.3
+                alpha_increase_ratio = 0.8
                 alpha = alpha * alpha_increase_ratio + 1.0 - alpha_increase_ratio
                 # alpha = 1.0
 
@@ -270,7 +274,14 @@ class FeatureVisualizationSwt:
             plt.plot(cDamp)
             # reference point
             plt.plot(tarpos - xL, cDamp[tarpos-xL], 'yo', markersize = 12, mec = 'b')
-            plt.xlim(0, len(cDamp)-1)
+
+            window_center = len(cDamp) / 2
+            window_limit_left = int(window_center - window_length_limit / 2)
+            window_limit_right = int(window_center + window_length_limit / 2)
+            plt.xlim(window_limit_left, window_limit_right)
+
+            plt.grid(True)
+
 
         # self.PlotApproximationLevel(relation_importance[-1])
         

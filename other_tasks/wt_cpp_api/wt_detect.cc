@@ -4,6 +4,7 @@
 #include <complex>
 #include <stdlib.h>
 #include <vector>
+#include <memory>
 #include <fstream>
 #include <ctime>
 
@@ -68,6 +69,7 @@ void FormatKpdInput(vector<vector<double>>& s_rec_vec,
         int vec_col = s_rec_vec[i].size();
         for (int j = 0; j < col; ++j) {
             double val = 0;
+            // only fill data with in s_rec_vec's range
             if (i < vec_row && j < vec_col) val = s_rec_vec[i][j];
             s_rec_out[i + row * j] = val;
         }
@@ -157,7 +159,7 @@ void Testing() {
 
     vector<vector<double>> s_rec;
     // Cut signal segment
-    vector<double> sig_segment(sig.begin(), sig.begin() + 4320);
+    vector<double> sig_segment(sig.begin(), sig.end());
     DTCWT(sig_segment, 9, Wavelet_Remain, filter_bank, &s_rec);
     //return;
 
@@ -178,15 +180,15 @@ void Testing() {
          << ", "
          << s_rec[0].size() << endl;
     //KPD(s_rec, s_rec[0].size(), 360.0, &ret);
-    double* s_rec_in = new double[6500000]();
-    FormatKpdInput(s_rec, s_rec_in, 10, 650000);
+    unique_ptr<double[]> s_rec_in(new double[6500000]());
+    FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
     
     cout << "After Form kpd. " << endl;
     emxArray_real_T *y_out;
 
 
     emxInit_real_T(&y_out, 2);
-    call_simple_function(s_rec_in,
+    call_simple_function(s_rec_in.get(),
             650000,
             360.0,
             y_out,
