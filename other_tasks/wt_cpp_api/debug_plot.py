@@ -51,17 +51,17 @@ def PlotS_rec(file_name = None):
         plt.plot(sig)
         plt.title(fileID)
         plt.grid(True)
-        plt.xlim(0, 4500)
+        # plt.xlim(0, 4500)
 
     # show()
     plt.show()
 
 if __name__ == '__main__':
-    PlotData(title = 'cpp tmp.out')
+    # PlotData(title = 'cpp tmp.out')
     # PlotData('./ecg-samples/mit-100.txt')
     # PlotData('/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/wavelib/src/test/tmp.out')
-    PlotData(('/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/'
-        'matlab_output/tmp.out'), title = 'matlab tmp.out')
+    # PlotData(('/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/'
+        # 'matlab_output/tmp.out'), title = 'matlab tmp.out')
     # PlotData('/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/s_rec/s_rec0.txt')
-    # PlotS_rec()
+    PlotS_rec()
     pdb.set_trace()

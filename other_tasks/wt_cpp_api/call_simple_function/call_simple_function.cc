@@ -256,26 +256,26 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
         result_out->push_back(make_pair('R', val + x_start));
     }
 
-    cout << "x_QRS->allocatedSize = "
-         << x_QRS->allocatedSize
-         << endl;
-    cout << "x_QRS->numDimensions = "
-         << x_QRS->numDimensions
-         << endl;
+    //cout << "x_QRS->allocatedSize = "
+         //<< x_QRS->allocatedSize
+         //<< endl;
+    //cout << "x_QRS->numDimensions = "
+         //<< x_QRS->numDimensions
+         //<< endl;
 
-    for (int i = 0; i < x_QRS->numDimensions; ++i) {
-        cout << "x_QRS->size["
-             << i
-             << "] = "
-             << x_QRS->size[i]
-             << endl;
-    }
+    //for (int i = 0; i < x_QRS->numDimensions; ++i) {
+        //cout << "x_QRS->size["
+             //<< i
+             //<< "] = "
+             //<< x_QRS->size[i]
+             //<< endl;
+    //}
 
-    for (int i = 0; i < x_QRS->allocatedSize; ++i) {
-        cout << "val = "
-             << x_QRS->data[i]
-             << endl;
-    }
+    //for (int i = 0; i < x_QRS->allocatedSize; ++i) {
+        //cout << "val = "
+             //<< x_QRS->data[i]
+             //<< endl;
+    //}
 
     /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
     i0 = QRS_detector->size[0] * QRS_detector->size[1];
@@ -298,10 +298,24 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
         //result_out->push_back(make_pair('T', val + x_start));
     //}
 
-    ShowData(T_Location_cur, "T_Location_cur");
-    ShowData(P_Location_cur, "P_Location_cur");
+    //ShowData(T_Location_cur, "T_Location_cur");
+    //ShowData(P_Location_cur, "P_Location_cur");
     /*  This part is gona to detect the repetitive detection in 2s' */
     /*  overlap between two adjacent windows */
+
+    // Save Outputs
+    for (int i = 0; i < T_Location_cur->size[0] * T_Location_cur->size[1];
+            ++i) {
+        int val = T_Location_cur->data[i];
+        if (val <= 0) break;
+        result_out->push_back(make_pair('T', val));
+    }
+    for (int i = 0; i < P_Location_cur->size[0] * P_Location_cur->size[1];
+            ++i) {
+        int val = P_Location_cur->data[i];
+        if (val <= 0) break;
+        result_out->push_back(make_pair('P', val));
+    }
 
     // Skip jj
     cout << "jj = " << jj << endl;
@@ -584,7 +598,6 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     jj++;
   }
 
-  cout << "end while" << endl;
 
   emxFree_real_T(&c_P_Location_raw);
   emxFree_real_T(&c_T_Location_raw);
@@ -605,22 +618,18 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   /*  Re-formatting the position lists into structures for c++ codegen. */
   /*  y_out = result_position_list; */
 
-  cout << "Before Ensured capacity: " << endl;
   i0 = y_out->size[0] * y_out->size[1];
-  cout << "After Ensured capacity: " << endl;
   y_out->size[0] = 1;
   y_out->size[1] = (QRS_Location->size[1] + T_Location_raw->size[1]) +
     P_Location_raw->size[1];
   emxEnsureCapacity((emxArray__common *)y_out, i0, (int)sizeof(double));
 
-  cout << "Ensured capacity: " << y_out->allocatedSize << endl;
-  cout << "size: " 
-       << y_out->size[0]
-       << ", "
-       << y_out->size[1]
-       << endl;
+  //cout << "size: " 
+       //<< y_out->size[0]
+       //<< ", "
+       //<< y_out->size[1]
+       //<< endl;
   loop_ub = QRS_Location->size[1];
-  cout << "QRS:" << loop_ub << endl;
 
   for (i0 = 0; i0 < loop_ub; i0++) {
     y_out->data[y_out->size[0] * i0] = QRS_Location->data[QRS_Location->size[0] *
@@ -628,9 +637,6 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   }
 
   loop_ub = T_Location_raw->size[1];
-  cout << "Before T output." 
-       << loop_ub
-       << endl;
   for (i0 = 0; i0 < loop_ub; i0++) {
     ixstart = T_Location_raw->size[0];
     for (i1 = 0; i1 < ixstart; i1++) {
@@ -640,9 +646,6 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   }
 
   loop_ub = P_Location_raw->size[1];
-  cout << "Before P output." 
-       << loop_ub
-       << endl;
   for (i0 = 0; i0 < loop_ub; i0++) {
     ixstart = P_Location_raw->size[0];
     for (i1 = 0; i1 < ixstart; i1++) {
@@ -671,13 +674,16 @@ void GetT_detector10(const double s_rec[6500000], int jj_matlab,
     emxEnsureCapacity((emxArray__common *)T_detector, 0, (int)sizeof(double));
 
     // Add levels 4:8(matlab indexes)
+    int data_count = 0;
     for (int i = x_start; i <= x_stop; ++i) {
         int index_base = i * 10;
-        T_detector->data[i] = s_rec[3 + index_base];
-        T_detector->data[i] += s_rec[4 + index_base];
-        T_detector->data[i] += s_rec[5 + index_base];
-        T_detector->data[i] += s_rec[6 + index_base];
-        T_detector->data[i] += s_rec[7 + index_base];
+        T_detector->data[data_count] = s_rec[3 + index_base];
+        T_detector->data[data_count] += s_rec[4 + index_base];
+        T_detector->data[data_count] += s_rec[5 + index_base];
+        T_detector->data[data_count] += s_rec[6 + index_base];
+        T_detector->data[data_count] += s_rec[7 + index_base];
+
+        data_count++;
     }
     return;
 }

@@ -97,19 +97,18 @@ static void idwt1_sym_m(
     vector<double> X_lp;
     vector<double> cA_up;
     upsamp(app, U,cA_up );
+
     cA_up.pop_back();
-    convfftm(cA_up, lpr1, X_lp);
-
-
+    convfft(cA_up, lpr1, X_lp);
 
     // Operations in the High Frequency branch of the Synthesis Filter Bank
 
     vector<double> X_hp;
     vector<double> cD_up;
     upsamp(detail, U, cD_up);
-    cD_up.pop_back();
-    convfftm(cD_up, hpr1, X_hp);
 
+    cD_up.pop_back();
+    convfft(cD_up, hpr1, X_hp);
 
     vecsum(X_lp,X_hp,idwt_output);
 
@@ -176,7 +175,6 @@ void waverec(vector<double>& coefs,vector<int>& lengths,
     // Init sig_out
     sig_out->clear();
     
-    
     int len_lengths = lengths.size();
     int dwt_level = len_lengths - 2;
 
@@ -200,6 +198,7 @@ void waverec(vector<double>& coefs,vector<int>& lengths,
     start_index += lengths[0];
 
     for (int i = 0; i < dwt_level; ++i) {
+
         cD.assign(coefs.begin() + start_index, coefs.begin() + start_index + lengths[i + 1]);
         start_index += lengths[i + 1];
 

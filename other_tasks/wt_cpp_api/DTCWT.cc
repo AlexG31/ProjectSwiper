@@ -160,8 +160,6 @@ void DTCWT(vector<double>& Signal,
     //cout << " H11b" << endl;
     //PrintVec(H11b);
 
-    vector<double> sig_segment;
-    sig_segment.assign(Signal.begin(), Signal.begin() + 4320);
     // Wavedec
     vector<double> C1;
     vector<int> L1;
@@ -214,10 +212,10 @@ void DTCWT(vector<double>& Signal,
         auto St = len_La1 - Wavelet_Remain[ToCIndex(jj)];
         auto Sp = len_La1 - Wavelet_Remain[ToCIndex(jj)] + 1;
 
-        cout << "St = " << St
-             << ", "
-             << "Sp = " << Sp
-             << endl;
+        //cout << "St = " << St
+             //<< ", "
+             //<< "Sp = " << Sp
+             //<< endl;
         //cout << "Copying to :"
              //<< La1_sum[ToCIndex(St)]
              //<< ", "

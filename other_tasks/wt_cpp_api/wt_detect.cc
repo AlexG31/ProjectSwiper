@@ -100,18 +100,73 @@ void Testing(vector<double>& signal_in, double fs,
 
     vector<vector<double>> filter_bank{Lp1_D, Hp1_D, Lp1_R, Hp1_R};
 
+    // Input for DTCWT
     vector<int> Wavelet_Remain;
     for (int i = 1; i <= 9; ++i) {
         Wavelet_Remain.push_back(i);
     }
 
-    vector<vector<double>> s_rec;
-    DTCWT(signal_in, 9, Wavelet_Remain, filter_bank, &s_rec);
+    auto start_time = time(NULL);
+    cout << "start_time = " << start_time << endl;
 
-    // Detect QRS, P, T positions
-    //KPD(s_rec, s_rec[0].size(), 360.0, result_out);
+    vector<vector<double>> s_rec;
+    // Cut signal segment
+    vector<double> sig_segment(signal_in.begin(), signal_in.end());
+    DTCWT(sig_segment, 9, Wavelet_Remain, filter_bank, &s_rec);
+
+    // debug output
+    OutputS_rec(s_rec);
+
+    cout << "DTCWT time cost:"
+         << time(NULL) - start_time 
+         << "secs"
+         << endl;
+
+    start_time = time(NULL);
+    //
+    // Detection result
+    cout << "s_rec.size() = " 
+         << s_rec.size()
+         << ", "
+         << s_rec[0].size() << endl;
+    unique_ptr<double[]> s_rec_in(new double[6500000]());
+    FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
+    emxArray_real_T *y_out;
+
+
+    emxInit_real_T(&y_out, 2);
+    call_simple_function(s_rec_in.get(),
+            650000,
+            360.0,
+            y_out,
+            result_out);
+
+    cout << "KPD time:"
+         << time(NULL) - start_time 
+         << "secs"
+         << endl;
+
+    cout << "y_out numDim = " << y_out->numDimensions << endl;
+    for (int i = 0; i < y_out->numDimensions; ++i) {
+        cout << "size"
+             << i
+             << " = "
+             << y_out->size[i]
+             << endl;
+    }
+
+
     cout << "Result.size() = " << result_out->size() << endl;
 
+    for (const auto& item: *result_out) {
+        cout << "Result: "
+             << item.first
+             << "   -> "
+             << item.second
+             << endl;
+    }
+
+    return ;
 }
 
 // Testing function For Testing api
@@ -183,7 +238,6 @@ void Testing() {
     unique_ptr<double[]> s_rec_in(new double[6500000]());
     FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
     
-    cout << "After Form kpd. " << endl;
     emxArray_real_T *y_out;
 
 
@@ -194,31 +248,23 @@ void Testing() {
             y_out,
             &ret);
 
-    cout << "KPD time:"
+    cout << "simple function time:"
          << time(NULL) - start_time 
          << "secs"
          << endl;
 
-    cout << "y_out numDim = " << y_out->numDimensions << endl;
-    for (int i = 0; i < y_out->numDimensions; ++i) {
-        cout << "size"
-             << i
-             << " = "
-             << y_out->size[i]
-             << endl;
-    }
-    cout << "y_out capacity:" << y_out->allocatedSize << endl;
 
 
+    cout << "=======================" << endl;
     cout << "Result.size() = " << ret.size() << endl;
 
-    //for (const auto& item: ret) {
-        //cout << "Result: "
-             //<< item.first
-             //<< "   -> "
-             //<< item.second
-             //<< endl;
-    //}
+    for (const auto& item: ret) {
+        cout << "Result: "
+             << item.first
+             << "   -> "
+             << item.second
+             << endl;
+    }
 
     return ;
 }
