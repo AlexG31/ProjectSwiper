@@ -15,6 +15,7 @@
 #include "abs.h"
 
 #include <iostream>
+#include <algorithm>
 #include <vector>
 #include <utility>
 
@@ -23,11 +24,11 @@ using namespace std;
 #define eps 1e-6
 
 
-double abs(double val) {
+static double abs_double(double val) {
     return val < -eps ? -val: val;
 }
 
-void ShowData(emxArray_real_T* result, string name = "data") {
+static void ShowData(emxArray_real_T* result, string name = "data") {
     cout << name + "->size = "
          << result->allocatedSize
          << endl;
@@ -40,22 +41,24 @@ void ShowData(emxArray_real_T* result, string name = "data") {
 }
 
 // Get T_detector from 10 levels of s_rec
-void GetT_detector10(const double s_rec[6500000], int jj_matlab,
+static void GetT_detector10(const double *s_rec, int, int,
           double fs, emxArray_real_T *T_detector);
 
+// Remove repeated results
+static void RemoveRepeatResults(vector<pair<char, int>>* detection_results,
+        int Min_Label_Distance = 10);
 
 /* Function Definitions */
 
 /*
- * Arguments    : const double s_rec[6500000]
+ * Arguments    : const double *s_rec
  *                double sig_len
  *                double fs
  *                emxArray_real_T *y_out
  * Return Type  : void
  */
-void call_simple_function(const double s_rec[6500000], double sig_len, double fs,
-  emxArray_real_T *y_out, vector<pair<char, int>>* result_out)
-{
+void call_simple_function(const double *s_rec, double sig_len, double fs,
+  emxArray_real_T *y_out, vector<pair<char, int>>* result_out) {
 
   emxArray_real_T *QRS_Location;
   emxArray_real_T *T_Location_raw;
@@ -207,7 +210,7 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
     T_detector->size[1] = sz[1];
     emxEnsureCapacity((emxArray__common *)T_detector, iy, (int)sizeof(double));
     
-    GetT_detector10(s_rec, jj + 1, fs, T_detector);
+    GetT_detector10(s_rec, x_start, x_stop, fs, T_detector);
     //if (i1 - i0 == 0) {
       //i0 = T_detector->size[0] * T_detector->size[1];
       //T_detector->size[0] = 1;
@@ -317,285 +320,124 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
         result_out->push_back(make_pair('P', val));
     }
 
-    // Skip jj
     //cout << "jj = " << jj << endl;
     jj++;
-    //if (jj > 1) break;
-    continue;
+  }
 
-    if (abs((double)jj) < eps) {
-      cout << "if (jj  = 0 )" << endl;
+  // ===============================================
+  // Calculate the tail part if len_signal > fs * 12
+  // ===============================================
+  if (sig_len >= static_cast<int>(fs) * 12) {
+      
+      //while (jj <= (int)L_sig - 1)
+        x_start = sig_len - static_cast<int>(fs) * 12;
+        x_stop = sig_len;
 
-      ixstart = QRS_Location->size[1];
-      ix = QRS_detector->size[1];
-      i0 = QRS_Location->size[0] * QRS_Location->size[1];
-      QRS_Location->size[1] = ixstart + ix;
-      emxEnsureCapacity((emxArray__common *)QRS_Location, i0, (int)sizeof(double));
-      for (i0 = 0; i0 < ix; i0++) {
-        QRS_Location->data[ixstart + i0] = QRS_detector->data[i0];
-      }
-
-      if (T_Location_cur->data[0] > 0.0) {
-        cout << "T_Location = " << T_Location_cur->data[0] << endl;
-
-        i0 = c_T_Location_raw->size[0] * c_T_Location_raw->size[1];
-        c_T_Location_raw->size[0] = T_Location_raw->size[0];
-        c_T_Location_raw->size[1] = T_Location_raw->size[1] +
-          T_Location_cur->size[1];
-        emxEnsureCapacity((emxArray__common *)c_T_Location_raw, i0, (int)sizeof
-                          (double));
-        loop_ub = T_Location_raw->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = T_Location_raw->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            c_T_Location_raw->data[i1 + c_T_Location_raw->size[0] * i0] =
-              T_Location_raw->data[i1 + T_Location_raw->size[0] * i0];
-          }
-        }
-
-        loop_ub = T_Location_cur->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = T_Location_cur->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            c_T_Location_raw->data[i1 + c_T_Location_raw->size[0] * (i0 +
-              T_Location_raw->size[1])] = T_Location_cur->data[i1 +
-              T_Location_cur->size[0] * i0];
-          }
-        }
-
-        i0 = T_Location_raw->size[0] * T_Location_raw->size[1];
-        T_Location_raw->size[0] = c_T_Location_raw->size[0];
-        T_Location_raw->size[1] = c_T_Location_raw->size[1];
-        emxEnsureCapacity((emxArray__common *)T_Location_raw, i0, (int)sizeof
-                          (double));
-        loop_ub = c_T_Location_raw->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = c_T_Location_raw->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            T_Location_raw->data[i1 + T_Location_raw->size[0] * i0] =
-              c_T_Location_raw->data[i1 + c_T_Location_raw->size[0] * i0];
-          }
-        }
-      }
-
-      if (P_Location_cur->data[0] > 0.0) {
-        i0 = c_P_Location_raw->size[0] * c_P_Location_raw->size[1];
-        c_P_Location_raw->size[0] = P_Location_raw->size[0];
-        c_P_Location_raw->size[1] = P_Location_raw->size[1] +
-          P_Location_cur->size[1];
-        emxEnsureCapacity((emxArray__common *)c_P_Location_raw, i0, (int)sizeof
-                          (double));
-        loop_ub = P_Location_raw->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = P_Location_raw->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            c_P_Location_raw->data[i1 + c_P_Location_raw->size[0] * i0] =
-              P_Location_raw->data[i1 + P_Location_raw->size[0] * i0];
-          }
-        }
-
-        loop_ub = P_Location_cur->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = P_Location_cur->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            c_P_Location_raw->data[i1 + c_P_Location_raw->size[0] * (i0 +
-              P_Location_raw->size[1])] = P_Location_cur->data[i1 +
-              P_Location_cur->size[0] * i0];
-          }
-        }
-
-        i0 = P_Location_raw->size[0] * P_Location_raw->size[1];
-        P_Location_raw->size[0] = c_P_Location_raw->size[0];
-        P_Location_raw->size[1] = c_P_Location_raw->size[1];
-        emxEnsureCapacity((emxArray__common *)P_Location_raw, i0, (int)sizeof
-                          (double));
-        loop_ub = c_P_Location_raw->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          ixstart = c_P_Location_raw->size[0];
-          for (i1 = 0; i1 < ixstart; i1++) {
-            P_Location_raw->data[i1 + P_Location_raw->size[0] * i0] =
-              c_P_Location_raw->data[i1 + c_P_Location_raw->size[0] * i0];
-          }
-        }
-      }
-
-      /*               plot( ECG_ori , 'g' );  */
-      /*               hold on; plot(QRS_Location_cur-x_start, ECG_ori(QRS_Location_cur-x_start),'r.'); */
-      /*               plot(T_Location_cur-x_start, ECG_ori(T_Location_cur-x_start),'bo'); */
-      /*               plot(P_Location_cur-x_start, ECG_ori(P_Location_cur-x_start),'ko'); hold off; */
-      /*               waitforbuttonpress */
-      /*  Output: QRS detection result */
-    } else {
-      /*  ERROR: What happens if there's no QRS detected? */
-      if (QRS_detector->size[1] == 0) {
-      } else {
-        if (QRS_detector->data[0] - QRS_Location->data[QRS_Location->size[1] - 1]
-            > floor(fs / 20.0)) {
-          ixstart = QRS_Location->size[1];
-          ix = QRS_detector->size[1];
-          i0 = QRS_Location->size[0] * QRS_Location->size[1];
-          QRS_Location->size[1] = ixstart + ix;
-          emxEnsureCapacity((emxArray__common *)QRS_Location, i0, (int)sizeof
-                            (double));
-          for (i0 = 0; i0 < ix; i0++) {
-            QRS_Location->data[ixstart + i0] = QRS_detector->data[i0];
-          }
+        /*  ECG with wavelet sub-levels 1 to 8, is equal to high pass filter */
+        /*  QRS_detector is used to detect qrs complex, whose energy is */
+        /*  concentrate at 10 - 50 Hz */
+        if (x_start > x_stop) {
+          i0 = 0;
+          i1 = 0;
         } else {
-          if (2 > QRS_detector->size[1]) {
-            i0 = 1;
-            i1 = 1;
-          } else {
-            i0 = 2;
-            i1 = QRS_detector->size[1] + 1;
-          }
+          i0 = (int)x_start - 1;
+          i1 = (int)x_stop;
+        }
 
-          ixstart = QRS_Location->size[1];
-          ix = i1 - i0;
-          iy = QRS_Location->size[0] * QRS_Location->size[1];
-          QRS_Location->size[1] = ixstart + ix;
-          emxEnsureCapacity((emxArray__common *)QRS_Location, iy, (int)sizeof
-                            (double));
-          iy = c_QRS_detector->size[0] * c_QRS_detector->size[1];
-          c_QRS_detector->size[0] = 1;
-          c_QRS_detector->size[1] = i1 - i0;
-          emxEnsureCapacity((emxArray__common *)c_QRS_detector, iy, (int)sizeof
-                            (double));
-          loop_ub = i1 - i0;
-          for (i1 = 0; i1 < loop_ub; i1++) {
-            c_QRS_detector->data[c_QRS_detector->size[0] * i1] =
-              QRS_detector->data[(i0 + i1) - 1];
-          }
-
-          for (i0 = 0; i0 < ix; i0++) {
-            QRS_Location->data[ixstart + i0] = c_QRS_detector->data[i0];
+        iy = b_s_rec->size[0] * b_s_rec->size[1];
+        b_s_rec->size[0] = 3;
+        b_s_rec->size[1] = i1 - i0;
+        emxEnsureCapacity((emxArray__common *)b_s_rec, iy, (int)sizeof(double));
+        loop_ub = i1 - i0;
+        for (i1 = 0; i1 < loop_ub; i1++) {
+          for (iy = 0; iy < 3; iy++) {
+            b_s_rec->data[iy + b_s_rec->size[0] * i1] = s_rec[(iy + 10 * (i0 + i1))
+              + 2];
           }
         }
 
-        if (T_Location_cur->data[0] > 0.0) {
-          if (T_Location_cur->data[0] - T_Location_raw->data[-1] > floor(fs /
-               20.0)) {
-            i0 = b_T_Location_raw->size[0] * b_T_Location_raw->size[1];
-            b_T_Location_raw->size[0] = T_Location_raw->size[0];
-            b_T_Location_raw->size[1] = T_Location_raw->size[1] +
-              T_Location_cur->size[1];
-            emxEnsureCapacity((emxArray__common *)b_T_Location_raw, i0, (int)
-                              sizeof(double));
-            loop_ub = T_Location_raw->size[1];
-            for (i0 = 0; i0 < loop_ub; i0++) {
-              ixstart = T_Location_raw->size[0];
-              for (i1 = 0; i1 < ixstart; i1++) {
-                b_T_Location_raw->data[i1 + b_T_Location_raw->size[0] * i0] =
-                  T_Location_raw->data[i1 + T_Location_raw->size[0] * i0];
-              }
-            }
+        b_abs(b_s_rec, r0);
+        sum(r0, QRS_detector);
 
-            loop_ub = T_Location_cur->size[1];
-            for (i0 = 0; i0 < loop_ub; i0++) {
-              ixstart = T_Location_cur->size[0];
-              for (i1 = 0; i1 < ixstart; i1++) {
-                b_T_Location_raw->data[i1 + b_T_Location_raw->size[0] * (i0 +
-                  T_Location_raw->size[1])] = T_Location_cur->data[i1 +
-                  T_Location_cur->size[0] * i0];
-              }
-            }
+        /*  QRS_detector is used to detect T and P wave, whose energy is */
+        /*  concentrate at 1 - 10 Hz */
+        if (x_start > x_stop) {
+          i0 = 1;
+          i1 = 1;
+        } else {
+          i0 = (int)x_start;
+          i1 = (int)x_stop + 1;
+        }
 
-            i0 = T_Location_raw->size[0] * T_Location_raw->size[1];
-            T_Location_raw->size[0] = b_T_Location_raw->size[0];
-            T_Location_raw->size[1] = b_T_Location_raw->size[1];
-            emxEnsureCapacity((emxArray__common *)T_Location_raw, i0, (int)
-                              sizeof(double));
-            loop_ub = b_T_Location_raw->size[1];
-            for (i0 = 0; i0 < loop_ub; i0++) {
-              ixstart = b_T_Location_raw->size[0];
-              for (i1 = 0; i1 < ixstart; i1++) {
-                T_Location_raw->data[i1 + T_Location_raw->size[0] * i0] =
-                  b_T_Location_raw->data[i1 + b_T_Location_raw->size[0] * i0];
-              }
-            }
-          } else {
-            i0 = T_Location_cur->size[0] * T_Location_cur->size[1];
-            if (2 > i0) {
-              i1 = 1;
-              i0 = 1;
-            } else {
-              i1 = 2;
-              i0++;
-            }
-
-            ixstart = T_Location_raw->size[1];
-            ix = i0 - i1;
-            iy = T_Location_raw->size[0] * T_Location_raw->size[1];
-            T_Location_raw->size[1] = ixstart + ix;
-            emxEnsureCapacity((emxArray__common *)T_Location_raw, iy, (int)
-                              sizeof(double));
-            iy = b_T_Location_cur->size[0] * b_T_Location_cur->size[1];
-            b_T_Location_cur->size[0] = 1;
-            b_T_Location_cur->size[1] = i0 - i1;
-            emxEnsureCapacity((emxArray__common *)b_T_Location_cur, iy, (int)
-                              sizeof(double));
-            loop_ub = i0 - i1;
-            for (i0 = 0; i0 < loop_ub; i0++) {
-              b_T_Location_cur->data[b_T_Location_cur->size[0] * i0] =
-                T_Location_cur->data[(i1 + i0) - 1];
-            }
-
-            for (i0 = 0; i0 < ix; i0++) {
-              T_Location_raw->data[ixstart + i0] = b_T_Location_cur->data[i0];
-            }
+        iy = c_s_rec->size[0] * c_s_rec->size[1];
+        c_s_rec->size[0] = 5;
+        c_s_rec->size[1] = i1 - i0;
+        emxEnsureCapacity((emxArray__common *)c_s_rec, iy, (int)sizeof(double));
+        loop_ub = i1 - i0;
+        for (iy = 0; iy < loop_ub; iy++) {
+          for (ixstart = 0; ixstart < 5; ixstart++) {
+            c_s_rec->data[ixstart + c_s_rec->size[0] * iy] = s_rec[(ixstart + 10 *
+              ((i0 + iy) - 1)) + 3];
           }
         }
 
-        if (P_Location_cur->data[0] > 0.0) {
-          i0 = b_P_Location_raw->size[0] * b_P_Location_raw->size[1];
-          b_P_Location_raw->size[0] = P_Location_raw->size[0];
-          b_P_Location_raw->size[1] = P_Location_raw->size[1] +
-            P_Location_cur->size[1];
-          emxEnsureCapacity((emxArray__common *)b_P_Location_raw, i0, (int)
-                            sizeof(double));
-          loop_ub = P_Location_raw->size[1];
-          for (i0 = 0; i0 < loop_ub; i0++) {
-            ixstart = P_Location_raw->size[0];
-            for (i1 = 0; i1 < ixstart; i1++) {
-              b_P_Location_raw->data[i1 + b_P_Location_raw->size[0] * i0] =
-                P_Location_raw->data[i1 + P_Location_raw->size[0] * i0];
-            }
-          }
-
-          loop_ub = P_Location_cur->size[1];
-          for (i0 = 0; i0 < loop_ub; i0++) {
-            ixstart = P_Location_cur->size[0];
-            for (i1 = 0; i1 < ixstart; i1++) {
-              b_P_Location_raw->data[i1 + b_P_Location_raw->size[0] * (i0 +
-                P_Location_raw->size[1])] = P_Location_cur->data[i1 +
-                P_Location_cur->size[0] * i0];
-            }
-          }
-
-          i0 = P_Location_raw->size[0] * P_Location_raw->size[1];
-          P_Location_raw->size[0] = b_P_Location_raw->size[0];
-          P_Location_raw->size[1] = b_P_Location_raw->size[1];
-          emxEnsureCapacity((emxArray__common *)P_Location_raw, i0, (int)sizeof
-                            (double));
-          loop_ub = b_P_Location_raw->size[1];
-          for (i0 = 0; i0 < loop_ub; i0++) {
-            ixstart = b_P_Location_raw->size[0];
-            for (i1 = 0; i1 < ixstart; i1++) {
-              P_Location_raw->data[i1 + P_Location_raw->size[0] * i0] =
-                b_P_Location_raw->data[i1 + b_P_Location_raw->size[0] * i0];
-            }
-          }
+        for (iy = 0; iy < 2; iy++) {
+          sz[iy] = c_s_rec->size[iy];
         }
 
-        /*               plot( ECG_ori , 'g' );  */
-        /*               hold on; plot(QRS_Location_cur-x_start, ECG_ori(QRS_Location_cur-x_start),'r.'); */
-        /*               plot(T_Location_cur-x_start, ECG_ori(T_Location_cur-x_start),'bo'); */
-        /*               plot(P_Location_cur-x_start, ECG_ori(P_Location_cur-x_start),'ko'); hold off; */
-        /*               waitforbuttonpress */
-        /*  Output: QRS detection result */
-      }
-    }
+        iy = T_detector->size[0] * T_detector->size[1];
+        T_detector->size[0] = 1;
+        T_detector->size[1] = sz[1];
+        emxEnsureCapacity((emxArray__common *)T_detector, iy, (int)sizeof(double));
+        
+        GetT_detector10(s_rec, x_start, x_stop, fs, T_detector);
 
-    jj++;
+        /*   QRS complex detection algorithm */
+        i0 = b_QRS_detector->size[0] * b_QRS_detector->size[1];
+        b_QRS_detector->size[0] = 1;
+        b_QRS_detector->size[1] = QRS_detector->size[1];
+        emxEnsureCapacity((emxArray__common *)b_QRS_detector, i0, (int)sizeof(double));
+        loop_ub = QRS_detector->size[0] * QRS_detector->size[1];
+        for (i0 = 0; i0 < loop_ub; i0++) {
+          b_QRS_detector->data[i0] = QRS_detector->data[i0];
+        }
+
+        QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
+
+        // Add to output vector.
+        auto QRS_cap = x_QRS->allocatedSize;
+        for (int i = 0; i < QRS_cap; ++i) {
+            int val = x_QRS->data[i];
+            if (val <= 0) break;
+            result_out->push_back(make_pair('R', val + x_start));
+        }
+
+        /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
+        i0 = QRS_detector->size[0] * QRS_detector->size[1];
+        QRS_detector->size[0] = 1;
+        QRS_detector->size[1] = x_QRS->size[1];
+        emxEnsureCapacity((emxArray__common *)QRS_detector, i0, (int)sizeof(double));
+        loop_ub = x_QRS->size[0] * x_QRS->size[1];
+        for (i0 = 0; i0 < loop_ub; i0++) {
+          QRS_detector->data[i0] = x_QRS->data[i0] + x_start;
+        }
+
+        /*   T and P wave detection        */
+        T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
+
+        // Save Outputs
+        for (int i = 0; i < T_Location_cur->size[0] * T_Location_cur->size[1];
+                ++i) {
+            int val = T_Location_cur->data[i];
+            if (val <= 0) break;
+            result_out->push_back(make_pair('T', val));
+        }
+        for (int i = 0; i < P_Location_cur->size[0] * P_Location_cur->size[1];
+                ++i) {
+            int val = P_Location_cur->data[i];
+            if (val <= 0) break;
+            result_out->push_back(make_pair('P', val));
+        }
   }
 
 
@@ -658,16 +500,21 @@ void call_simple_function(const double s_rec[6500000], double sig_len, double fs
   emxFree_real_T(&P_Location_raw);
   emxFree_real_T(&T_Location_raw);
   emxFree_real_T(&QRS_Location);
+  // Eliminate repeated results
+  RemoveRepeatResults(result_out);
 }
 
 // Get T_detector from 10 levels of s_rec
-void GetT_detector10(const double s_rec[6500000], int jj_matlab,
-          double fs, emxArray_real_T *T_detector) {
+void GetT_detector10(const double *s_rec, int x_start_matlab,
+          int x_stop_matlab, double fs,
+          emxArray_real_T *T_detector) {
 
     double L_overlap = 2.0 * fs;
 
-    int x_start = round(1.0+(jj_matlab -1)*fs*10) - 1;
-    int x_stop = round((jj_matlab -1.0)*fs*10 + fs*10 + L_overlap) - 1;
+    int x_start = x_start_matlab - 1;
+    int x_stop = x_stop_matlab - 1;
+    //int x_start = round(1.0+(jj_matlab -1)*fs*10) - 1;
+    //int x_stop = round((jj_matlab -1.0)*fs*10 + fs*10 + L_overlap) - 1;
 
     T_detector->size[1] = x_stop - x_start + 1;
     T_detector->size[0] = 1;
@@ -685,6 +532,57 @@ void GetT_detector10(const double s_rec[6500000], int jj_matlab,
 
         data_count++;
     }
+    return;
+}
+
+// Compare results according to label.
+static bool label_compare(pair<char,int>& a, pair<char,int>& b) {
+    return a.first < b.first;
+}
+
+// Remove repeated results.
+// MinDistance: The minimum distance between labels
+void RemoveRepeatResults(vector<pair<char, int>>* detection_results,
+        int Min_Label_Distance) {
+
+    // Make same labels next to each other.
+    sort(detection_results->begin(), detection_results->end(), label_compare);
+
+    int len_results = detection_results->size();
+    vector<pair<char, int>> uniq_results;
+
+    for (int i = 0; i < len_results; ++i) {
+        unsigned char cur_label = (*detection_results)[i].first;
+
+        // Eliminate s
+        vector<int> pos_list;
+        for (int j = i; j < len_results; ++j) {
+            if ((*detection_results)[j].first != (char)cur_label) {
+                break;
+            }
+            pos_list.push_back((*detection_results)[j].second);
+        }
+        
+        // sort same label's position list.
+        sort(pos_list.begin(), pos_list.end());
+
+        int rem_pos = pos_list[0];
+        uniq_results.push_back(make_pair((char)cur_label, rem_pos));
+
+        int len_pos_list = pos_list.size();
+        for (int i = 1; i < len_pos_list; ++i) {
+            int cur_pos = pos_list[i];
+            if (abs(cur_pos - rem_pos) >= Min_Label_Distance) {
+                rem_pos = cur_pos;
+                uniq_results.push_back(make_pair((char)cur_label, rem_pos));
+            }
+            rem_pos = cur_pos;
+        }
+
+        i += static_cast<int>(pos_list.size()) - 1;
+    }
+
+    detection_results->assign(uniq_results.begin(), uniq_results.end());
     return;
 }
 

@@ -58,6 +58,8 @@ void OutputS_rec(vector<vector<double>>& s_rec) {
 }
 
 // Convert c++ vector into double* for c code.
+// Input :
+//  row & col may exceed s_rec_vec's size
 void FormatKpdInput(vector<vector<double>>& s_rec_vec,
         double* s_rec_out,
         int row,
@@ -81,9 +83,7 @@ void FormatKpdInput(vector<vector<double>>& s_rec_vec,
 void Testing(vector<double>& signal_in, double fs,
         vector<pair<char, int>>* result_out) {
     
-    auto start_time = time(NULL);
-    cout << "start_time = " << start_time << endl;
-
+    // Filter Coefficients
     vector<double> Lp1_D{0,0.0378284555072640,-0.0238494650195568,
         -0.110624404418437,0.377402855612831,0.852698679008894,
         0.377402855612831,-0.110624404418437,-0.0238494650195568,
@@ -98,7 +98,6 @@ void Testing(vector<double>& signal_in, double fs,
         0.110624404418437, 0.377402855612831, -0.852698679008894,
         0.377402855612831, 0.110624404418437, -0.0238494650195568,
         -0.0378284555072640};
-
     vector<vector<double>> filter_bank{Lp1_D, Hp1_D, Lp1_R, Hp1_R};
 
     // Input for DTCWT
@@ -109,33 +108,23 @@ void Testing(vector<double>& signal_in, double fs,
 
     // Cut signal segment
     vector<vector<double>> s_rec;
-    vector<double> sig_segment(signal_in.begin(), signal_in.end());
-    DTCWT(sig_segment, 9, Wavelet_Remain, filter_bank, &s_rec);
-    //return;
+    int len_signal = signal_in.size();
 
-    cout << "DTCWT time cost:"
-         << time(NULL) - start_time 
-         << "secs"
-         << endl;
-    start_time = time(NULL);
+    // Wavelet transform
+    DTCWT(signal_in, 9, Wavelet_Remain, filter_bank, &s_rec);
 
     // Detection result
     vector<pair<char, int>> ret;
-    unique_ptr<double[]> s_rec_in(new double[6500000]());
-    FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
+    unique_ptr<double[]> s_rec_in(new double[len_signal * 10]());
+    FormatKpdInput(s_rec, s_rec_in.get(), 10, len_signal);
     
     emxArray_real_T *y_out;
     emxInit_real_T(&y_out, 2);
     call_simple_function(s_rec_in.get(),
-            650000,
+            len_signal,
             360.0,
             y_out,
             result_out);
-
-    cout << "simple function time:"
-         << time(NULL) - start_time 
-         << "secs"
-         << endl;
 }
 
 // [Debug] Testing function For Testing api
