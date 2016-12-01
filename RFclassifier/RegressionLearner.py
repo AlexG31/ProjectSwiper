@@ -311,9 +311,7 @@ class RegressionLearner:
         return target_pos
 
     def AddP2feature(
-            self,
-            rawsig,
-            expert_marklist,
+            self, rawsig, expert_marklist,
             debug = False,
             original_signal = None):
         '''Search backward from current R position and collect features.'''
@@ -336,12 +334,12 @@ class RegressionLearner:
             segment_range = self.GetRRSegmentPrev(r_pos_list, r_pos)
             target_pos = self.GetPreviousLabelPosition(
                     self.target_label,
-                    pos_list,
-                    label_list,
-                    r_pos)
+                    pos_list, label_list, r_pos)
+
             # Skip if missing.
             if target_pos is None:
                 continue
+
             # Extend segment
             segment_range[0] -= self.QRS_segment_expand_length
             segment_range[1] += self.QRS_segment_expand_length
@@ -352,7 +350,8 @@ class RegressionLearner:
             for shift_distance in xrange(0, 1, 1):
                 segment_range[0] = base_segment_range[0] + shift_distance
                 segment_range[1] = base_segment_range[1] + shift_distance
-                # Target label position
+
+                # Target label position (Local)
                 target_pos = base_target_position - segment_range[1] 
 
                 # Get ECG raw signal segment
@@ -368,23 +367,23 @@ class RegressionLearner:
                     cDlist_seg.append(
                         self.CropSignalBySegmentRange(
                             detail_signal,
-                            segment_range,
-                            self.FixedSignalLength,
+                            segment_range, self.FixedSignalLength,
                             limit_by_right = False))
+
                 # Get QRS distance array.
                 seg_len = segment_range[1] - segment_range[0] + 1
 
                 QRS_distance_before = range(0, seg_len)
                 QRS_distance_after = range(seg_len-1, -1, -1)
                 QRS_distance_ratio = map(lambda x:float(x)/seg_len,QRS_distance_before)
+
                 # Form current feature vector
                 current_feature_vector = self.FormFeature(
                         cDlist_seg,
-                        QRS_distance_before,
-                        QRS_distance_after,
-                        QRS_distance_ratio,
+                        QRS_distance_before, QRS_distance_after, QRS_distance_ratio,
                         sig_seg,
                         modify_signal_tail = False,
+                        local_target_pos = target_pos + seg_len,
                         debug = debug)
                 if debug:
                     print 'rpos:', r_pos
@@ -660,42 +659,35 @@ class RegressionLearner:
                         fixed_length)
             detail_signal_segment = NormalizeAmplitude(
                     detail_signal_segment,
-                    amplitude_max,
-                    amplitude_min)
+                    amplitude_max, amplitude_min)
             modified_swt_detail_list.append(detail_signal_segment)
             
         return (modified_swt_detail_list,
-                QRS_distance_before,
-                QRS_distance_after,
-                QRS_distance_ratio,
+                QRS_distance_before, QRS_distance_after, QRS_distance_ratio,
                 sig_seg)
             
     def FormFeature(
-                self,
-                cDlist_seg,
-                QRS_distance_before,
-                QRS_distance_after,
-                QRS_distance_ratio,
+                self, cDlist_seg,
+                QRS_distance_before, QRS_distance_after, QRS_distance_ratio,
                 sig_seg,
                 modify_signal_tail = True,
-                debug = False 
-            ):
-        '''Form feature from the segment signal given.'''
+                local_target_pos = None,
+                debug = False):
+        '''Form feature from the segment signal given.
+            Inputs:
+                local_target_pos: The index of local target index, in range of
+                sig_seg.
+        '''
         # Normalize the length of each input feature signal.
         (
             cDlist_seg,
-            QRS_distance_before,
-            QRS_distance_after,
-            QRS_distance_ratio,
+            QRS_distance_before, QRS_distance_after, QRS_distance_ratio,
             sig_seg
         ) = self.CropFeatureWindow(
                   cDlist_seg,
-                  QRS_distance_before,
-                  QRS_distance_after,
-                  QRS_distance_ratio,
+                  QRS_distance_before, QRS_distance_after, QRS_distance_ratio,
                   sig_seg,
                   modify_signal_tail = modify_signal_tail)
-
 
         # Logging
         # log.info('Only extracting features from SWT level 2 to 6.')
@@ -717,7 +709,7 @@ class RegressionLearner:
                 feature_vector.extend(detail_level)
                 feature_vector.extend(np.abs(detail_level))
         # Add distance to QRS feature.
-        #feature_vector.extend(QRS_distance_after)
+        # feature_vector.extend(QRS_distance_after)
         # feature_vector.extend(QRS_distance_ratio)
         # feature_vector.extend(QRS_distance_before)
         feature_vector.extend(sig_seg)
@@ -734,6 +726,26 @@ class RegressionLearner:
                 plt.subplot(N_subplot_level, 1, di + 1)
                 plt.plot(cDlist_seg[di])
                 plt.grid(True)
+
+        # Read bias distibution from file
+        # Add to feature_vector(Assume this classifier is for P wave)
+        if self.target_label != 'P':
+            raise Exception("classifier target label is not P!")
+
+        if local_target_pos is None:
+            feature_vector.extend([0,] * len(sig_seg))
+            return feature_vector
+
+        # Add Gaussian probability vector based on local_target_pos
+        g_mean = float(local_target_pos)
+        g_std = 20.0
+        g_prob = list()
+        for ind in xrange(0, len(sig_seg)):
+            val = 1.0 / math.sqrt(2 * math.pi) / g_std
+            val *= math.exp( - (ind - g_mean) ** 2 / 2 / g_std ** 2)
+            g_prob.append(val)
+        
+        feature_vector.extend(g_prob)
 
         return feature_vector
 
@@ -821,13 +833,14 @@ class RegressionLearner:
             QRS_distance_before = range(0, seg_len)
             QRS_distance_after = range(seg_len-1, -1, -1)
             QRS_distance_ratio = map(lambda x:float(x)/seg_len,QRS_distance_before)
-            # Form current feature vector
+            # Form current feature vector[P]
             current_feature_vector = self.FormFeature(
                     cDlist_seg,
                     QRS_distance_before,
                     QRS_distance_after,
                     QRS_distance_ratio,
                     sig_seg,
+                    local_target_pos = seg_len - 44,
                     modify_signal_tail = False)
 
 
