@@ -152,6 +152,8 @@ void Testing(vector<double>& signal_in, double fs,
     // Wavelet transform
     DTCWT(signal_resampled, 9, Wavelet_Remain, filter_bank, &s_rec);
 
+    //OutputS_rec(s_rec);
+
     // Detection result
     vector<pair<char, int>> ret;
     unique_ptr<double[]> s_rec_in(new double[len_signal * 10]());
@@ -272,14 +274,22 @@ static void TEST1() {
     // Read ECG signal from file.
     vector<double> sig;
     string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/mit-101-part.txt";
+            "wt_cpp_api/ecg-samples/matlab_test.txt";
 
     cout << "Testing() input file name:" 
          << file_name
          << endl;
     ReadSignalFromFile(file_name, &sig);
 
-    // Output vector;
+    // Random Generate Signal
+    //
+    //sig.clear();
+    //int N = 10000;
+    //for (int i = 0; i < N; ++i) {
+        //sig.push_back(rand() % N);
+    //}
+
+    // Output vector
     vector<pair<char, int>> detect_result;
     Testing(sig, 360.0, &detect_result); 
     cout << "=======================" << endl;
@@ -296,6 +306,7 @@ static void TEST1() {
 
 int main() {
 
+    srand(time(NULL));
     TEST1();
 
     return 0;

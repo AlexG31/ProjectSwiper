@@ -211,33 +211,6 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
     emxEnsureCapacity((emxArray__common *)T_detector, iy, (int)sizeof(double));
     
     GetT_detector10(s_rec, x_start, x_stop, fs, T_detector);
-    //if (i1 - i0 == 0) {
-      //i0 = T_detector->size[0] * T_detector->size[1];
-      //T_detector->size[0] = 1;
-      //emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
-      //i0 = T_detector->size[0] * T_detector->size[1];
-      //T_detector->size[1] = sz[1];
-      //emxEnsureCapacity((emxArray__common *)T_detector, i0, (int)sizeof(double));
-      //loop_ub = sz[1];
-      //for (i0 = 0; i0 < loop_ub; i0++) {
-        //T_detector->data[i0] = 0.0;
-      //}
-    //} else {
-      //ix = -1;
-      //iy = -1;
-      //for (loop_ub = 1; loop_ub <= i1 - i0; loop_ub++) {
-        //ixstart = ix + 1;
-        //ix++;
-        //x_stop = s_rec[(ixstart % 5 + 10 * ((i0 + ixstart / 5) - 1)) + 3];
-        //for (ixstart = 0; ixstart < 4; ixstart++) {
-          //ix++;
-          //x_stop += s_rec[(ix % 5 + 10 * ((i0 + ix / 5) - 1)) + 3];
-        //}
-
-        //iy++;
-        //T_detector->data[iy] = x_stop;
-      //}
-    //}
 
     /*   QRS complex detection algorithm */
     i0 = b_QRS_detector->size[0] * b_QRS_detector->size[1];
@@ -252,33 +225,13 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
     QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
 
     // Add to output vector.
-    auto QRS_cap = x_QRS->allocatedSize;
+    auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
     for (int i = 0; i < QRS_cap; ++i) {
         int val = x_QRS->data[i];
         if (val <= 0) break;
         result_out->push_back(make_pair('R', val + x_start));
     }
 
-    //cout << "x_QRS->allocatedSize = "
-         //<< x_QRS->allocatedSize
-         //<< endl;
-    //cout << "x_QRS->numDimensions = "
-         //<< x_QRS->numDimensions
-         //<< endl;
-
-    //for (int i = 0; i < x_QRS->numDimensions; ++i) {
-        //cout << "x_QRS->size["
-             //<< i
-             //<< "] = "
-             //<< x_QRS->size[i]
-             //<< endl;
-    //}
-
-    //for (int i = 0; i < x_QRS->allocatedSize; ++i) {
-        //cout << "val = "
-             //<< x_QRS->data[i]
-             //<< endl;
-    //}
 
     /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
     i0 = QRS_detector->size[0] * QRS_detector->size[1];
@@ -405,7 +358,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
         QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
 
         // Add to output vector.
-        auto QRS_cap = x_QRS->allocatedSize;
+        auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
         for (int i = 0; i < QRS_cap; ++i) {
             int val = x_QRS->data[i];
             if (val <= 0) break;

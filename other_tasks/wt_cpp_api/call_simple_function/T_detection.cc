@@ -549,7 +549,7 @@ double mean(double* buffer, int buffer_length) {
     double sum_val = 0;
     
     for (int i = 0; i < T_len; ++i) {
-        int val = buffer[i];
+        double val = buffer[i];
 
         if (val > BucketThreshold || sum_val > BucketThreshold) {
             mean_T_detector += sum_val / T_len;
