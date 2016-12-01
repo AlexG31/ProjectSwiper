@@ -107,7 +107,11 @@ void Get_S_rec(vector<vector<double>>& Sa_rec,
     for (int i = 0; i < h; ++i) {
         vector<double> row;
         for (int j = 0; j < w; ++j) {
-            row.push_back((Sa_rec[i][j] + Sb_rec[i][j]) / 2.0);
+            double val_sa = 0;
+            double val_sb = 0;
+            if (i < Sa_rec.size() && j < Sa_rec[i].size()) val_sa = Sa_rec[i][j];
+            if (i < Sb_rec.size() && j < Sb_rec[i].size()) val_sb = Sb_rec[i][j];
+            row.push_back((val_sa + val_sb)/ 2.0);
         }
         S_rec->push_back(row);
     }    

@@ -231,7 +231,7 @@ static void TEST1() {
     // Read ECG signal from file.
     vector<double> sig;
     string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/mit-100.txt";
+            "wt_cpp_api/ecg-samples/mit-101.txt";
 
     cout << "Testing() input file name:" 
          << file_name
