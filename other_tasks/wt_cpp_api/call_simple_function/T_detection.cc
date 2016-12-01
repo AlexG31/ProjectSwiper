@@ -39,8 +39,8 @@ int mode(emxArray_real_T *T_detector);
 void copy_data(double* , int, double*, int, int);
 double *gaussian_function(int lttmp, double g_mean, double g_std);
 double mean(double* buffer, int buffer_length);
-double max(double* buffer, int buffer_length, int& );
-double min(double* buffer, int buffer_length, int& );
+double find_max_in_buffer(double* buffer, int buffer_length, int& );
+double find_min_in_buffer(double* buffer, int buffer_length, int& );
 double std_error(double* buffer, int buffer_length);
 
 /*
@@ -174,9 +174,9 @@ void T_detection(emxArray_real_T *T_detector, double fs, const emxArray_real_T
                 
                 // [matlab] [y_max x_max] = max( t_det_local );
                 int x_max = -1;
-                double y_max = max(t_det_local.get(), det_local_len, x_max);
+                double y_max = find_max_in_buffer(t_det_local.get(), det_local_len, x_max);
                 int x_min = -1;
-                double y_min = min(t_det_local.get(), det_local_len, x_min);
+                double y_min = find_min_in_buffer(t_det_local.get(), det_local_len, x_min);
                 
                 double t_local_std = std_error(t_det_local.get(),
                         det_local_len) ;
@@ -562,7 +562,7 @@ double mean(double* buffer, int buffer_length) {
     return mean_T_detector;
 }
 
-double max(double* buffer, int buffer_length, int& max_ind) {
+double find_max_in_buffer(double* buffer, int buffer_length, int& max_ind) {
     assert(buffer_length > 0);
     double max_val = buffer[0];
     max_ind = 0;
@@ -580,7 +580,7 @@ double max(double* buffer, int buffer_length, int& max_ind) {
     return max_val;
 }
 
-double min(double* buffer, int buffer_length, int& min_ind) {
+double find_min_in_buffer(double* buffer, int buffer_length, int& min_ind) {
     assert(buffer_length > 0);
     double min_val = buffer[0];
     min_ind = 0;

@@ -35,6 +35,24 @@ static void OutputCoefToFile(const string& file_name, vector<T>& coef) {
     fout.close();
 }
 
+static void padding_zeros(vector<double>& a , vector<double>& b) {
+    // padding zeros to the shorter one
+    int len_a = a.size();
+    int len_b = b.size();
+    
+    int max_len = max(len_a, len_b);
+    if (len_a < max_len) {
+        vector<double> zeros(max_len - len_a, 0);
+        a.insert(a.end(), zeros.begin(), zeros.end());
+    }
+
+    if (len_b < max_len) {
+        vector<double> zeros(max_len - len_b, 0);
+        b.insert(b.end(), zeros.begin(), zeros.end());
+    }
+    return;
+}
+
 // Rewrite dwt1 to accept customized wavelet filter coefficients.
 static void dwt1_sym(
     vector<vector<double>> filter_bank,
@@ -110,6 +128,8 @@ static void idwt1_sym_m(
     cD_up.pop_back();
     convfft(cD_up, hpr1, X_hp);
 
+    // Padding with zeros
+    padding_zeros(X_lp, X_hp);
     vecsum(X_lp,X_hp,idwt_output);
 
     idwt_output.erase(idwt_output.begin(),idwt_output.begin()+lf-2);
