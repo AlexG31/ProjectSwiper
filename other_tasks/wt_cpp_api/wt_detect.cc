@@ -79,10 +79,49 @@ void FormatKpdInput(vector<vector<double>>& s_rec_vec,
     return;
 }
 
+// Resampling input signal
+static void Resample(vector<double>& sig_in, int fs_in, int fs_out,
+                     vector<double>* sig_out) {
+    // TODO: upsample
+    if (fs_out >= fs_in) return;
+    if (fs_out == 0 || fs_in == 0) return ;
+
+    sig_out->clear();
+
+    // Downsampling
+    int len_sig_original = sig_in.size();
+    int len_sig_new = static_cast<long long>(len_sig_original) * fs_out / fs_in;
+    
+    for (int i = 0; i < len_sig_new; ++i) {
+        double pos = (double)i * fs_in / fs_out;
+        double lower_pos = floor(pos);
+        double upper_pos = ceil(pos);
+
+        double val_left = sig_in[static_cast<int>(lower_pos)];
+        double val_right = val_left;
+        if (static_cast<int>(upper_pos) < len_sig_original) {
+            val_right = sig_in[static_cast<int>(upper_pos)];
+        }
+
+        double val = val_left + (val_right - val_left) * (pos - lower_pos);
+        sig_out->push_back(val);
+    }
+    return;
+}
+
 // The testing API
 void Testing(vector<double>& signal_in, double fs,
         vector<pair<char, int>>* result_out) {
     
+    // Resampling
+    vector<double> signal_resampled;
+    int fs_input = static_cast<int>(round(fs));
+    if (fs_input > 360) {
+        Resample(signal_in, fs_input, 360, &signal_resampled);
+    } else {
+        signal_resampled = signal_in;
+    }
+
     // Filter Coefficients
     vector<double> Lp1_D{0,0.0378284555072640,-0.0238494650195568,
         -0.110624404418437,0.377402855612831,0.852698679008894,
@@ -108,10 +147,10 @@ void Testing(vector<double>& signal_in, double fs,
 
     // Cut signal segment
     vector<vector<double>> s_rec;
-    int len_signal = signal_in.size();
+    int len_signal = signal_resampled.size();
 
     // Wavelet transform
-    DTCWT(signal_in, 9, Wavelet_Remain, filter_bank, &s_rec);
+    DTCWT(signal_resampled, 9, Wavelet_Remain, filter_bank, &s_rec);
 
     // Detection result
     vector<pair<char, int>> ret;
