@@ -164,6 +164,8 @@ void Testing(vector<double>& signal_in, double fs,
             360.0,
             y_out,
             result_out);
+    // Free memory
+    emxFree_real_T(&y_out);
 }
 
 // [Debug] Testing function For Testing api
@@ -270,7 +272,7 @@ static void TEST1() {
     // Read ECG signal from file.
     vector<double> sig;
     string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/mit-101.txt";
+            "wt_cpp_api/ecg-samples/mit-101-part.txt";
 
     cout << "Testing() input file name:" 
          << file_name
