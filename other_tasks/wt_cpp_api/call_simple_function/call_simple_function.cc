@@ -280,9 +280,8 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
   // ===============================================
   // Calculate the tail part if len_signal > fs * 12
   // ===============================================
-  if (sig_len >= static_cast<int>(fs) * 12) {
+  if (sig_len > static_cast<int>(fs) * 12) {
       
-      //while (jj <= (int)L_sig - 1)
         x_start = sig_len - static_cast<int>(fs) * 12;
         x_stop = sig_len;
 

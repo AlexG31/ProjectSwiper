@@ -284,7 +284,7 @@ static void TEST1() {
     // Random Generate Signal
     //
     //sig.clear();
-    //int N = 10000;
+    //int N = 360 * 12;
     //for (int i = 0; i < N; ++i) {
         //sig.push_back(rand() % N);
     //}
