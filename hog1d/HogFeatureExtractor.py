@@ -18,6 +18,8 @@ import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 
+from HogClass import HogClass
+
 # project homepath
 curfilepath =  os.path.realpath(__file__)
 curfolderpath = os.path.dirname(curfilepath)
@@ -49,6 +51,8 @@ class HogFeatureExtractor(object):
 
         self.target_label = target_label
 
+        self.hog = HogClass(segment_len = 20)
+
     def GetTrainingSamples(self, sig_in, expert_labels):
         '''Form Hog1D feature.'''
         # Make sure the x indexes are in ascending order.
@@ -67,9 +71,14 @@ class HogFeatureExtractor(object):
             self.signal_segments.append(signal_segment)
             self.target_biases.append(target_bias)
 
+            # plt.plot(signal_segment)
+            # plt.plot(target_bias, np.mean(signal_segment), marker = 'd', markersize = 12)
+            # plt.show()
+            self.hog.ComputeHog(signal_segment)
             plt.plot(signal_segment)
-            plt.plot(target_bias, np.mean(signal_segment), marker = 'd', markersize = 12)
+            plt.grid(True)
             plt.show()
+
 
     def Train(self):
         '''Training with Qt data.'''
@@ -92,11 +101,12 @@ class HogFeatureExtractor(object):
             sig_in: Input ECG signal.
             expert_labels: Annotation list of form [(pos, label), ...]
             expert_index: The index of the element in expert_labels that
-                has label 'R'.
+                          has label 'R'.
             fixed_window_length : return signal's length
         Returns:
             signal_segment: Cropped signal segment.
-            target_bias: The bias respect to the expert_index's position.
+            target_bias: (May be None)The bias respect to the expert_index's
+                         position.
         '''
         current_R_pos = expert_labels[expert_index][0]
         ecg_segment = np.zeros(fixed_window_length)
