@@ -19,7 +19,7 @@ class HogClass(object):
         '''
         self.segment_len = segment_len
 
-    def ComputeHog(self, sig_in):
+    def ComputeHog(self, sig_in, debug_plot = False):
         '''Compute 1-dim hog.'''
         segment_len = self.segment_len
         diff_step = 4
@@ -44,8 +44,10 @@ class HogClass(object):
             # plt.show()
             
             cur_ind += segment_len
+
         # Show Hog
-        self.VisualizeHogArray(hog_arr, h0_arr = h0_arr)
+        if debug_plot == True :
+            self.VisualizeHogArray(hog_arr, h0_arr = h0_arr)
 
         return hog_arr
 
