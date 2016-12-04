@@ -19,10 +19,10 @@ class HogClass(object):
         '''
         self.segment_len = segment_len
 
-    def ComputeHog(self, sig_in, debug_plot = False):
+    def ComputeHog(self, sig_in, diff_step = 4, debug_plot = False):
         '''Compute 1-dim hog.'''
         segment_len = self.segment_len
-        diff_step = 4
+        
         len_sig = len(sig_in)
 
         # Hog array

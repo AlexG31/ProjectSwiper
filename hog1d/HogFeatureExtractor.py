@@ -62,6 +62,18 @@ class HogFeatureExtractor(object):
         # ML models
         self.gbdt = None
 
+    def GetDiffFeature(self, signal_segment, diff_step = 4):
+        '''Get Difference feature.'''
+
+        hog_arr = self.hog.ComputeHog(signal_segment,
+                                      diff_step = diff_step,
+                                      debug_plot = False)
+        current_feature_vector = np.array([])
+        for hog_vec in hog_arr:
+            current_feature_vector = np.append(current_feature_vector,
+                                               hog_vec);
+        return current_feature_vector
+
     def GetTrainingSamples(self, sig_in, expert_labels):
         '''Form Hog1D feature.'''
         # Make sure the x indexes are in ascending order.
@@ -87,15 +99,27 @@ class HogFeatureExtractor(object):
             # plt.plot(target_bias, np.mean(signal_segment), marker = 'd', markersize = 12)
             # plt.show()
 
-            hog_arr = self.hog.ComputeHog(signal_segment,
-                                          debug_plot = False)
-            # plt.plot(signal_segment)
-            # plt.grid(True)
-            # plt.show()
+            # hog_arr = self.hog.ComputeHog(signal_segment,
+                                          # diff_step = 4,
+                                          # debug_plot = False)
+            # # plt.plot(signal_segment)
+            # # plt.grid(True)
+            # # plt.show()
+            # current_feature_vector = np.array([])
+            # for hog_vec in hog_arr:
+                # current_feature_vector = np.append(current_feature_vector,
+                                                   # hog_vec);
             current_feature_vector = np.array([])
-            for hog_vec in hog_arr:
-                current_feature_vector = np.append(current_feature_vector,
-                                                   hog_vec);
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 1))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 4))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 8))
+
             self.training_vector.append(current_feature_vector)
 
 
@@ -151,13 +175,20 @@ class HogFeatureExtractor(object):
                                                      expert_index,
                                                      fixed_window_length = 250)
             # Testing
-            hog_arr = self.hog.ComputeHog(signal_segment,
-                                          debug_plot = False)
             current_feature_vector = np.array([])
-            for hog_vec in hog_arr:
-                current_feature_vector = np.append(current_feature_vector,
-                                                   hog_vec);
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 1))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 4))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 8))
+
             predict_pos = self.gbdt.predict(current_feature_vector)
+
+            print 'Predict position:', predict_pos
 
             # Display results
             local_pos = predict_pos + self.fixed_window_length - 1
@@ -227,10 +258,10 @@ if __name__ == '__main__':
 
     # Failed to detect:
     # sel46 sel17152 sel213 sel4046 sel16273
-    hog = HogFeatureExtractor(target_label = 'Poffset')
+    hog = HogFeatureExtractor(target_label = 'P')
     rec_list = hog.qt.getreclist()
 
-    testing_rec = rec_list[0:21]
+    testing_rec = rec_list[80:]
     training_rec = list(set(rec_list) - set(testing_rec))
 
     hog.Train(training_rec)
