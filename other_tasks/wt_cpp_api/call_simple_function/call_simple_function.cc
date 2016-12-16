@@ -15,6 +15,7 @@
 #include "abs.h"
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <vector>
 #include <utility>
@@ -40,6 +41,19 @@ static void ShowData(emxArray_real_T* result, string name = "data") {
     }
 }
 
+
+template <typename T>
+static void OutputCoefToFile(const string& file_name, vector<T>& coef) {
+    
+    fstream fout(file_name.c_str(), fstream::out);
+    fout << coef.size() << endl;
+    for (const auto& val: coef) {
+        fout << val << endl;
+    }
+
+    fout.close();
+}
+
 // Get T_detector from 10 levels of s_rec
 static void GetT_detector10(const double *s_rec, int, int,
           double fs, emxArray_real_T *T_detector);
@@ -58,7 +72,7 @@ static void RemoveRepeatResults(vector<pair<char, int>>* detection_results,
  * Return Type  : void
  */
 void call_simple_function(const double *s_rec, double sig_len, double fs,
-  emxArray_real_T *y_out, vector<pair<char, int>>* result_out) {
+  vector<pair<char, int>>* result_out) {
 
   emxArray_real_T *QRS_Location;
   emxArray_real_T *T_Location_raw;
@@ -99,14 +113,6 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
 
   /* % Test QRS & P & T wave */
   /* L_sig = floor((length(data_raw)-fs)/(fs*10));  */
-  /* y_out = struct('label', '.', 'val', double(0)); */
-  /* if numel(s_rec) == 0 */
-  /* y_out = []; */
-  /* return; */
-  /* end */
-  /* % ========================================= */
-  /* if numel(s_rec_struct) == 0 */
-  /* y_out = []; */
   /* return; */
   /* end */
   /* % Reconstruct s_rec from s_rec_struct */
@@ -130,7 +136,6 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
   emxEnsureCapacity((emxArray__common *)P_Location_raw, i0, (int)sizeof(double));
 
   /*  Output list */
-  jj = 0;
   emxInit_real_T(&QRS_detector, 2);
   emxInit_real_T(&T_detector, 2);
   emxInit_real_T(&x_QRS, 2);
@@ -148,6 +153,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
   emxInit_real_T(&c_P_Location_raw, 2);
 
 
+  jj = 0;
   // jj from 0 to L_sig - 1
   while (jj <= (int)L_sig - 1) {
     x_start = 1.0 + ((1.0 + (double)jj) - 1.0) * fs * 10.0;
@@ -213,35 +219,51 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
     GetT_detector10(s_rec, x_start, x_stop, fs, T_detector);
 
     /*   QRS complex detection algorithm */
+    // Backup QRS_detector
     i0 = b_QRS_detector->size[0] * b_QRS_detector->size[1];
     b_QRS_detector->size[0] = 1;
     b_QRS_detector->size[1] = QRS_detector->size[1];
     emxEnsureCapacity((emxArray__common *)b_QRS_detector, i0, (int)sizeof(double));
     loop_ub = QRS_detector->size[0] * QRS_detector->size[1];
+
+    vector<double> qrs_detector_vec;
     for (i0 = 0; i0 < loop_ub; i0++) {
       b_QRS_detector->data[i0] = QRS_detector->data[i0];
+      qrs_detector_vec.push_back(QRS_detector->data[i0]);
     }
+    
 
-    QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
+    // OUtput
+    //QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
+    vector<double> x_qrs_vec;
+    QRS_detection(qrs_detector_vec, fs, &x_qrs_vec);
+    //vector<double> qrs_detector_vec;
+    //for (int i = 0; i < x_QRS->size[0] * x_QRS->size[1]; ++i) {
+      //qrs_detector_vec.push_back(x_QRS->data[i]);
+    //}
+    //OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", x_qrs_vec);
 
+    for (auto& val: x_qrs_vec) {
+        result_out->emplace_back('R', val + x_start);
+    }
     // Add to output vector.
-    auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
-    for (int i = 0; i < QRS_cap; ++i) {
-        int val = x_QRS->data[i];
-        if (val <= 0) break;
-        result_out->push_back(make_pair('R', val + x_start));
-    }
+    //auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
+    //for (int i = 0; i < QRS_cap; ++i) {
+        //int val = x_QRS->data[i];
+        //if (val <= 0) break;
+        //result_out->push_back(make_pair('R', val + x_start));
+    //}
 
 
     /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
-    i0 = QRS_detector->size[0] * QRS_detector->size[1];
-    QRS_detector->size[0] = 1;
-    QRS_detector->size[1] = x_QRS->size[1];
-    emxEnsureCapacity((emxArray__common *)QRS_detector, i0, (int)sizeof(double));
-    loop_ub = x_QRS->size[0] * x_QRS->size[1];
-    for (i0 = 0; i0 < loop_ub; i0++) {
-      QRS_detector->data[i0] = x_QRS->data[i0] + x_start;
-    }
+    //i0 = QRS_detector->size[0] * QRS_detector->size[1];
+    //QRS_detector->size[0] = 1;
+    //QRS_detector->size[1] = x_QRS->size[1];
+    //emxEnsureCapacity((emxArray__common *)QRS_detector, i0, (int)sizeof(double));
+    //loop_ub = x_QRS->size[0] * x_QRS->size[1];
+    //for (i0 = 0; i0 < loop_ub; i0++) {
+      //QRS_detector->data[i0] = x_QRS->data[i0] + x_start;
+    //}
 
     /*   T and P wave detection        */
     T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
@@ -350,29 +372,44 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
         b_QRS_detector->size[1] = QRS_detector->size[1];
         emxEnsureCapacity((emxArray__common *)b_QRS_detector, i0, (int)sizeof(double));
         loop_ub = QRS_detector->size[0] * QRS_detector->size[1];
+
+        vector<double> qrs_detector_vec;
         for (i0 = 0; i0 < loop_ub; i0++) {
           b_QRS_detector->data[i0] = QRS_detector->data[i0];
+          qrs_detector_vec.push_back(QRS_detector->data[i0]);
         }
+        
 
-        QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
+        // OUtput
+        //QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
+        vector<double> x_qrs_vec;
+        QRS_detection(qrs_detector_vec, fs, &x_qrs_vec);
+        //vector<double> qrs_detector_vec;
+        //for (int i = 0; i < x_QRS->size[0] * x_QRS->size[1]; ++i) {
+          //qrs_detector_vec.push_back(x_QRS->data[i]);
+        //}
+        //OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", x_qrs_vec);
 
+        for (auto& val: x_qrs_vec) {
+            result_out->emplace_back('R', val + x_start);
+        }
         // Add to output vector.
-        auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
-        for (int i = 0; i < QRS_cap; ++i) {
-            int val = x_QRS->data[i];
-            if (val <= 0) break;
-            result_out->push_back(make_pair('R', val + x_start));
-        }
+        //auto QRS_cap = x_QRS->size[0] * x_QRS->size[1];
+        //for (int i = 0; i < QRS_cap; ++i) {
+            //int val = x_QRS->data[i];
+            //if (val <= 0) break;
+            //result_out->push_back(make_pair('R', val + x_start));
+        //}
 
         /*  QRS_Location_cur contains all QRS locations detected this 12s' window */
-        i0 = QRS_detector->size[0] * QRS_detector->size[1];
-        QRS_detector->size[0] = 1;
-        QRS_detector->size[1] = x_QRS->size[1];
-        emxEnsureCapacity((emxArray__common *)QRS_detector, i0, (int)sizeof(double));
-        loop_ub = x_QRS->size[0] * x_QRS->size[1];
-        for (i0 = 0; i0 < loop_ub; i0++) {
-          QRS_detector->data[i0] = x_QRS->data[i0] + x_start;
-        }
+        //i0 = QRS_detector->size[0] * QRS_detector->size[1];
+        //QRS_detector->size[0] = 1;
+        //QRS_detector->size[1] = x_QRS->size[1];
+        //emxEnsureCapacity((emxArray__common *)QRS_detector, i0, (int)sizeof(double));
+        //loop_ub = x_QRS->size[0] * x_QRS->size[1];
+        //for (i0 = 0; i0 < loop_ub; i0++) {
+          //QRS_detector->data[i0] = x_QRS->data[i0] + x_start;
+        //}
 
         /*   T and P wave detection        */
         T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
@@ -410,44 +447,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
   emxFree_real_T(&QRS_detector);
 
   /*  Re-formatting the position lists into structures for c++ codegen. */
-  /*  y_out = result_position_list; */
 
-  i0 = y_out->size[0] * y_out->size[1];
-  y_out->size[0] = 1;
-  y_out->size[1] = (QRS_Location->size[1] + T_Location_raw->size[1]) +
-    P_Location_raw->size[1];
-  emxEnsureCapacity((emxArray__common *)y_out, i0, (int)sizeof(double));
-
-  //cout << "size: " 
-       //<< y_out->size[0]
-       //<< ", "
-       //<< y_out->size[1]
-       //<< endl;
-  loop_ub = QRS_Location->size[1];
-
-  for (i0 = 0; i0 < loop_ub; i0++) {
-    y_out->data[y_out->size[0] * i0] = QRS_Location->data[QRS_Location->size[0] *
-      i0];
-  }
-
-  loop_ub = T_Location_raw->size[1];
-  for (i0 = 0; i0 < loop_ub; i0++) {
-    ixstart = T_Location_raw->size[0];
-    for (i1 = 0; i1 < ixstart; i1++) {
-      y_out->data[i1 + y_out->size[0] * (i0 + QRS_Location->size[1])] =
-        T_Location_raw->data[i1 + T_Location_raw->size[0] * i0];
-    }
-  }
-
-  loop_ub = P_Location_raw->size[1];
-  for (i0 = 0; i0 < loop_ub; i0++) {
-    ixstart = P_Location_raw->size[0];
-    for (i1 = 0; i1 < ixstart; i1++) {
-      y_out->data[i1 + y_out->size[0] * ((i0 + QRS_Location->size[1]) +
-        T_Location_raw->size[1])] = P_Location_raw->data[i1 +
-        P_Location_raw->size[0] * i0];
-    }
-  }
 
   emxFree_real_T(&P_Location_raw);
   emxFree_real_T(&T_Location_raw);

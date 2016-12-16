@@ -169,139 +169,35 @@ void Testing(vector<double>& signal_in, double fs,
             result_out);
 }
 
-// [Debug] Testing function For Testing api
-void Testing() {
-    
-    string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/mit-100.txt";
 
-    cout << "Testing() input file name:" 
-         << file_name
-         << endl;
-    
-    vector<double> sig;
-    ReadSignalFromFile(file_name, &sig);
-
-    vector<double> coef, flag;
-    vector<int> L;
-
-    auto start_time = time(NULL);
-    cout << "start_time = " << start_time << endl;
-    cout << "Clock_per_sec:" << CLOCKS_PER_SEC << endl;
-
-    // Filter banks.
-    vector<double> Lp1_D{0,0.0378284555072640,-0.0238494650195568,
-        -0.110624404418437,0.377402855612831,0.852698679008894,
-        0.377402855612831,-0.110624404418437,-0.0238494650195568,
-        0.0378284555072640};
-    vector<double> Hp1_D{0,-0.0645388826286971,0.0406894176091641,
-        0.418092273221617,-0.788485616405583,0.418092273221617,
-        0.0406894176091641,-0.0645388826286971,0,0};
-    vector<double> Lp1_R{0,-0.0645388826286971,-0.0406894176091641,
-        0.418092273221617,0.788485616405583,0.418092273221617,
-        -0.0406894176091641,-0.0645388826286971,0,0};
-    vector<double> Hp1_R{0, -0.0378284555072640, -0.0238494650195568,
-        0.110624404418437, 0.377402855612831, -0.852698679008894,
-        0.377402855612831, 0.110624404418437, -0.0238494650195568,
-        -0.0378284555072640};
-    vector<vector<double>> filter_bank{Lp1_D, Hp1_D, Lp1_R, Hp1_R};
-
-    // Input for DTCWT
-    vector<int> Wavelet_Remain;
-    for (int i = 1; i <= 9; ++i) {
-        Wavelet_Remain.push_back(i);
-    }
-
-    vector<vector<double>> s_rec;
-    // Cut signal segment
-    vector<double> sig_segment(sig.begin(), sig.end());
-    DTCWT(sig_segment, 9, Wavelet_Remain, filter_bank, &s_rec);
-    //return;
-
-    // debug output
-    OutputS_rec(s_rec);
-
-    cout << "DTCWT time cost:"
-         << time(NULL) - start_time 
-         << "secs"
-         << endl;
-    start_time = time(NULL);
-
-    //
-    // Detection result
-    vector<pair<char, int>> ret;
-    cout << "s_rec.size() = " 
-         << s_rec.size()
-         << ", "
-         << s_rec[0].size() << endl;
-    //KPD(s_rec, s_rec[0].size(), 360.0, &ret);
-    unique_ptr<double[]> s_rec_in(new double[6500000]());
-    FormatKpdInput(s_rec, s_rec_in.get(), 10, 650000);
-    
-    call_simple_function(s_rec_in.get(),
-            650000,
-            360.0,
-            &ret);
-
-    cout << "simple function time:"
-         << time(NULL) - start_time 
-         << "secs"
-         << endl;
-
-
-
-    cout << "=======================" << endl;
-    cout << "Result.size() = " << ret.size() << endl;
-
-    for (const auto& item: ret) {
-        cout << "Result: "
-             << item.first
-             << "   -> "
-             << item.second
-             << endl;
-    }
-
-    return ;
-}
-
-static void TEST1() {
+static void TEST1(string signal_file_name) {
     // Read ECG signal from file.
     vector<double> sig;
-    string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/matlab_test.txt";
+    string file_name = signal_file_name;
 
     cout << "Testing() input file name:" 
          << file_name
          << endl;
     ReadSignalFromFile(file_name, &sig);
-
-    // Random Generate Signal
-    //
-    //sig.clear();
-    //int N = 360 * 12;
-    //for (int i = 0; i < N; ++i) {
-        //sig.push_back(rand() % N);
-    //}
 
     // Output vector
     vector<pair<char, int>> detect_result;
     Testing(sig, 360.0, &detect_result); 
-    cout << "=======================" << endl;
-    cout << "Result.size() = " << detect_result.size() << endl;
 
-    for (const auto& item: detect_result) {
-        cout << "Result: "
-             << item.first
-             << "   -> "
-             << item.second
-             << endl;
+    vector<int> qrs_results;
+    for (auto& item: detect_result) {
+        if (item.first == 'R') {
+            qrs_results.push_back(item.second);
+        }
     }
+
+    OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", qrs_results);
 }
 
-int main() {
+int main(int argv, char** argc) {
 
     srand(time(NULL));
-    TEST1();
+    TEST1(string(argc[1]));
 
     return 0;
 }

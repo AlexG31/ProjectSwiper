@@ -151,22 +151,14 @@ void Testing(vector<double>& signal_in, double fs,
 
     // Wavelet transform
     DTCWT(signal_resampled, 9, Wavelet_Remain, filter_bank, &s_rec);
+
     // Cutoff tail part of the signal.
     for (auto& vec: s_rec) {
         vec.resize(signal_resampled.size());
     }
 
-    //OutputS_rec(s_rec);
+    OutputS_rec(s_rec);
 
-    // Detection result
-    vector<pair<char, int>> ret;
-    unique_ptr<double[]> s_rec_in(new double[len_signal * 10]());
-    FormatKpdInput(s_rec, s_rec_in.get(), 10, len_signal);
-    
-    call_simple_function(s_rec_in.get(),
-            len_signal,
-            360.0,
-            result_out);
 }
 
 // [Debug] Testing function For Testing api
@@ -264,11 +256,10 @@ void Testing() {
     return ;
 }
 
-static void TEST1() {
+static void TEST1(string signal_file_name) {
     // Read ECG signal from file.
     vector<double> sig;
-    string file_name = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
-            "wt_cpp_api/ecg-samples/matlab_test.txt";
+    string file_name = signal_file_name;
 
     cout << "Testing() input file name:" 
          << file_name
@@ -286,22 +277,12 @@ static void TEST1() {
     // Output vector
     vector<pair<char, int>> detect_result;
     Testing(sig, 360.0, &detect_result); 
-    cout << "=======================" << endl;
-    cout << "Result.size() = " << detect_result.size() << endl;
-
-    for (const auto& item: detect_result) {
-        cout << "Result: "
-             << item.first
-             << "   -> "
-             << item.second
-             << endl;
-    }
 }
 
-int main() {
+int main(int argv, char** argc) {
 
     srand(time(NULL));
-    TEST1();
+    TEST1(string(argc[1]));
 
     return 0;
 }

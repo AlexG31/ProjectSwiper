@@ -19,6 +19,8 @@ add_library(KPD_pt call_simple_function/QRS_detection.cc call_simple_function/rd
 
 add_executable(wt_run wavelet-test.cc)
 add_executable(wt_detect wt_detect.cc)
+add_executable(DTCWT_TEST DTCWT_TEST.cc)
+add_executable(KPD_test KPD_test.cc)
 
 target_link_libraries(wt_run dwt)
 target_link_libraries(wt_run fftw3)
@@ -27,3 +29,13 @@ target_link_libraries(wt_detect dwt)
 target_link_libraries(wt_detect KPD_pt)
 target_link_libraries(wt_detect m)
 target_link_libraries(wt_detect fftw3)
+
+target_link_libraries(DTCWT_TEST dwt)
+target_link_libraries(DTCWT_TEST KPD_pt)
+target_link_libraries(DTCWT_TEST m)
+target_link_libraries(DTCWT_TEST fftw3)
+
+target_link_libraries(KPD_test dwt)
+target_link_libraries(KPD_test KPD_pt)
+target_link_libraries(KPD_test m)
+target_link_libraries(KPD_test fftw3)

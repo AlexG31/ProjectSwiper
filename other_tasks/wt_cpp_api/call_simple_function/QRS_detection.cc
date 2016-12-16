@@ -7,16 +7,77 @@
 
 /* Include files */
 #include "rt_nonfinite.h"
-#include "iostream"
 #include "call_simple_function.h"
 #include "QRS_detection.h"
-#include "cmath"
 #include "call_simple_function_emxutil.h"
+
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 using namespace std;
 
 #define eps 1e-6
 /* Function Definitions */
+
+// max in range[left, right];
+// WARNING: Return x_max will be 0-based index.
+static bool matlab_max(vector<double>&buffer, int left, int right,
+                       double* y_max, int* x_max) {
+    if (right < left) return false;
+    *y_max = buffer[left];
+    *x_max = left;
+
+    for (int i = left; i <= right; ++i) {
+        auto& val = buffer[i];
+        if (val > *y_max) {
+            *y_max = val;
+            *x_max = i;
+        }
+    }
+
+    // Convert to local index
+    *x_max -= left;
+    return true;
+}
+
+
+template <typename T>
+static void OutputCoefToFile(const string& file_name, vector<T>& coef) {
+    
+    fstream fout(file_name.c_str(), fstream::out);
+    fout << coef.size() << endl;
+    for (const auto& val: coef) {
+        fout << val << endl;
+    }
+
+    fout.close();
+}
+
+// mean in range [left, right]
+// Warning: Assume left <= right
+static double mean(vector<double>&buffer, int left, int right) {
+    double BucketThreshold = 2147483647.0;
+
+    int T_len = right - left + 1;
+    double mean_T_detector = 0;
+    double sum_val = 0;
+    
+    for (int i = left; i <= right; ++i) {
+        double val = buffer[i];
+
+        if (val > BucketThreshold || sum_val > BucketThreshold) {
+            mean_T_detector += sum_val / T_len;
+            sum_val = 0;
+        }
+        sum_val += val;
+    }
+
+    if (abs(sum_val) > eps) mean_T_detector += sum_val / T_len;
+    return mean_T_detector;
+}
+
 static double mean(double* buffer, int buffer_length) {
     double BucketThreshold = 2147483647.0;
 
@@ -154,6 +215,57 @@ void QRS_detection(const emxArray_real_T *QRS_detector, double fs,
 
   emxFree_real_T(&Baseline);
 
+}
+
+// Detect QRS locations with QRS_detector input.
+void QRS_detection(vector<double>& QRS_detector, int fs, vector<double>* x_qrs) {
+    x_qrs->clear();
+    auto l = QRS_detector.size();
+    auto qrs_detect_win = floor(fs*150.0/1000.0);
+    vector<double> Baseline(l, 1);
+
+    for (int mm =  2*fs + 1; mm <= l - 2*fs; ++mm) {
+          
+          // Baseline(mm) = mean (QRS_detector(mm-fs*2 : mm+fs*2));
+          Baseline[mm - 1] = mean(QRS_detector, mm-fs*2 - 1, mm+fs*2 - 1);
+          
+    }
+
+    // Fill blank regions at front and back
+    double pre_val = Baseline[2 * fs];
+    for (int i = 0; i < 2 * fs; ++i) Baseline[i] = pre_val;
+    pre_val = Baseline[l - 2 * fs - 1];
+    for (int i = l - 2 * fs; i < l; ++i) Baseline[i] = pre_val;
+
+
+    //vector<double> y_list;
+    // Sliding the detecting window amoung entire ECG detector,
+    // if the local maximum is located in the middle of the window and larger 
+    // than it's correspondding baseline, it would be recongnized as QRS complex
+    //
+    //for mm = qrs_detect_win + 1 : l - qrs_detect_win
+    for (int mm = qrs_detect_win + 1; mm <= l - qrs_detect_win; ++mm) {
+      
+      //QRS_det_local = QRS_detector( mm-qrs_detect_win : mm+qrs_detect_win);
+      //[y_max x_max]= max(QRS_det_local);
+      double y_max = -1;
+      int x_max = -1;
+      if (!matlab_max(QRS_detector, mm-qrs_detect_win - 1, mm+qrs_detect_win - 1,
+                     &y_max, &x_max)) continue;
+      ++x_max;
+      
+
+      //y_list.push_back(y_max);
+      if (y_max > 2 * Baseline[mm - 1] + 1e-6 &&
+              x_max == qrs_detect_win+1) {
+            
+            x_qrs->push_back(mm - 1);
+            //x_QRS=[x_QRS,mm];
+      }
+    }
+    //OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", y_list);
+
+    return;
 }
 
 /*
