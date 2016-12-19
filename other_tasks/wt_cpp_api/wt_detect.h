@@ -7,8 +7,9 @@ using namespace std;
 
 
 
-// 1D Functions
-
+// Testing API
+void Testing(vector<double>& signal_in, double fs,
+        vector<pair<char, int>>* result_out);
 
 
 #endif/* WT_DETECT_H */

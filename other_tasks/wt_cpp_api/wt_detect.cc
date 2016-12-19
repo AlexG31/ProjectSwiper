@@ -82,8 +82,6 @@ void FormatKpdInput(vector<vector<double>>& s_rec_vec,
 // Resampling input signal
 static void Resample(vector<double>& sig_in, int fs_in, int fs_out,
                      vector<double>* sig_out) {
-    // TODO: upsample
-    if (fs_out >= fs_in) return;
     if (fs_out == 0 || fs_in == 0) return ;
 
     sig_out->clear();
@@ -116,7 +114,7 @@ void Testing(vector<double>& signal_in, double fs,
     // Resampling
     vector<double> signal_resampled;
     int fs_input = static_cast<int>(round(fs));
-    if (fs_input > 360) {
+    if (fs_input != 360) {
         Resample(signal_in, fs_input, 360, &signal_resampled);
     } else {
         signal_resampled = signal_in;
@@ -167,6 +165,12 @@ void Testing(vector<double>& signal_in, double fs,
             len_signal,
             360.0,
             result_out);
+
+    // Resample result index
+    for (auto& item: *result_out) {
+        item.second = round(item.second / 360.0 * fs);
+    }
+    
 }
 
 // [Debug] Testing function For Testing api
@@ -298,11 +302,11 @@ static void TEST1() {
     }
 }
 
-int main() {
+//int main() {
 
-    srand(time(NULL));
-    TEST1();
+    //srand(time(NULL));
+    //TEST1();
 
-    return 0;
-}
+    //return 0;
+//}
 

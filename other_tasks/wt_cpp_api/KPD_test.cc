@@ -9,6 +9,7 @@
 #include <ctime>
 
 #include "wavelet_udfs.h"
+#include "wt_detect.h"
 #include "DTCWT.h"
 #include "call_simple_function/call_simple_function_emxutil.h"
 #include "call_simple_function/call_simple_function_types.h"
@@ -60,7 +61,7 @@ static void OutputLabeledResultsToFile(const string& file_name,
 }
 
 // debug function
-void OutputS_rec(vector<vector<double>>& s_rec) {
+static void OutputS_rec(vector<vector<double>>& s_rec) {
     int len_s_rec = s_rec.size();
     string file_name_prefix = "/home/alex/LabGit/ProjectSwiper/other_tasks/"
                               "wt_cpp_api/s_rec/";
@@ -74,7 +75,7 @@ void OutputS_rec(vector<vector<double>>& s_rec) {
 // Convert c++ vector into double* for c code.
 // Input :
 //  row & col may exceed s_rec_vec's size
-void FormatKpdInput(vector<vector<double>>& s_rec_vec,
+static void FormatKpdInput(vector<vector<double>>& s_rec_vec,
         double* s_rec_out,
         int row,
         int col) {
@@ -124,7 +125,7 @@ static void Resample(vector<double>& sig_in, int fs_in, int fs_out,
 }
 
 // The testing API
-void Testing(vector<double>& signal_in, double fs,
+static void Testing_local(vector<double>& signal_in, double fs,
         vector<pair<char, int>>* result_out) {
     
     // Resampling
@@ -196,7 +197,7 @@ static void TEST1(string signal_file_name) {
 
     // Output vector
     vector<pair<char, int>> detect_result;
-    Testing(sig, 360.0, &detect_result); 
+    Testing(sig, 250.0, &detect_result); 
 
     vector<int> qrs_results;
     for (auto& item: detect_result) {

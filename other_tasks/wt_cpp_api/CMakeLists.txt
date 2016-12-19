@@ -17,18 +17,20 @@ add_library(dwt wavelib/src/shared/wavedec_api.cc wavelib/src/shared/wavelet2d.c
 
 add_library(KPD_pt call_simple_function/QRS_detection.cc call_simple_function/rdivide.cc call_simple_function/call_simple_function_emxutil.cc call_simple_function/mean.cc call_simple_function/power.cc call_simple_function/call_simple_function_emxAPI.cc call_simple_function/gaussian_function.cc call_simple_function/call_simple_function_terminate.cc call_simple_function/rtGetInf.cc call_simple_function/abs.cc call_simple_function/rt_nonfinite.cc call_simple_function/eml_sort.cc call_simple_function/rtGetNaN.cc call_simple_function/call_simple_function_initialize.cc call_simple_function/T_detection.cc call_simple_function/floor.cc call_simple_function/call_simple_function.cc call_simple_function/sum.cc)
 
+add_library(wt_API wt_detect.cc)
+
 add_executable(wt_run wavelet-test.cc)
-add_executable(wt_detect wt_detect.cc)
+#add_executable(wt_detect wt_detect.cc)
 add_executable(DTCWT_TEST DTCWT_TEST.cc)
 add_executable(KPD_test KPD_test.cc)
 
 target_link_libraries(wt_run dwt)
 target_link_libraries(wt_run fftw3)
 
-target_link_libraries(wt_detect dwt)
-target_link_libraries(wt_detect KPD_pt)
-target_link_libraries(wt_detect m)
-target_link_libraries(wt_detect fftw3)
+#target_link_libraries(wt_detect dwt)
+#target_link_libraries(wt_detect KPD_pt)
+#target_link_libraries(wt_detect m)
+#target_link_libraries(wt_detect fftw3)
 
 target_link_libraries(DTCWT_TEST dwt)
 target_link_libraries(DTCWT_TEST KPD_pt)
@@ -39,3 +41,4 @@ target_link_libraries(KPD_test dwt)
 target_link_libraries(KPD_test KPD_pt)
 target_link_libraries(KPD_test m)
 target_link_libraries(KPD_test fftw3)
+target_link_libraries(KPD_test wt_API)
