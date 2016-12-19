@@ -235,7 +235,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
 
     // OUtput
     //QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
-    vector<double> x_qrs_vec;
+    vector<int> x_qrs_vec;
     QRS_detection(qrs_detector_vec, fs, &x_qrs_vec);
     //vector<double> qrs_detector_vec;
     //for (int i = 0; i < x_QRS->size[0] * x_QRS->size[1]; ++i) {
@@ -266,7 +266,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
     //}
 
     /*   T and P wave detection        */
-    T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
+    T_detection(T_detector, fs, x_qrs_vec, x_start, T_Location_cur, P_Location_cur);
 
     // Add to output vector.
     //auto T_cap = T_Location_cur->allocatedSize;
@@ -382,7 +382,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
 
         // OUtput
         //QRS_detection(b_QRS_detector, fs, QRS_detector, x_QRS);
-        vector<double> x_qrs_vec;
+        vector<int> x_qrs_vec;
         QRS_detection(qrs_detector_vec, fs, &x_qrs_vec);
         //vector<double> qrs_detector_vec;
         //for (int i = 0; i < x_QRS->size[0] * x_QRS->size[1]; ++i) {
@@ -412,7 +412,7 @@ void call_simple_function(const double *s_rec, double sig_len, double fs,
         //}
 
         /*   T and P wave detection        */
-        T_detection(T_detector, fs, x_QRS, x_start, T_Location_cur, P_Location_cur);
+        T_detection(T_detector, fs, x_qrs_vec, x_start, T_Location_cur, P_Location_cur);
 
         // Save Outputs
         for (int i = 0; i < T_Location_cur->size[0] * T_Location_cur->size[1];

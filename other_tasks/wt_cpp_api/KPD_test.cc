@@ -45,6 +45,20 @@ static void OutputCoefToFile(const string& file_name, vector<T>& coef) {
     fout.close();
 }
 
+// Output labeled results to file.
+template <typename T1, typename T2>
+static void OutputLabeledResultsToFile(const string& file_name,
+                                       vector<pair<T1, T2>>& results) {
+    
+    fstream fout(file_name.c_str(), fstream::out);
+    fout << results.size() << endl;
+    for (const auto& item: results) {
+        fout << item.first << " " << item.second << endl;
+    }
+
+    fout.close();
+}
+
 // debug function
 void OutputS_rec(vector<vector<double>>& s_rec) {
     int len_s_rec = s_rec.size();
@@ -191,7 +205,8 @@ static void TEST1(string signal_file_name) {
         }
     }
 
-    OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", qrs_results);
+    //OutputCoefToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", qrs_results);
+    OutputLabeledResultsToFile("/home/alex/LabGit/ProjectSwiper/other_tasks/wt_cpp_api/c_output/result.dat", detect_result);
 }
 
 int main(int argv, char** argc) {

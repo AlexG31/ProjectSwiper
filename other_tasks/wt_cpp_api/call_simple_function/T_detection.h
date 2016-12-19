@@ -22,6 +22,10 @@ extern void T_detection(emxArray_real_T *T_detector, double fs, const
   emxArray_real_T *x_QRS, double x_start, emxArray_real_T *T_Location_cur,
   emxArray_real_T *P_Location_cur);
 
+// vector version of T_detection.
+extern void T_detection(emxArray_real_T *T_detector, double fs, const vector<int>& x_qrs_vec,
+                 double x_start, emxArray_real_T *T_Location_cur_out,
+                 emxArray_real_T *P_Location_cur_out);
 #endif
 
 /*

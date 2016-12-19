@@ -218,7 +218,7 @@ void QRS_detection(const emxArray_real_T *QRS_detector, double fs,
 }
 
 // Detect QRS locations with QRS_detector input.
-void QRS_detection(vector<double>& QRS_detector, int fs, vector<double>* x_qrs) {
+void QRS_detection(vector<double>& QRS_detector, int fs, vector<int>* x_qrs) {
     x_qrs->clear();
     auto l = QRS_detector.size();
     auto qrs_detect_win = floor(fs*150.0/1000.0);

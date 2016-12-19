@@ -24,7 +24,7 @@ extern void QRS_detection(const emxArray_real_T *QRS_detector, double fs,
   emxArray_real_T *y_QRS, emxArray_real_T *x_QRS);
 
 extern void QRS_detection(std::vector<double>& QRS_detector, int fs,
-                          std::vector<double>* x_qrs);
+                          std::vector<int>* x_qrs);
 
 #endif
 
