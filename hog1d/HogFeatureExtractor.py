@@ -29,9 +29,9 @@ projhomepath = curfolderpath
 projhomepath = os.path.dirname(projhomepath)
 
 # configure file
-with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
-    conf = json.load(fin)
-sys.path.append(projhomepath)
+# with open(os.path.join(projhomepath,'ECGconf.json'),'r') as fin:
+    # conf = json.load(fin)
+# sys.path.append(projhomepath)
 
 from QTdata.loadQTdata import QTloader
 
@@ -140,18 +140,70 @@ class HogFeatureExtractor(object):
             # for vec in self.training_vector:
                 # if len(vec) != fixed_len:
                         # print 'Error: new len:', len(vec)
-        # pdb.set_trace()
-        for tr in self.target_biases:
-            if isinstance(tr, int) == False:
-                raise Exception('tr = {}', tr)
         for vec in self.training_vector:
             for val in vec:
                 if isinstance(val, float) == False:
                     raise Exception('val = {}'.format(val))
-        # Training models
+        # Training GBDT models
         self.gbdt = GradientBoostingRegressor(n_estimators=100,
                 learning_rate=0.1, max_depth=1, random_state=0,
                 loss='ls').fit(self.training_vector, self.target_biases)
+
+    def LoadModel(self, model_object):
+        '''Load Model object.'''
+        self.gbdt = model_object
+
+    def Testing(self, sig_in, expert_labels):
+        '''Testing given ECG.'''
+        
+        detected_positions = list()
+        # debug
+        # debug_count = 7
+        for expert_index in xrange(0, len(expert_labels)):
+            pos, label = expert_labels[expert_index]
+            if label != 'R':
+                continue
+
+            # debug_count -= 1
+            # if debug_count < 0:
+                # break
+
+            # Cut out the ECG segment that end with current R peak.
+            signal_segment, target_bias = self.CutSegment(sig_in,
+                                                     expert_labels,
+                                                     expert_index,
+                                                     fixed_window_length = 250)
+            # Testing
+            current_feature_vector = np.array([])
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 1))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 4))
+            current_feature_vector = np.append(current_feature_vector,
+                                               self.GetDiffFeature(signal_segment,
+                                                   diff_step = 8))
+
+            current_feature_vector = current_feature_vector.reshape(1,-1)
+            predict_pos = self.gbdt.predict(current_feature_vector)
+
+            # print 'Predict position:', predict_pos
+
+            # Display results
+            local_pos = predict_pos + self.fixed_window_length - 1
+            local_pos = int(local_pos)
+            # plt.plot(signal_segment)
+            # plt.plot(local_pos, signal_segment[local_pos], marker = 'o',
+                     # markersize = 12)
+            # plt.grid(True)
+            # plt.title('Testing function')
+            # plt.show()
+
+            # Append the global position
+            detected_positions.append(predict_pos + pos)
+            
+        return detected_positions
 
     def TestingQt(self, record_name):
         sig_struct = self.qt.load(record_name)
@@ -199,11 +251,10 @@ class HogFeatureExtractor(object):
             plt.grid(True)
             plt.title(record_name)
             plt.show()
-            
-        
-    def CutSegment(self, sig_in, expert_labels, expert_index,
+
+    def CutSegment_T(self, sig_in, expert_labels, expert_index,
                    fixed_window_length = 250 * 1):
-        '''Get equal length signal_segments ends at expert_index.
+        '''Get equal length signal_segments starts at expert_index.
         Inputs:
             sig_in: Input ECG signal.
             expert_labels: Annotation list of form [(pos, label), ...]
@@ -215,6 +266,63 @@ class HogFeatureExtractor(object):
             target_bias: (May be None)The bias respect to the expert_index's
                          position.
         '''
+        current_R_pos = expert_labels[expert_index][0]
+        ecg_segment = np.zeros(fixed_window_length)
+        left_bound = max(0, current_R_pos - fixed_window_length + 1)
+        right_bound = min(current_R_pos + fixed_window_length - 1, len(sig_in) - 1)
+        len_ecg_data = abs(current_R_pos - right_bound) + 1
+        ecg_segment[:len_ecg_data] = np.array(
+                                        sig_in[current_R_pos: current_R_pos + len_ecg_data])
+        
+        
+        previous_R_pos = None
+        next_T_pos = None
+        for ind in xrange(expert_index + 1, len(expert_labels)):
+            cur_pos, cur_label = expert_labels[ind]
+            if cur_label == 'R':
+                if previous_R_pos is None:
+                    previous_R_pos = cur_pos
+                else:
+                    break
+            if cur_label == self.target_label:
+                if next_T_pos is None:
+                    next_T_pos = cur_pos
+                else:
+                    break
+            if abs(current_R_pos - cur_pos) >= fixed_window_length:
+                break
+        
+        if next_T_pos is not None:
+            if abs(current_R_pos - next_T_pos) >= fixed_window_length:
+                local_next_T_pos = None
+            else:
+                # Bias respect to current_R_pos
+                local_next_T_pos = next_T_pos - current_R_pos
+        else :
+            local_next_T_pos = None
+        
+        return ecg_segment, local_next_T_pos
+        
+        
+    def CutSegment(self, sig_in, expert_labels, expert_index,
+                   fixed_window_length = 250 * 1):
+        '''Get equal length signal_segments starts or ends at expert_index.
+        Inputs:
+            sig_in: Input ECG signal.
+            expert_labels: Annotation list of form [(pos, label), ...]
+            expert_index: The index of the element in expert_labels that
+                          has label 'R'.
+            fixed_window_length : return signal's length
+        Returns:
+            signal_segment: Cropped signal segment.
+            target_bias: (May be None)The bias respect to the expert_index's
+                         position.
+        '''
+        # Search T wave
+        if 'T' in self.target_label:
+            return self.CutSegment_T(sig_in, expert_labels, expert_index,
+                   fixed_window_length = fixed_window_length)
+            
         current_R_pos = expert_labels[expert_index][0]
         ecg_segment = np.zeros(fixed_window_length)
         left_bound = max(0, current_R_pos - fixed_window_length + 1)

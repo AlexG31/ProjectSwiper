@@ -54,7 +54,7 @@ def SignalResampling(raw_signal, sampling_frequency, adapt_frequency = 250.0):
     M = int(M) + 1
     return scipy.signal.resample(raw_signal, M, window = ('hamming')).tolist()
     
-def Testing(raw_signal, model_path, sampling_frequency = 250.0, adapt_frequency = 250.0):
+def Testing(raw_signal, model_path, save_result_to_file = False, sampling_frequency = 250.0, adapt_frequency = 250.0):
     '''
     Testing API.
     Inputs: 
@@ -66,6 +66,8 @@ def Testing(raw_signal, model_path, sampling_frequency = 250.0, adapt_frequency 
         List of form [[pos, label], [pos, label] ...], where pos is the index 
         of detected sample point, label is one of P, Ponset, Poffset, T ...
     '''
+    if adapt_frequency < 1e-6:
+        raise Exception('adapt frequency should be greater than 0!')
     # Sampling frequency adapting
     raw_signal = SignalResampling(raw_signal, sampling_frequency, adapt_frequency)
     print 'signal length:', len(raw_signal)
@@ -88,10 +90,11 @@ def Testing(raw_signal, model_path, sampling_frequency = 250.0, adapt_frequency 
     grouper = ResultGrouper(result)
     result_dict = grouper.GetResultDict()
     for label, pos_list in result_dict.iteritems():
-        grouped_result.extend([(int(x), label, 1) for x in pos_list])
+        grouped_result.extend([(int(x / adapt_frequency * sampling_frequency), label, 1) for x in pos_list])
 
-    with open(os.path.join(saveresultpath, 'test_result_cc'),'w') as fout:
-        json.dump(result,fout,indent = 4)
+    if save_result_to_file:
+        with open(os.path.join(saveresultpath, 'test_result_cc'),'w') as fout:
+            json.dump(result,fout,indent = 4)
     return grouped_result
 
 def show_drawing(folderpath = os.path.join(\
