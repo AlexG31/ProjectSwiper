@@ -54,7 +54,8 @@ def SignalResampling(raw_signal, sampling_frequency, adapt_frequency = 250.0):
     M = int(M) + 1
     return scipy.signal.resample(raw_signal, M, window = ('hamming')).tolist()
     
-def Testing(raw_signal, model_path, save_result_to_file = False, sampling_frequency = 250.0, adapt_frequency = 250.0):
+def Testing(raw_signal, model_path, save_result_to_file = False,
+        sampling_frequency = 250.0, adapt_frequency = 250.0):
     '''
     Testing API.
     Inputs: 
@@ -68,6 +69,7 @@ def Testing(raw_signal, model_path, save_result_to_file = False, sampling_freque
     '''
     if adapt_frequency < 1e-6:
         raise Exception('adapt frequency should be greater than 0!')
+    len_raw_sig = len(raw_signal)
     # Sampling frequency adapting
     raw_signal = SignalResampling(raw_signal, sampling_frequency, adapt_frequency)
     print 'signal length:', len(raw_signal)
@@ -91,6 +93,7 @@ def Testing(raw_signal, model_path, save_result_to_file = False, sampling_freque
     result_dict = grouper.GetResultDict()
     for label, pos_list in result_dict.iteritems():
         grouped_result.extend([(int(x / adapt_frequency * sampling_frequency), label, 1) for x in pos_list])
+        grouped_result = filter(lambda x: x[0] < len_raw_sig, grouped_result)
 
     if save_result_to_file:
         with open(os.path.join(saveresultpath, 'test_result_cc'),'w') as fout:
@@ -159,7 +162,8 @@ class ECGrf(object):
 
         training_samples, training_labels = [], []
         # single core:
-        trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],prompt = 'All records collect feature time')
+        trainingTuples = timing_for(map,[self.CollectRecFeature,reclist],
+                prompt = 'All records collect feature time')
         # close pool
         pool.close()
         pool.join()
@@ -498,12 +502,13 @@ def TEST1():
     '''Test case 1.'''
     # load signal from QTdb
     loader = QTdb.QTloader()
-    sig_struct = loader.load('sel100')
-    sig_segment = sig_struct['sig'][100:]
+    sig_struct = loader.load('sel103')
+    sig_segment = sig_struct['sig'][0:5000]
 
     # model path
     model_path = os.path.join(
-            projhomepath, 'result', 'swt-paper-8')
+            projhomepath, 'cpp-api', 'models')
+    result = Testing(sig_segment, model_path, adapt_frequency = 360.0)
     result = Testing(sig_segment, model_path, adapt_frequency = 360.0)
 
     # length check:
