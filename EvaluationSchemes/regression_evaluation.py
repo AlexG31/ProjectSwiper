@@ -96,6 +96,7 @@ class FindBadRecord:
         else:
             self.possible_label_list = possible_label_list
 
+        self.round_record_statistics = list()
         self.total_error_diction =  dict()
         self.error_list_for_label = dict()
         self.false_negtive_list = dict()
@@ -123,7 +124,7 @@ class FindBadRecord:
 
     def RunEval(self,RoundInd,GroupResultFolder, result_file_list):
         '''
-        Evaluate result.
+        Evaluate results.
 
         RoundInd: only used by police_check function.
         '''
@@ -131,6 +132,7 @@ class FindBadRecord:
 
         ErrDict = dict()
         ErrData = dict()
+        record_statistics = dict()
 
         for label in self.possible_label_list:
             # Target label to calculate stats from.
@@ -143,6 +145,10 @@ class FindBadRecord:
             for file_ind in xrange(0,len(result_file_list)):
                 # Process all the *grouped* results.
                 result_file_name = result_file_list[file_ind]
+                # Save record result
+                record_name = os.path.split(result_file_name)[-1]
+                if record_name not in record_statistics:
+                    record_statistics[record_name] = dict()
                 eva= EvaluationMultiLeads(self.result_converter_)
                 eva.loadlabellist(result_file_name,label, supress_warning = True)
                 eva.evaluate(label)
@@ -157,6 +163,13 @@ class FindBadRecord:
 
                 FNcnt += FN
                 FPcnt += FP
+                # Save record result
+                record_statistics[record_name][label] = dict(
+                        mean = np.mean(eva.errList),
+                        std = np.std(eva.errList),
+                        FN = FN,
+                        FP = FP)
+                
                 # police check:
                 # find error that exceeded thresholds
                 self.police_check(eva,RoundInd,result_file_list[file_ind],label)
@@ -164,9 +177,11 @@ class FindBadRecord:
             self.error_list_for_label[label].extend(errList)
             self.false_negtive_list[label] += FNcnt
             self.false_positive_list[label] += FPcnt
+        # Save record statistics of each round
+        self.round_record_statistics.append(record_statistics)
 
     def police_check(self,eva,RoundInd,resultfilepath,label):
-        # pass 
+        '''Whether result statistics is worse than expected.'''
         if len(eva.errList) == 0:
             mean = -1
             std = -1
@@ -274,6 +289,52 @@ class FindBadRecord:
                     np.nanmean(self.statistics_list_for_label[label]['std']))
     def dump_statistics_to_HTML(self, html_file_name):
         '''Like display_error_statistics(), dump statistics data to txt file.'''
+        def format_record_result():
+            html_template_path = os.path.join(
+                    projhomepath,
+                    'EvaluationSchemes',
+                    'templates',
+                    'record-template.html')
+            html_template_str_list = []
+            with open(html_template_path, 'r') as fin:
+                for line in fin:
+                    html_template_str_list.append(line)
+                html_template_str = ''.join(html_template_str_list)
+            html_template = string.Template(html_template_str)
+
+            # Format output
+            html_data = ''
+            for round_ind in xrange(0, len(self.round_record_statistics)):
+
+                html_data += '<br>' * 3 + '\n'
+                html_data += '<table>\n'
+                html_data += '<tr><td>Round %d</td></tr>\n' % (round_ind + 1)
+                for record_name, result_stat in self.round_record_statistics[round_ind].iteritems():
+                    
+                    data_dict = dict(record_name = record_name)
+                    for label in self.possible_label_list:
+                        if label in ['P', 'R', 'T']:
+                            html_label = label + 'peak'
+                        else:
+                            html_label = label
+                        # Get mean & std
+                        label_mean = result_stat[label]['mean']
+                        label_std = result_stat[label]['std']
+                        data_dict.update(
+                                {html_label+'_error': '%.1f & %.1f' % (label_mean, label_std)})
+                        # Get Se
+                        label_Se = result_stat[label]['FN']
+                        data_dict.update({html_label+'_se': '%.3f' % label_Se})
+
+                        # Get Pp
+                        label_Pp = result_stat[label]['FP']
+                        data_dict.update({html_label+'_pp': '%.3f' % label_Pp})
+                    round_data = html_template.substitute(data_dict)
+                    html_data += round_data
+                html_data += '</table>\n\n'
+                
+            return html_data
+
         # 1. Read html template to string
         html_template_path = os.path.join(
                 projhomepath,
@@ -314,6 +375,7 @@ class FindBadRecord:
 
 
         # Fill in the data
+        data_dict['append_data'] = format_record_result()
         html_data = html_template.substitute(data_dict)
             
         with open(html_file_name, 'w') as fout:

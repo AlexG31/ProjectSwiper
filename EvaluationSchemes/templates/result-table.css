@@ -35,3 +35,14 @@ td:hover {
 tr:hover {
 	background-color: #a1a1a1;
 }
+.record_table {
+	background-color: red;
+}
+tr.record_table {
+	background-color: white;
+	border-style: solid;
+}
+td.record_table {
+	background-color: white;
+	border-style: none;
+}

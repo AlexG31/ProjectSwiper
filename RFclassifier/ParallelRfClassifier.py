@@ -57,6 +57,7 @@ class ParallelRfClassifier(ECGrf):
         super(ParallelRfClassifier,self).__init__(
                 MAX_PARA_CORE = 6,
                 SaveTrainingSampleFolder = SaveTrainingSampleFolder)
+
     def testing_with_extractor(self, rfmdl, signal_length, feature_extractor):
         ''' Testing a feature vector from feature_extractor in test_range.'''
 
@@ -114,12 +115,13 @@ class ParallelRfClassifier(ECGrf):
             # ------------------------
             # test lead I
             # ------------------------
-            # original raw_signal
             raw_signal = sig['sig']
+            plt.figure(1)
+            plt.plot(raw_sig)
             feature_extractor = extfeature.ECGfeatures(raw_signal)
             N_signal = len(raw_signal)
 
-            # Testing...
+            # Testing
             time_rec0 = time.time()
             record_predict_result = self.testing_with_extractor(
                     rfmdl,
@@ -134,8 +136,10 @@ class ParallelRfClassifier(ECGrf):
             # ------------------------
             # test lead II
             # ------------------------
-            # original raw_signal
             raw_signal = sig['sig2']
+            plt.figure(2)
+            plt.plot(raw_sig)
+            plt.show()
             feature_extractor = extfeature.ECGfeatures(raw_signal)
             N_signal = len(raw_signal)
 
@@ -147,7 +151,7 @@ class ParallelRfClassifier(ECGrf):
             time_rec1 = time.time()
             log.info('Testing time for %s lead1 is %d seconds',recname,time_rec1-time_rec0)
 
-            PrdRes.append(('{}_sig2'.format(recname),record_predict_result))
+            PrdRes.append(('{}_sig2'.format(recname), record_predict_result))
 
         # Save prediction result.
         if saveresultfolder is not None:
@@ -222,6 +226,7 @@ class ParallelRfClassifier(ECGrf):
     def TestQtRecords(self,saveresultfolder,
             reclist = ['sel103',],mdl = None,TestResultFileName = None):
         '''Parallel testing Qt records with trainied model.'''
+        print 'TestQtRecords in ParallelClassifier.'
         # default parameter
         if mdl is None:
             mdl = self.mdl
@@ -262,7 +267,10 @@ def Parallel_CollectRecFeature(recname):
     if recname in blkArea:
         print recname,'in blank Area list.'
         blklist = blkArea[recname]
-    tX,ty = ECGrf.collectfeaturesforsig(sig,SaveTrainingSampleFolder,blankrangelist = blklist,recID = recname)
+    tX,ty = ECGrf.collectfeaturesforsig(sig,
+            SaveTrainingSampleFolder,
+            blankrangelist = blklist,
+            recID = recname)
     return (tX,ty)
     
 def ParallelTesting(params):
@@ -271,7 +279,35 @@ def ParallelTesting(params):
     with open('/tmp/rf-classifier.mdl','rb') as fin:
         trained_model = pickle.load(fin)
     classifier = ECGrf()
-    classifier.testing([recname,], rfmdl = trained_model, saveresultfolder = result_folder)
+    # Load Qt records for testing
+
+    QT_results = list()
+    qt = QTdb.QTloader()
+    sig = qt.load(recname)
+    TestRegionFolder = os.path.join(projhomepath, 'QTdata', 'QT_TestRegions')
+    with open(os.path.join(TestRegionFolder,'{}_TestRegions.pkl'.format(recname)),'rb') as fin:
+        TestRegions = pickle.load(fin)
+    # Lead I
+    results = classifier.testing_API(sig['sig'],
+            rfmdl = trained_model,
+            saveresultfolder = result_folder,
+            TestRegions = TestRegions)
+
+    QT_results.append(('{}'.format(recname), results))
+    # Lead II
+    results = classifier.testing_API(sig['sig2'],
+            rfmdl = trained_model,
+            saveresultfolder = result_folder,
+            TestRegions = TestRegions)
+    QT_results.append(('{}_sig2'.format(recname), results))
+
+    # Save Prediction Result
+    if result_folder is not None:
+        # save results
+        saveresult_filename = os.path.join(result_folder,'result_{}'.format(recname))
+        with open(saveresult_filename, 'w') as fout:
+            json.dump(QT_results,fout,indent = 4,sort_keys = True)
+            print 'saved prediction result to %s' % (saveresult_filename)
 
 if __name__ == '__main__':
     pass

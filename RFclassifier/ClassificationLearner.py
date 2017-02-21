@@ -193,12 +193,15 @@ class ECGrf(object):
         # sample_list
         # [(pos,label),...]
         # -----
-        sample_list = zip(selnegposlist,len(selnegposlist)*['white'])
+        sample_list = zip(selnegposlist, len(selnegposlist)*['white'])
         sample_list.extend(ExpertLabels)
         if recID is not None:
             # save recID sample list
-            with open(os.path.join(ResultFolder,recID+'.pkl'),'w') as fout:
-                pickle.dump(sample_list,fout)
+            with open(os.path.join(ResultFolder,recID+'.json'),'w') as fout:
+                format_data = [
+                        [recID, sample_list],
+                        [recID + '_copy', sample_list]]
+                json.dump(format_data, fout, indent = 4)
             save_mat_filename = os.path.join(ResultFolder,recID+'.mat')
             reslist_to_mat(sample_list,mat_filename = save_mat_filename)
         return (trainingX,trainingy) 
@@ -221,8 +224,8 @@ class ECGrf(object):
 
     def TrainQtRecords(self,reclist):
         '''Warpper for model training on QTdb.'''
+
         # Multi Process
-        #pool = Pool(self.MAX_PARA_CORE)
         pool = Pool(2)
 
         training_samples, training_labels = [], []
@@ -260,12 +263,12 @@ class ECGrf(object):
         return rfclassifier
     
     def test_signal(self,signal,rfmdl = None,MultiProcess = 'off'):
-        # test rawsignal
+        # test raw_signal
         if rfmdl is None:
             rfmdl = self.mdl
         # Extracting Feature
         if MultiProcess == 'off':
-            FeatureExtractor = extfeature.ECGfeatures(signal,
+            feature_extractor = extfeature.ECGfeatures(signal,
                     random_relation_path = self.random_relation_path)
         else:
             raise StandardError('MultiProcess on is not defined yet!')
@@ -275,7 +278,59 @@ class ECGrf(object):
         elif MultiProcess == 'off':
             record_predict_result = self.test_with_positionlist(rfmdl,
                     range(0, len(signal)),
-                    FeatureExtractor)
+                    feature_extractor)
+        return record_predict_result
+
+    def testing_API(self,
+            raw_sig,
+            rfmdl = None,
+            saveresultfolder = None,
+            TestRegions = None):
+        '''Testing ECG record with trained model.
+        Input:
+            raw ECG signal.
+        '''
+
+        # default parameters
+        if rfmdl is None:
+            rfmdl = self.mdl
+
+        # --------------------
+        # start test time
+        # --------------------
+        time_rec0 = time.time()
+        # QT sig data
+        if valid_signal_value(raw_sig) == False:
+            return []
+        # Sigle process, default random relation path: in 'saveresultpath'
+        feature_extractor = extfeature.ECGfeatures(raw_sig,
+                random_relation_path = self.random_relation_path)
+
+        N_signal = len(raw_sig)
+
+        # Test in the same range as expert labels
+        # Leave Testing Blank Regions in Head&Tail
+        WindowLen = conf['winlen_ratio_to_fs'] * conf['fs']
+        Blank_Len = WindowLen/2 + 1
+        prRange = range(Blank_Len,N_signal - 1-Blank_Len)
+
+        if conf['QTtest'] == 'FastTest':
+            if TestRegions is None:
+                raise Exception('TestRegions parameter cannot be None!')
+            prRange = []
+            for region in TestRegions:
+                prRange.extend(range(region[0],region[1]+1))
+        
+        record_predict_result = self.\
+                test_with_positionlist(
+                    rfmdl,
+                    prRange,
+                    feature_extractor
+                )
+
+        # Finish testing time
+        print 'Testing time for is {:.2f} s'.\
+                format(time.time() - time_rec0)
         return record_predict_result
 
     def testing(self, reclist, rfmdl = None, saveresultfolder = None):
@@ -306,7 +361,7 @@ class ECGrf(object):
             # sigle process
             if MultiProcess == 'off':
                 log.info('Multi-process is off, using record-global feature extractor.')
-                FeatureExtractor = extfeature.ECGfeatures(sig['sig'],
+                feature_extractor = extfeature.ECGfeatures(sig['sig'],
                         random_relation_path = self.random_relation_path)
 
             # ------------------------
@@ -364,7 +419,7 @@ class ECGrf(object):
                         test_with_positionlist(\
                             rfmdl,\
                             prRange,\
-                            FeatureExtractor\
+                            feature_extractor\
                         )
 
             #
@@ -431,7 +486,7 @@ class ECGrf(object):
                         test_with_positionlist(\
                             rfmdl,\
                             prRange,\
-                            FeatureExtractor\
+                            feature_extractor\
                         )
 
             #
@@ -652,6 +707,7 @@ class ECGrf(object):
     def TestQtRecords(self,saveresultfolder,
             reclist = ['sel103',],mdl = None,TestResultFileName = None):
         '''Test Qt records with trainied model.'''
+        print 'TestQtRecords in Classifier.py.'
         # default parameter
         if mdl is None:
             mdl = self.mdl
