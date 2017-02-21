@@ -79,21 +79,17 @@ class ECGrf(object):
             SaveTrainingSampleFolder = None,
             allowed_label_list = None,
             random_relation_path = None):
-        # only test on areas with expert labels
+        # Only test on areas with expert labels
         self.TestRange = 'Partial'# or 'All'
         # Parallel
         self.QTloader = QTdb.QTloader()
         self.mdl = None
         self.MAX_PARA_CORE = MAX_PARA_CORE
-        # maximum samples for bucket testing
+        # Maximum samples for bucket testing
         self.MaxTestSample = 200
-        # save training samples folder
+        # Save training samples folder
         if SaveTrainingSampleFolder is None:
-            ResultFolder = projhomepath
-            ResultFolder_conf = conf['ResultFolder_Relative']
-            for folder in ResultFolder_conf:
-                ResultFolder = os.path.join(ResultFolder,folder)
-            self.SaveTrainingSampleFolder = ResultFolder
+            self.SaveTrainingSampleFolder = None
         else:
             self.SaveTrainingSampleFolder = SaveTrainingSampleFolder
 
@@ -185,7 +181,11 @@ class ECGrf(object):
         # =========================================
         # Save sample list
         # =========================================
-        ResultFolder = os.path.join(SaveTrainingSampleFolder,'TrainingSamples')
+        if SaveTrainingSampleFolder is None:
+            # Skip saving training samples
+            return (trainingX,trainingy) 
+            
+        ResultFolder = os.path.join(SaveTrainingSampleFolder, 'TrainingSamples')
         # mkdir if not exists
         if os.path.exists(ResultFolder) == False:
             os.mkdir(ResultFolder)

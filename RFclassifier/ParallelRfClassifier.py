@@ -56,7 +56,7 @@ class ParallelRfClassifier(ECGrf):
     def __init__(self, MAX_PARA_CORE = 6, SaveTrainingSampleFolder = None):
         super(ParallelRfClassifier,self).__init__(
                 MAX_PARA_CORE = 6,
-                SaveTrainingSampleFolder = None)
+                SaveTrainingSampleFolder = SaveTrainingSampleFolder)
     def testing_with_extractor(self, rfmdl, signal_length, feature_extractor):
         ''' Testing a feature vector from feature_extractor in test_range.'''
 

@@ -124,9 +124,9 @@ def Round_Test(
         test_ind_list = random.sample(xrange(0,N_may_test),number_of_test_record_per_round)
         testlist = map(lambda x:may_testlist[x], test_ind_list)
         # Run the test warpper.
-        TestAllQTdata(round_folder, testlist)
+        TestAllQTdata(round_folder, testlist, round_ind)
 
-def TestAllQTdata(saveresultpath,testinglist):
+def TestAllQTdata(saveresultpath, testinglist, round_ind):
     '''Test all records in testinglist, training on remaining records in QTdb.'''
     qt_loader = QTloader()
     QTreclist = qt_loader.getQTrecnamelist()
@@ -148,14 +148,13 @@ def TestAllQTdata(saveresultpath,testinglist):
     rf_classifier.TestRange = 'All'
 
     # Training
-
     time_cost_output = []
     timing_for(rf_classifier.TrainQtRecords,
             [traininglist,],
             prompt = 'Total Training time:',
             time_cost_output = time_cost_output)
     log.info('Total training time cost: %.2f seconds', time_cost_output[-1])
-    # save trained mdl
+    # Save trained mdl
     backupobj(rf_classifier.mdl,os.path.join(saveresultpath,'trained_model.mdl'))
 
     # testing
@@ -177,9 +176,10 @@ if __name__ == '__main__':
     # create result folder if not exist
     if os.path.exists(saveresultpath) == True:
         option = raw_input(
-                'Result path "{}" already exists, remove it?(y/n)' % saveresultpath)
+                'Result path "%s" already exists, remove it?(y/n)' % saveresultpath)
         if option in ['y', 'Y']:
             shutil.rmtree(saveresultpath)
+            os.mkdir(saveresultpath)
     else:
         os.mkdir(saveresultpath)
     # Refresh randomly selected features json file and backup it.
