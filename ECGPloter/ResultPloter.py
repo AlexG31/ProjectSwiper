@@ -20,7 +20,6 @@ sys.path.append(projhomepath)
 
 #import QTdata.loadQTdata.QTloader as QTloader
 from QTdata.loadQTdata import QTloader 
-from RFclassifier.ECGRF import ECGrf as ECGRF
 from RFclassifier.evaluation import ECGstatistics as ECGstats
 
 class ECGResultPloter:

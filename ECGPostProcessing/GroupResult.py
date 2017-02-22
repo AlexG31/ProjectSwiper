@@ -34,7 +34,6 @@ sys.path.append(projhomepath)
 import RFclassifier.extractfeature.extractfeature as extfeature
 import QTdata.loadQTdata as QTdb
 from RFclassifier.evaluation import ECGstatistics
-import RFclassifier.ECGRF as ECGRF 
 
 class ResultFilter:
     def __init__(self,recres):

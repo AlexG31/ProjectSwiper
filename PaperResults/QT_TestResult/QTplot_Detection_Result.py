@@ -26,7 +26,6 @@ sys.path.append(projhomepath)
 #import QTdata.loadQTdata.QTloader as QTloader
 from QTdata.loadQTdata import QTloader 
 from MITdb.MITdbLoader import MITdbLoader
-from RFclassifier.ECGRF import ECGrf as ECGRF
 from RFclassifier.evaluation import ECGstatistics as ECGstats
 from ECGPostProcessing.GroupResult import ResultFilter
 from ECGPloter.ResultPloter import ECGResultPloter
@@ -95,8 +94,10 @@ def getresultfilelist(RFfolder):
         print 'add result file to analysis: {}'.format(fpath) 
         ret.append(fpath)
     return ret
-def plot_QTdb_filtered_Result_with_syntax_filter(RFfolder,TargetRecordList,ResultFilterType,showExpertLabels = False):
-    # exit
+def plot_QTdb_filtered_Result_with_syntax_filter(RFfolder,
+        TargetRecordList,
+        ResultFilterType,
+        showExpertLabels = False):
     # ==========================
     # plot prediction result
     # ==========================
@@ -147,7 +148,7 @@ def plot_QTdb_filtered_Result_with_syntax_filter(RFfolder,TargetRecordList,Resul
         resploter_syntax.plot(plotTitle = 'QT Record {}'.format(recID),plotShow = True,AdditionalPlot = AdditionalPlot)
 
 def plot_QTdb_filtered_Result():
-    # exit
+    # Exit
     RFfolder = os.path.join(\
            projhomepath,\
            'TestResult',\
